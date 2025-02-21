@@ -1,0 +1,409 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Switch,
+  TouchableOpacity,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  Alert,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useUser } from "@clerk/clerk-expo";
+import * as Notifications from "expo-notifications";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
+import HelpSupportModal from "@/components/modals/HelpSupportModal";
+import GetHelpModal from "@/components/modals/GetHelpModal";
+import AboutModal from "@/components/modals/AboutModal";
+
+export default function SettingsScreen() {
+  const navigation = useNavigation();
+  const { user } = useUser();
+
+  const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
+  const [isHelpSupportVisible, setIsHelpSupportVisible] = useState(false);
+  const [isGetHelpVisible, setIsGetHelpVisible] = useState(false);
+  const [isAboutVisible, setIsAboutVisible] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  useEffect(() => {
+    if (notificationsEnabled) {
+      registerForPushNotificationsAsync();
+    }
+  }, [notificationsEnabled]);
+
+  useEffect(() => {
+    const loadNotificationState = async () => {
+      try {
+        const savedState = await AsyncStorage.getItem("notificationsEnabled");
+        if (savedState !== null) {
+          setNotificationsEnabled(JSON.parse(savedState));
+        }
+      } catch (error) {
+        console.log("Error loading notification state:", error);
+      }
+    };
+
+    loadNotificationState();
+  }, []);
+
+  const handleGoBack = () => {
+    navigation.goBack();
+  };
+
+  const handleChangePasswordClick = () => {
+    const hasGoogleAuth = user?.externalAccounts?.some(
+      (account) => account.provider === "google"
+    );
+
+    if (hasGoogleAuth) {
+      setIsHelpSupportVisible(true);
+      return;
+    }
+
+    setIsChangePasswordVisible(true);
+  };
+
+  const handleChangePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ) => {
+    try {
+      await user?.updatePassword({
+        currentPassword,
+        newPassword,
+      });
+      Alert.alert("Éxito", "Contraseña actualizada correctamente");
+      setIsChangePasswordVisible(false);
+    } catch (error) {
+      Alert.alert("Error", "No se pudo actualizar la contraseña");
+    }
+  };
+
+  const registerForPushNotificationsAsync = async () => {
+    let { status } = await Notifications.getPermissionsAsync();
+    if (status !== "granted") {
+      const { status: newStatus } =
+        await Notifications.requestPermissionsAsync();
+      status = newStatus;
+    }
+    if (status !== "granted") {
+      Alert.alert(
+        "Permiso denegado",
+        "No se pueden habilitar las notificaciones sin permiso."
+      );
+      setNotificationsEnabled(false);
+      return;
+    }
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log(token);
+  };
+
+  const handleToggleNotifications = async () => {
+    const newState = !notificationsEnabled;
+    setNotificationsEnabled(newState);
+
+    try {
+      await AsyncStorage.setItem(
+        "notificationsEnabled",
+        JSON.stringify(newState)
+      );
+      if (newState) {
+        registerForPushNotificationsAsync();
+      }
+    } catch (error) {
+      console.log("Error saving notification state:", error);
+    }
+  };
+
+  const handleHelpSupport = () => {
+    setIsHelpSupportVisible(true);
+  };
+
+  const handleGetHelp = () => {
+    setIsGetHelpVisible(true);
+  };
+
+  const handleAbout = () => {
+    setIsAboutVisible(true);
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+          <Ionicons name="arrow-back" size={24} color="#000000" />
+        </TouchableOpacity>
+        <View style={styles.headerTitleContainer}>
+          <Text style={styles.headerTitle}>Configuración</Text>
+        </View>
+        <View style={styles.backButton} />
+      </View>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollViewContent}
+        bounces={true}
+        overScrollMode="always"
+      >
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <FontAwesome name="user-circle" size={24} color="#6A0DAD" />
+            <Text style={styles.sectionTitle}>Cuenta</Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.settingItem, styles.settingItemButton]}
+            onPress={handleChangePasswordClick}
+          >
+            <View style={styles.settingItemContent}>
+              <FontAwesome name="lock" size={20} color="#6A0DAD" />
+              <Text style={styles.settingItemText}>Cambiar Contraseña</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#6A0DAD" />
+          </TouchableOpacity>
+
+          <View style={[styles.settingItem, styles.notificationContainer]}>
+            <View style={styles.settingItemContent}>
+              <FontAwesome name="bell" size={20} color="#6A0DAD" />
+              <Text style={styles.settingItemText}>
+                Habilitar Notificaciones
+              </Text>
+            </View>
+            <Switch
+              style={styles.switch}
+              value={notificationsEnabled}
+              onValueChange={handleToggleNotifications}
+              trackColor={{ false: "#D1D1D1", true: "#8A2BE2" }}
+              thumbColor={notificationsEnabled ? "#6A0DAD" : "#f4f3f4"}
+            />
+          </View>
+        </View>
+
+        <View style={styles.helpSection}>
+          <MaterialIcons name="headset-mic" size={48} color="#6A0DAD" />
+          <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
+          <Text style={styles.helpDescription}>
+            Nuestro equipo está disponible 24/7 para ayudarte con cualquier
+            consulta sobre los Torneos Selectivos
+          </Text>
+          <View style={styles.helpButtonsContainer}>
+            <TouchableOpacity style={styles.helpButton} onPress={handleGetHelp}>
+              <FontAwesome name="phone" size={20} color="#FFFFFF" />
+              <Text style={styles.getHelpButtonText}>Contactar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.helpButton, styles.secondaryButton]}
+              onPress={handleHelpSupport}
+            >
+              <FontAwesome name="question-circle" size={20} color="#6A0DAD" />
+              <Text style={[styles.getHelpButtonText, { color: "#6A0DAD" }]}>
+                FAQ
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity style={styles.aboutButton} onPress={handleAbout}>
+          <View style={styles.aboutContent}>
+            <View>
+              <Text style={styles.aboutButtonText}>Acerca de Millenium</Text>
+              <Text style={styles.aboutVersion}>Versión 1.1</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#6A0DAD" />
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* Modals */}
+      <ChangePasswordModal
+        visible={isChangePasswordVisible}
+        onClose={() => setIsChangePasswordVisible(false)}
+        onSave={handleChangePassword}
+      />
+      <HelpSupportModal
+        visible={isHelpSupportVisible}
+        onClose={() => setIsHelpSupportVisible(false)}
+      />
+      <GetHelpModal
+        visible={isGetHelpVisible}
+        onClose={() => setIsGetHelpVisible(false)}
+      />
+      <AboutModal
+        visible={isAboutVisible}
+        onClose={() => setIsAboutVisible(false)}
+      />
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F8F8F8",
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  backButton: {
+    padding: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingBottom: 30,
+  },
+  section: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#6A0DAD",
+    marginLeft: 8,
+  },
+  settingItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 16,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  settingItemButton: {
+    backgroundColor: "#F8F8F8",
+    borderRadius: 8,
+    marginVertical: 4,
+    paddingHorizontal: 12,
+  },
+  settingItemContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  settingItemText: {
+    fontSize: 16,
+    color: "#333333",
+    fontWeight: "500",
+    marginLeft: 12,
+  },
+  notificationContainer: {
+    backgroundColor: "#F8F8F8",
+    borderRadius: 8,
+    marginTop: 8,
+    paddingHorizontal: 12,
+  },
+  switch: {
+    transform: [{ scale: 0.9 }],
+    marginLeft: 8,
+  },
+  helpSection: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  helpTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#6A0DAD",
+    marginTop: 16,
+  },
+  helpDescription: {
+    fontSize: 16,
+    color: "#333333",
+    textAlign: "center",
+    marginTop: 8,
+  },
+  helpButtonsContainer: {
+    flexDirection: "row",
+    marginTop: 16,
+  },
+  helpButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#6A0DAD",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginHorizontal: 8,
+  },
+  secondaryButton: {
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#6A0DAD",
+  },
+  getHelpButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: 8,
+  },
+  aboutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 24,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  aboutContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  aboutButtonText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#6A0DAD",
+  },
+  aboutVersion: {
+    fontSize: 14,
+    color: "#888888",
+  },
+});
