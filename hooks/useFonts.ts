@@ -11,11 +11,10 @@ export default function useFonts() {
         'outfit-medium': require('../assets/fonts/Outfit-Medium.ttf'),
         'outfit-regular': require('../assets/fonts/Outfit-Regular.ttf'),
         'bebas-regular': require('../assets/fonts/BebasNeue-Regular.ttf'),
-        'oswald': require('../assets/fonts/Oswald-VariableFont_wght.ttf'),
         'barlow-light': require('../assets/fonts/BarlowSemiCondensed-Light.ttf'),
         'barlow-medium': require('../assets/fonts/BarlowCondensed-Medium.ttf'),
         'barlow-regular': require('../assets/fonts/BarlowCondensed-Regular.ttf'),
-        'barlow-semibold': require('../assets/fonts/BarlowCondensed-SemiBold.ttf'),
+        'barlow-semibold': require('../assets/fonts/Barlow-SemiBold.ttf'),
       });
       setFontsLoaded(true);
     }

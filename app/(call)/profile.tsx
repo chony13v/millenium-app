@@ -853,6 +853,7 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-semibold",
     fontSize: 15,
     marginBottom: 10,
+    marginTop: 20,
   },
   card: {
     backgroundColor: "#ffffff",

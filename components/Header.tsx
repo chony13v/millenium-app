@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   greetingText: {
     color: "black", 
     fontSize: 17,
-    fontFamily: 'barlow-medium',
+    fontFamily: 'barlow-semibold',
   },
   nameText: {
     fontSize: 17,

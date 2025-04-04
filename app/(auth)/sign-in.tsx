@@ -26,7 +26,7 @@ export default function SignInScreen() {
     >
       <View style={styles.overlay}>
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={styles.scrollContainer}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
@@ -36,11 +36,7 @@ export default function SignInScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.buttonContent}>
-                <Ionicons
-                  name="mail-outline"
-                  size={20}
-                  color="#242c44"
-                />
+                <Ionicons name="mail-outline" size={20} color="#242c44" />
                 <Text style={styles.buttonText}>Continuar con tu email</Text>
               </View>
             </TouchableOpacity>
@@ -51,9 +47,8 @@ export default function SignInScreen() {
               <View style={styles.separatorLine} />
             </View>
 
-            
-            <SignInWithOAuth />
-         
+            {/* Uncomment to enable OAuth sign in */}
+            {/* <SignInWithOAuth /> */}
 
             <View style={styles.signUpContainer}>
               <Text style={styles.signUpText}>¿No tienes una cuenta?</Text>
@@ -73,13 +68,14 @@ SignInScreen.options = {
 };
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1,
+  },
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 225,
     justifyContent: "center",
     alignItems: "center",
-    gap: 20,
   },
   backgroundImage: {
     flex: 1,
@@ -91,12 +87,12 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0,0,0,0.1)",
   },
   button: {
-    height: 40,
+    height: 50,
     backgroundColor: "#ffffff",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 15,
     borderWidth: 1,
     borderColor: "#dadce0",
@@ -108,19 +104,19 @@ const styles = StyleSheet.create({
     elevation: 2,
     width: "80%",
     maxWidth: 250,
-    marginTop: -10,
+    marginVertical: 10,
   },
   buttonContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
   },
   buttonText: {
     color: "#3c4043",
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: "barlow-medium",
     letterSpacing: 0.25,
+    marginLeft: 8,
   },
   separatorContainer: {
     flexDirection: "row",
@@ -135,25 +131,28 @@ const styles = StyleSheet.create({
   },
   separatorText: {
     marginHorizontal: 10,
-    color: "white",
+    color: "#ffffff",
     fontFamily: "barlow-regular",
     fontSize: 14,
   },
   signUpContainer: {
-    marginTop: 3,
-    width: "100%",
+    marginTop: 10,
+    width: "80%",
     justifyContent: "center",
     alignItems: "center",
   },
   signUpText: {
-    color: "white",
+    color: "#ffffff",
     fontSize: 16,
     fontFamily: "barlow-regular",
+    textAlign: "center",
   },
   signUpLink: {
-    color: "white",
+    color: "#ffffff",
     textDecorationLine: "underline",
     fontFamily: "barlow-regular",
     fontSize: 16,
+    textAlign: "center",
   },
 });
+

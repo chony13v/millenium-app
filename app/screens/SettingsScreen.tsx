@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
-  Switch,
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
@@ -12,13 +11,12 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUser } from "@clerk/clerk-expo";
-import * as Notifications from "expo-notifications";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 import HelpSupportModal from "@/components/modals/HelpSupportModal";
 import GetHelpModal from "@/components/modals/GetHelpModal";
 import AboutModal from "@/components/modals/AboutModal";
+import { Colors } from "@/constants/Colors";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -28,28 +26,6 @@ export default function SettingsScreen() {
   const [isHelpSupportVisible, setIsHelpSupportVisible] = useState(false);
   const [isGetHelpVisible, setIsGetHelpVisible] = useState(false);
   const [isAboutVisible, setIsAboutVisible] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-
-  useEffect(() => {
-    if (notificationsEnabled) {
-      registerForPushNotificationsAsync();
-    }
-  }, [notificationsEnabled]);
-
-  useEffect(() => {
-    const loadNotificationState = async () => {
-      try {
-        const savedState = await AsyncStorage.getItem("notificationsEnabled");
-        if (savedState !== null) {
-          setNotificationsEnabled(JSON.parse(savedState));
-        }
-      } catch (error) {
-        console.log("Error loading notification state:", error);
-      }
-    };
-
-    loadNotificationState();
-  }, []);
 
   const handleGoBack = () => {
     navigation.goBack();
@@ -84,42 +60,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const registerForPushNotificationsAsync = async () => {
-    let { status } = await Notifications.getPermissionsAsync();
-    if (status !== "granted") {
-      const { status: newStatus } =
-        await Notifications.requestPermissionsAsync();
-      status = newStatus;
-    }
-    if (status !== "granted") {
-      Alert.alert(
-        "Permiso denegado",
-        "No se pueden habilitar las notificaciones sin permiso."
-      );
-      setNotificationsEnabled(false);
-      return;
-    }
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log(token);
-  };
-
-  const handleToggleNotifications = async () => {
-    const newState = !notificationsEnabled;
-    setNotificationsEnabled(newState);
-
-    try {
-      await AsyncStorage.setItem(
-        "notificationsEnabled",
-        JSON.stringify(newState)
-      );
-      if (newState) {
-        registerForPushNotificationsAsync();
-      }
-    } catch (error) {
-      console.log("Error saving notification state:", error);
-    }
-  };
-
   const handleHelpSupport = () => {
     setIsHelpSupportVisible(true);
   };
@@ -136,7 +76,7 @@ export default function SettingsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerContainer}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Ionicons name="arrow-back" size={24} color={Colors.NAVY_BLUE} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Configuración</Text>
@@ -152,7 +92,7 @@ export default function SettingsScreen() {
       >
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <FontAwesome name="user-circle" size={24} color="#6A0DAD" />
+            <FontAwesome name="user-circle" size={24} color={Colors.NAVY_BLUE} />
             <Text style={styles.sectionTitle}>Cuenta</Text>
           </View>
 
@@ -161,31 +101,15 @@ export default function SettingsScreen() {
             onPress={handleChangePasswordClick}
           >
             <View style={styles.settingItemContent}>
-              <FontAwesome name="lock" size={20} color="#6A0DAD" />
+              <FontAwesome name="lock" size={20} color={Colors.NAVY_BLUE} />
               <Text style={styles.settingItemText}>Cambiar Contraseña</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#6A0DAD" />
+            <Ionicons name="chevron-forward" size={20} color={Colors.NAVY_BLUE} />
           </TouchableOpacity>
-
-          <View style={[styles.settingItem, styles.notificationContainer]}>
-            <View style={styles.settingItemContent}>
-              <FontAwesome name="bell" size={20} color="#6A0DAD" />
-              <Text style={styles.settingItemText}>
-                Habilitar Notificaciones
-              </Text>
-            </View>
-            <Switch
-              style={styles.switch}
-              value={notificationsEnabled}
-              onValueChange={handleToggleNotifications}
-              trackColor={{ false: "#D1D1D1", true: "#8A2BE2" }}
-              thumbColor={notificationsEnabled ? "#6A0DAD" : "#f4f3f4"}
-            />
-          </View>
         </View>
 
         <View style={styles.helpSection}>
-          <MaterialIcons name="headset-mic" size={48} color="#6A0DAD" />
+          <MaterialIcons name="headset-mic" size={48} color={Colors.NAVY_BLUE} />
           <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
           <Text style={styles.helpDescription}>
             Nuestro equipo está disponible 24/7 para ayudarte con cualquier
@@ -200,8 +124,8 @@ export default function SettingsScreen() {
               style={[styles.helpButton, styles.secondaryButton]}
               onPress={handleHelpSupport}
             >
-              <FontAwesome name="question-circle" size={20} color="#6A0DAD" />
-              <Text style={[styles.getHelpButtonText, { color: "#6A0DAD" }]}>
+              <FontAwesome name="question-circle" size={20} color={Colors.NAVY_BLUE} />
+              <Text style={[styles.getHelpButtonText, { color: Colors.NAVY_BLUE }]}>
                 FAQ
               </Text>
             </TouchableOpacity>
@@ -215,7 +139,7 @@ export default function SettingsScreen() {
               <Text style={styles.aboutVersion}>Versión 1.1</Text>
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={20} color="#6A0DAD" />
+          <Ionicons name="chevron-forward" size={20} color={Colors.NAVY_BLUE} />
         </TouchableOpacity>
       </ScrollView>
 
@@ -258,8 +182,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#000000',
+    fontFamily: 'barlow-regular',
+    color: Colors.NAVY_BLUE,
   },
   backButton: {
     padding: 16,
@@ -290,8 +214,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    color: "#6A0DAD",
+    fontFamily: 'barlow-medium',
+    color: Colors.NAVY_BLUE,
     marginLeft: 8,
   },
   settingItem: {
@@ -301,7 +225,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 4,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
+    borderBottomColor: Colors.NAVY_BLUE,
   },
   settingItemButton: {
     backgroundColor: "#F8F8F8",
@@ -316,18 +240,8 @@ const styles = StyleSheet.create({
   settingItemText: {
     fontSize: 16,
     color: "#333333",
-    fontWeight: "500",
+    fontFamily: 'barlow-regular',
     marginLeft: 12,
-  },
-  notificationContainer: {
-    backgroundColor: "#F8F8F8",
-    borderRadius: 8,
-    marginTop: 8,
-    paddingHorizontal: 12,
-  },
-  switch: {
-    transform: [{ scale: 0.9 }],
-    marginLeft: 8,
   },
   helpSection: {
     backgroundColor: "#FFFFFF",
@@ -344,13 +258,14 @@ const styles = StyleSheet.create({
   },
   helpTitle: {
     fontSize: 24,
-    fontWeight: "700",
-    color: "#6A0DAD",
+    fontFamily: 'barlow-semibold',
+    color: Colors.NAVY_BLUE,
     marginTop: 16,
   },
   helpDescription: {
     fontSize: 16,
     color: "#333333",
+    fontFamily: 'barlow-light',
     textAlign: "center",
     marginTop: 8,
   },
@@ -361,7 +276,7 @@ const styles = StyleSheet.create({
   helpButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#6A0DAD",
+    backgroundColor: Colors.NAVY_BLUE,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
@@ -370,12 +285,12 @@ const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
-    borderColor: "#6A0DAD",
+    borderColor: Colors.NAVY_BLUE,
   },
   getHelpButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontFamily: 'barlow-medium',
     marginLeft: 8,
   },
   aboutButton: {
@@ -399,11 +314,12 @@ const styles = StyleSheet.create({
   },
   aboutButtonText: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#6A0DAD",
+    fontFamily: 'barlow-semibold',
+    color: Colors.NAVY_BLUE,
   },
   aboutVersion: {
     fontSize: 14,
+    fontFamily: 'barlow-regular',
     color: "#888888",
   },
 });

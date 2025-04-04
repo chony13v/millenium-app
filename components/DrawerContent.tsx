@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import { Colors } from "@/constants/Colors";
 
 interface DrawerContentProps {
   onCalendarPress: () => void;
@@ -26,7 +27,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
       }}
       onPress={onCalendarPress}
     >
-      <FontAwesome name="calendar" size={24} color="#6200ee" />
+      <FontAwesome name="calendar" size={24} color={Colors.NAVY_BLUE} />
       <Text
         style={{
           fontSize: 16,
@@ -48,7 +49,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
       }}
       onPress={onProfilePress}
     >
-      <FontAwesome name="user" size={24} color="#6200ee" />
+      <FontAwesome name="user" size={24} color={Colors.NAVY_BLUE} />
       <Text
         style={{
           fontSize: 16,
@@ -70,7 +71,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
       }}
       onPress={onSettingsPress}
     >
-      <FontAwesome name="cog" size={24} color="#6200ee" />
+      <FontAwesome name="cog" size={24} color={Colors.NAVY_BLUE} />
       <Text
         style={{
           fontSize: 16,
@@ -92,7 +93,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
       }}
       onPress={onSignOutPress}
     >
-      <FontAwesome name="sign-out" size={24} color="#6200ee" />
+      <FontAwesome name="sign-out" size={24} color={Colors.NAVY_BLUE} />
       <Text
         style={{
           fontSize: 16,

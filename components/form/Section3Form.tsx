@@ -74,7 +74,7 @@ const Section3Form: React.FC<Section3FormProps> = ({
           />
           <View style={styles.checkboxWrapper}>
             <Text style={styles.regularText}>
-              Yo, el padre/tutor, doy mi consentimiento para la participación de mi hijo en el torneo y reconozco los{' '}
+              Yo, el padre/madre/tutor, doy mi consentimiento para la participación de mi hijo en el torneo y reconozco los{' '}
             </Text>
             <TouchableOpacity onPress={() => setTermsModalVisible(true)}>
               <Text style={styles.linkText}>términos y condiciones</Text>
@@ -95,7 +95,7 @@ const Section3Form: React.FC<Section3FormProps> = ({
             color={autorizacionFotos ? '#4630EB' : '#1a1a1a'}
           />
           <Text style={[styles.regularText, { marginLeft: 10, flex: 1 }]}>
-            Autorizo el uso de fotos y videos de mi hijo durante el torneo para fines promocionales.
+          Autorizo la toma y uso de fotografías y videos de mi hijo durante el torneo, exclusivamente con fines promocionales, asegurando siempre el respeto a su integridad y privacidad.
           </Text>
         </View>
         {errors.autorizacionFotos && (

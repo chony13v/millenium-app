@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-
+import { Colors } from '@/constants/Colors';
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#6A0DAD',
+    backgroundColor: Colors.NAVY_BLUE,
     padding: 10,
     borderRadius: 8,
     width: '100%',

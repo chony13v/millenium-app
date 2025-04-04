@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { Colors } from '@/constants/Colors';
 
 interface Props {
   visible: boolean;
@@ -22,7 +23,7 @@ export default function AboutModal({ visible, onClose }: Props) {
             {'\n'}• Estadísticas en tiempo real
             {'\n'}• Notificaciones personalizadas
             {'\n\n'}Desarrollado por Millenium Football Solutions
-            {'\n'}© 2024 Millenium. Todos los derechos reservados.
+            {'\n'}© 2025 Millenium. Todos los derechos reservados.
             {'\n\n'}Contáctanos:
             {'\n'}info@milleniumfs.com
             {'\n'}www.milleniumfs.com
@@ -66,7 +67,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#6A0DAD',
+    backgroundColor: Colors.NAVY_BLUE,
     padding: 10,
     borderRadius: 8,
     width: '100%',

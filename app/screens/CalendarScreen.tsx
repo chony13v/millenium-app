@@ -11,12 +11,22 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Calendar, LocaleConfig, DateData } from "react-native-calendars";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser, useAuth } from "@clerk/clerk-expo";
 import { db } from "@/config/FirebaseConfig";
-import { doc, getDoc, collection, addDoc, getDocs, deleteDoc as firestoreDeleteDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc as firestoreDeleteDoc,
+} from "firebase/firestore";
+import { getAuth, signInWithCustomToken } from 'firebase/auth';
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
-import { query, where } from 'firebase/firestore';
+import { useRouter } from "expo-router";
+import { query, where } from "firebase/firestore";
+import { Colors } from "@/constants/Colors";
+import { ADMIN_EMAILS } from "@/config/AdminConfig";
 
 LocaleConfig.locales["es"] = {
   monthNames: [
@@ -77,8 +87,13 @@ interface MarkedDateProps {
 
 export default function CalendarScreen() {
   const { user } = useUser();
+  const { getToken } = useAuth();
+  const router = useRouter();
   const [events, setEvents] = useState<MarkedDateProps>({});
-  const [eventDetails, setEventDetails] = useState<{ [key: string]: { description: string; id?: string; time?: string } }>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [eventDetails, setEventDetails] = useState<{
+    [key: string]: { description: string; id?: string; time?: string };
+  }>({});
   const [isAdmin, setIsAdmin] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -88,93 +103,51 @@ export default function CalendarScreen() {
     description: "",
   });
 
-  const navigation = useNavigation();
-
   const handleGoBack = () => {
-    navigation.goBack();
+    router.back();
   };
 
   useEffect(() => {
     const checkAdminStatus = async () => {
-      if (!user || !user.primaryEmailAddress?.emailAddress) return;
-      const adminEmails = ["fvasconez13@icloud.com", "admin2@example.com"]; // Add admin emails here
-      setIsAdmin(
-        adminEmails.includes(user.primaryEmailAddress?.emailAddress || "")
-      );
-    };
-    checkAdminStatus();
-  }, [user]);
+      if (!user?.primaryEmailAddress?.emailAddress) return;
+      
+      try {
+        const token = await getToken({ template: "integration_firebase" });
+        
+        if (!token) return;
 
-  useEffect(() => {
-    fetchUserEvents();
-  }, []);
+        // Sign in to Firebase with the token
+        const auth = getAuth();
+        await signInWithCustomToken(auth, token);
 
-  const handleAddEvent = async () => {
-    if (isSaving) return;
-  
-    if (!newEvent.date || !newEvent.description || !newEvent.time) {
-      Alert.alert("Error", "Por favor complete todos los campos");
-      return;
-    }
-  
-
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (!dateRegex.test(newEvent.date)) {
-      Alert.alert("Error", "Formato de fecha inválido. Use YYYY-MM-DD");
-      return;
-    }
-  
-
-    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    if (!timeRegex.test(newEvent.time)) {
-      Alert.alert("Error", "Formato de hora inválido. Use HH:MM");
-      return;
-    }
-  
-    setIsSaving(true);
-  
-    try {
-
-      const existingEvents = await getDocs(
-        query(
-          collection(db, "GlobalEvents"),
-          where("date", "==", newEvent.date),
-          where("time", "==", newEvent.time)
-        )
-      );
-  
-      if (!existingEvents.empty) {
-        Alert.alert("Error", "Ya existe un evento en esta fecha y hora");
-        setIsSaving(false);
-        return;
+        setIsAdmin(
+          ADMIN_EMAILS.includes(
+            user.primaryEmailAddress.emailAddress as (typeof ADMIN_EMAILS)[number]
+          )
+        );
+      } catch (error) {
+        console.error("Auth error:", error);
       }
-  
-      await addDoc(collection(db, "GlobalEvents"), {
-        date: newEvent.date,
-        time: newEvent.time,
-        description: newEvent.description,
-        createdAt: new Date(),
-      });
-  
-      Alert.alert("Éxito", "Evento guardado correctamente");
-      setModalVisible(false);
-      setNewEvent({ date: "", time: "", description: "" });
-      fetchUserEvents();
-    } catch (error) {
-      Alert.alert("Error", "No se pudo crear el evento");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    };
+    
+    checkAdminStatus();
+    fetchUserEvents();
+  }, [user]);
 
   const fetchUserEvents = async () => {
     if (!user) return;
+    setIsLoading(true);
     try {
       const markedDates: MarkedDateProps = {};
-      const details: { [key: string]: { description: string; id?: string; time?: string } } = {};
+      const details: {
+        [key: string]: { description: string; id?: string; time?: string };
+      } = {};
+
+      // Mark today's date
       const today = new Date().toISOString().split("T")[0];
       markedDates[today] = { marked: true, isEvent: false };
 
+      // Fetch user's personal events
       const userRef = doc(db, "Participantes", user.id);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
@@ -182,79 +155,133 @@ export default function CalendarScreen() {
         const dateTime = data.dateTime;
 
         if (dateTime) {
-          const convertToDate = (dateTimeStr: string) => {
-            const monthMap: { [key: string]: string } = {
-              enero: "01",
-              febrero: "02",
-              marzo: "03",
-              abril: "04",
-              mayo: "05",
-              junio: "06",
-              julio: "07",
-              agosto: "08",
-              septiembre: "09",
-              octubre: "10",
-              noviembre: "11",
-              diciembre: "12",
-            };
-
-            const regex = /(\d{1,2}) de (\w+) - \d{1,2}:\d{2} (am|pm)/i;
-            const match = dateTimeStr.match(regex);
-
-            if (match) {
-              const day = match[1].padStart(2, "0");
-              const monthName: string = match[2].toLowerCase();
-              const month = monthMap[monthName] || "01";
-              const year = new Date().getFullYear();
-
-              const date = `${year}-${month}-${day}`;
-              details[date] = { description: dateTimeStr };
-              markedDates[date] = { marked: true, isEvent: true, description: dateTimeStr };
-              return date;
-            }
-
-            return null;
+          const monthMap: { [key: string]: string } = {
+            enero: "01",
+            febrero: "02",
+            marzo: "03",
+            abril: "04",
+            mayo: "05",
+            junio: "06",
+            julio: "07",
+            agosto: "08",
+            septiembre: "09",
+            octubre: "10",
+            noviembre: "11",
+            diciembre: "12",
           };
 
-          const date = convertToDate(dateTime);
-          if (date) {
-            setEvents(markedDates);
-            setEventDetails(details);
+          const regex = /(\d{1,2}) de (\w+) - \d{1,2}:\d{2} (am|pm)/i;
+          const match = dateTime.match(regex);
+          if (match) {
+            const day = match[1].padStart(2, "0");
+            const monthName = match[2].toLowerCase();
+            const month = monthMap[monthName] || "01";
+            const year = new Date().getFullYear();
+            const date = `${year}-${month}-${day}`;
+
+            markedDates[date] = {
+              marked: true,
+              isEvent: true,
+              description: dateTime,
+            };
+            details[date] = { description: dateTime };
           }
-        } else {
-          setEvents({ [today]: { marked: true, isEvent: false } });
         }
       }
 
-      const globalEventsSnapshot = await getDocs(collection(db, 'GlobalEvents'));
-      globalEventsSnapshot.forEach((doc) => {
-        const eventData = doc.data();
+      // Fetch global events
+      const globalEventsSnapshot = await getDocs(
+        collection(db, "GlobalEvents")
+      );
+      globalEventsSnapshot.forEach((docSnap) => {
+        const eventData = docSnap.data();
         markedDates[eventData.date] = {
           marked: true,
           isEvent: true,
           description: eventData.description,
-          id: doc.id, 
+          id: docSnap.id,
         };
-        details[eventData.date] = { 
-          description: eventData.description, 
-          id: doc.id,
-          time: eventData.time,};
+        details[eventData.date] = {
+          description: eventData.description,
+          id: docSnap.id,
+          time: eventData.time,
+        };
       });
 
+      // Update state only once with all events
       setEvents(markedDates);
       setEventDetails(details);
     } catch (error) {
       console.error("Error fetching events:", error);
+      Alert.alert("Error", "No se pudieron cargar los eventos");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddEvent = async () => {
+    if (isSaving) return;
+
+    if (!newEvent.date || !newEvent.description || !newEvent.time) {
+      Alert.alert("Error", "Por favor complete todos los campos");
+      return;
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(newEvent.date)) {
+      Alert.alert("Error", "Formato de fecha inválido. Use YYYY-MM-DD");
+      return;
+    }
+
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(newEvent.time)) {
+      Alert.alert("Error", "Formato de hora inválido. Use HH:MM");
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      const existingEvents = await getDocs(
+        query(
+          collection(db, "GlobalEvents"),
+          where("date", "==", newEvent.date),
+          where("time", "==", newEvent.time)
+        )
+      );
+
+      if (!existingEvents.empty) {
+        Alert.alert("Error", "Ya existe un evento en esta fecha y hora");
+        setIsSaving(false);
+        return;
+      }
+
+      await addDoc(collection(db, "GlobalEvents"), {
+        date: newEvent.date,
+        time: newEvent.time,
+        description: newEvent.description,
+        createdAt: new Date(),
+      });
+
+      Alert.alert("Éxito", "Evento guardado correctamente");
+      setModalVisible(false);
+      setNewEvent({ date: "", time: "", description: "" });
+      fetchUserEvents();
+    } catch (error) {
+      console.error("Firestore addDoc error:", error);
+      Alert.alert("Error", "No se pudo crear el evento");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDeleteEvent = async (id: string, date: string) => {
     try {
-      await firestoreDeleteDoc(doc(db, 'GlobalEvents', id));
-      Alert.alert('Éxito', 'Evento eliminado correctamente');
+      await firestoreDeleteDoc(doc(db, "GlobalEvents", id));
+      Alert.alert("Éxito", "Evento eliminado correctamente");
       fetchUserEvents();
     } catch (error) {
-      Alert.alert('Error', 'No se pudo eliminar el evento');
+      Alert.alert("Error", "No se pudo eliminar el evento");
     }
   };
 
@@ -264,23 +291,26 @@ export default function CalendarScreen() {
     if (event) {
       if (isAdmin && event.id) {
         Alert.alert(
-          'Eliminar Evento',
-          `${event.description}\nHora: ${event.time || 'No especificada'}`,
+          "Eliminar Evento",
+          `${event.description}\nHora: ${event.time || "No especificada"}`,
           [
             {
-              text: 'Cancelar',
-              style: 'cancel',
+              text: "Cancelar",
+              style: "cancel",
             },
             {
-              text: 'Eliminar',
-              style: 'destructive',
+              text: "Eliminar",
+              style: "destructive",
               onPress: () => handleDeleteEvent(event.id!, date),
             },
           ],
           { cancelable: true }
         );
       } else {
-        Alert.alert('Evento GADM', `${event.description}\nHora: ${event.time || 'No especificada'}`);
+        Alert.alert(
+          "Evento GADM",
+          `${event.description}\nHora: ${event.time || "No especificada"}`
+        );
       }
     }
   };
@@ -289,6 +319,7 @@ export default function CalendarScreen() {
     const hasEvent = events[date.dateString]?.isEvent;
     const isToday = date.dateString === new Date().toISOString().split("T")[0];
     const isSelected = false;
+
     return (
       <TouchableOpacity
         style={styles.dayContainer}
@@ -297,7 +328,7 @@ export default function CalendarScreen() {
         <Text
           style={[
             styles.dayText,
-            isToday && { color: "#6A0DAD", fontWeight: "bold" },
+            isToday && { color: "#242c44", fontWeight: "bold" },
             state === "disabled" && styles.disabledDayText,
             isSelected && styles.selectedDayText,
           ]}
@@ -308,7 +339,7 @@ export default function CalendarScreen() {
           <FontAwesome
             name="soccer-ball-o"
             size={16}
-            color="#6A0DAD"
+            color="#F02B44"
             style={styles.eventIcon}
           />
         )}
@@ -320,41 +351,51 @@ export default function CalendarScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.headerBackground}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Ionicons name="arrow-back" size={24} color="#242c44" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Eventos del mes</Text>
       </View>
       <View style={styles.content}>
-        <Calendar
-          markingType={"custom"}
-          markedDates={events}
-          onDayPress={handleDayPress}
-          dayComponent={({ date, state = "" }) =>
-            date && renderDay({ date, state })
-          }
-          theme={{
-            backgroundColor: "#ffffff",
-            calendarBackground: "#ffffff",
-            textSectionTitleColor: "#6A0DAD",
-            selectedDayBackgroundColor: "#6A0DAD",
-            selectedDayTextColor: "#ffffff",
-            todayTextColor: "#6A0DAD",
-            dayTextColor: "#2d4150",
-            textDisabledColor: "#d9e1e8",
-            arrowColor: "#6A0DAD",
-            monthTextColor: "#6A0DAD",
-            textDayFontFamily: "barlow-regular",
-            textMonthFontFamily: "barlow-semibold",
-            textDayHeaderFontFamily: "barlow-medium",
-          }}
-        />
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={Colors.NAVY_BLUE} />
+          </View>
+        ) : (
+          <Calendar
+            markingType="custom"
+            markedDates={events}
+            onDayPress={handleDayPress}
+            dayComponent={({ date, state = "" }) =>
+              date && renderDay({ date, state })
+            }
+            theme={{
+              backgroundColor: "#ffffff",
+              calendarBackground: "#ffffff",
+              textSectionTitleColor: "#F02B44",
+              selectedDayBackgroundColor: "#F02B44",
+              selectedDayTextColor: "#ffffff",
+              todayTextColor: "#F02B44",
+              dayTextColor: "#F02B44",
+              textDisabledColor: "#d9e1e8",
+              arrowColor: "#242c44",
+              monthTextColor: "#242c44",
+              textDayFontFamily: "barlow-regular",
+              textMonthFontFamily: "barlow-semibold",
+              textDayHeaderFontFamily: "barlow-medium",
+            }}
+          />
+        )}
       </View>
       {isAdmin && (
         <TouchableOpacity
           style={styles.addButton}
           onPress={() => setModalVisible(true)}
         >
-          <FontAwesome name="calendar-plus-o" size={50} color="#6A0DAD" />
+          <FontAwesome
+            name="calendar-plus-o"
+            size={50}
+            color={Colors.NAVY_BLUE}
+          />
         </TouchableOpacity>
       )}
 
@@ -394,14 +435,16 @@ export default function CalendarScreen() {
               <Text style={styles.buttonText}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.button, styles.saveButton, 
+              style={[
+                styles.button,
+                styles.saveButton,
                 isSaving && styles.saveButtonSaving,
               ]}
               onPress={handleAddEvent}
               disabled={isSaving}
             >
               {isSaving ? (
-                <ActivityIndicator size='small' color="#FFFFFF" /> 
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.buttonText}>Guardar</Text>
               )}
@@ -422,14 +465,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     height: 80,
     width: "100%",
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingTop: 40,
   },
   headerTitle: {
     fontSize: 20,
-    fontFamily: 'barlow-regular',
-    color: '#000000',
+    fontFamily: "barlow-regular",
+    color: "#000000",
     marginLeft: 10,
   },
   backButton: {
@@ -453,10 +496,7 @@ const styles = StyleSheet.create({
     padding: 35,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
@@ -487,7 +527,7 @@ const styles = StyleSheet.create({
     width: "45%",
   },
   saveButton: {
-    backgroundColor: "#6A0DAD",
+    backgroundColor: Colors.NAVY_BLUE,
   },
   saveButtonSaving: {
     backgroundColor: "#A020F0",
@@ -507,10 +547,10 @@ const styles = StyleSheet.create({
   },
   dayText: {
     fontSize: 16,
-    color: "#2d4150",
+    color: Colors.NAVY_BLUE,
   },
   disabledDayText: {
-    color: "#d9e1e8",
+    color: Colors.NAVY_BLUE,
   },
   selectedDayText: {
     color: "#ffffff",
@@ -525,5 +565,9 @@ const styles = StyleSheet.create({
     backgroundColor: "red",
     marginTop: 2,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
-

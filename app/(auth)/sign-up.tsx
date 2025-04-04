@@ -16,8 +16,6 @@ import { useSignUp } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import Checkbox from "expo-checkbox";
 import useFonts from "@/hooks/useFonts";
-import { collection, addDoc } from "firebase/firestore";
-import { db } from "@/config/FirebaseConfig";
 
 import TermsModal from "@/components/modals/TermsModal";
 import PrivacyModal from "@/components/modals/PrivacyModal";
@@ -84,13 +82,6 @@ export default function SignUpScreen() {
         password,
       });
 
-      await addDoc(collection(db, "Participantes"), {
-        firstName,
-        lastName,
-        emailAddress,
-        createdAt: new Date(),
-      });
-
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: any) {
@@ -122,6 +113,16 @@ export default function SignUpScreen() {
         "Whoops",
         "Parece que ingresaste un código incorrecto \n\nIntenta de nuevo."
       );
+    }
+  };
+
+  const onResendCode = async () => {
+    if (!isLoaded) return;
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+      Alert.alert("Éxito", "El código de verificación ha sido reenviado.");
+    } catch (err: any) {
+      Alert.alert("Error", "No se pudo reenviar el código. Intenta de nuevo más tarde.");
     }
   };
 
@@ -245,10 +246,16 @@ export default function SignUpScreen() {
               />
               <View style={styles.verifyButtonContainer}>
                 <TouchableOpacity
-                  style={styles.signUpButton}
+                  style={styles.largeButton}
                   onPress={onPressVerify}
                 >
-                  <Text style={styles.signUpButtonText}>Verificar Email</Text>
+                  <Text style={styles.largeButtonText}>Verificar Email</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.largeButton, { marginTop: 15 }]}
+                  onPress={onResendCode}
+                >
+                  <Text style={styles.largeButtonText}>Reenviar Código</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -274,7 +281,7 @@ const styles = StyleSheet.create({
     height: 50,
     alignSelf: "center",
     marginBottom: 1,
-    marginTop: 20,
+    marginTop: 50,
   },
   title: {
     color: "black",
@@ -344,11 +351,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: "center",
     marginBottom: 20,
+    marginTop: 90,
     fontFamily: "barlow-medium",
   },
   codeInput: {
-    padding: 20,
-    width: "50%",
+    padding: 16,
+    width: "70%",
     backgroundColor: "white",
     borderRadius: 10,
     borderWidth: 1,
@@ -358,6 +366,10 @@ const styles = StyleSheet.create({
   },
   verifyButtonContainer: {
     alignItems: "center",
+    marginTop: 35,
+    gap: 10,
+    width: "90%",
+    paddingHorizontal: 20,
   },
   signUpButton: {
     backgroundColor: "#242c44",
@@ -369,6 +381,18 @@ const styles = StyleSheet.create({
   signUpButtonText: {
     color: "white",
     fontSize: 16,
+    fontFamily: "barlow-semibold",
+  },
+  largeButton: {
+    backgroundColor: "#242c44",
+    paddingVertical: 10,
+    borderRadius: 8,
+    width: "80%",
+    alignItems: "center",
+  },
+  largeButtonText: {
+    color: "white",
+    fontSize: 15,
     fontFamily: "barlow-semibold",
   },
 });

@@ -11,7 +11,7 @@ import {
   Platform,
   Alert,
   Image,
-  FlatList // <-- added FlatList import
+  FlatList
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import SignInWithOAuth from "@/components/SignInWithOAuth";
@@ -170,30 +170,30 @@ export default function SignInForm() {
                 <Text style={styles.loginButtonText}>Ingresar</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleSendResetCode}>
-                <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+                <Text style={styles.forgotPasswordText}>
+                  ¿Olvidaste tu contraseña?
+                </Text>
               </TouchableOpacity>
+              {/* Separator with "o" placed before the sign-up section */}
+              <View style={styles.separatorContainer}>
+                <View style={styles.separator} />
+                <Text style={styles.separatorText}>o</Text>
+                <View style={styles.separator} />
+              </View>
               <View style={styles.signUpContainer}>
                 <Text style={styles.signUpText}>¿No tienes una cuenta? </Text>
                 <Link href="/sign-up">
                   <Text style={styles.signUpLink}>Regístrate acá</Text>
                 </Link>
               </View>
-              <View style={styles.separatorContainer}>
-                <View style={styles.separator} />
-                <Text style={styles.separatorText}>o</Text>
-                <View style={styles.separator} />
-              </View>
               <View style={styles.oauthContainer}>
-
-
-                <SignInWithOAuth />
-
-                
+                {/* Uncomment the line below to enable OAuth sign-in */}
+                {/* <SignInWithOAuth /> */}
               </View>
             </View>
           </>
         }
-        renderItem={null} 
+        renderItem={null}
         showsVerticalScrollIndicator={false}
       />
     </KeyboardAvoidingView>
@@ -206,10 +206,10 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   topSection: {
-    width: '100%',
+    width: "100%",
     paddingTop: 50,
     paddingBottom: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   formSection: {
     flex: 1,
@@ -220,19 +220,23 @@ const styles = StyleSheet.create({
   logo: {
     width: 50,
     height: 50,
+    alignSelf: 'center',
+    marginBottom: 10,
+    marginTop: 20
   },
   welcomeTitle: {
-    fontFamily: 'barlow-regular',
+    fontFamily: "barlow-regular",
     fontSize: 24,
-    color: '#2C2F33',
+    color: "#2C2F33",
     marginTop: 20,
+    textAlign: "center",
   },
   welcomeSubtitle: {
-    fontFamily: 'barlow-medium',
+    fontFamily: "barlow-medium",
     fontSize: 16,
-    color: '#2C2F33',
+    color: "#2C2F33",
     marginTop: 10,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: 20,
   },
   input: {
@@ -268,13 +272,31 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-regular",
     fontSize: 15,
     marginTop: 10,
+    textAlign: "center", 
+  },
+  separatorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "80%",
+    marginVertical: 20,
+  },
+  separator: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E1E1E1",
+  },
+  separatorText: {
+    color: "#687076",
+    marginHorizontal: 10,
+    fontSize: 14,
+    fontFamily: "barlow-regular",
   },
   signUpContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '80%',
+    flexDirection: "row",
+    alignItems: "center",
+    width: "80%",
     marginTop: 20,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   signUpText: {
     color: "#242c44",
@@ -288,10 +310,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginLeft: '10%',
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginLeft: "10%",
     marginTop: 5,
     marginBottom: 10,
     gap: 5,
@@ -302,25 +324,8 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-regular",
     flex: 1,
   },
-  separatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '80%',
-    marginTop: 30,
-  },
-  separator: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E1E1E1',
-  },
-  separatorText: {
-    color: '#687076',
-    marginHorizontal: 10,
-    fontSize: 14,
-    fontFamily: 'barlow-regular',
-  },
   oauthContainer: {
-    width: '100%',
+    width: "100%",
     marginTop: 20,
     marginBottom: 20,
   },

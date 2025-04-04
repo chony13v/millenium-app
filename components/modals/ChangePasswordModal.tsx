@@ -1,3 +1,4 @@
+import { Colors } from '@/constants/Colors';
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Alert } from 'react-native';
 
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   saveButton: {
-    backgroundColor: '#6A0DAD',
+    backgroundColor: Colors.NAVY_BLUE,
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cancelText: {
-    color: '#6A0DAD',
+    color: Colors.NAVY_BLUE,
     marginTop: 10,
     fontSize: 16,
   },
