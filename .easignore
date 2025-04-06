@@ -1,15 +1,20 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
-# dependencies
+# === DEPENDENCIAS ===
 node_modules/
 
-# Expo
+# === EXPO ===
 .expo/
 dist/
 web-build/
 expo-env.d.ts
 
-# Native
+# === ANDROID (NO ignores la carpeta completa, solo lo innecesario) ===
+android/.gradle/
+android/app/build/
+android/build/
+android/local.properties
+android/app/debug.keystore
+
+# === CERTIFICADOS / ARCHIVOS SENSIBLES ===
 *.orig.*
 *.jks
 *.p8
@@ -17,23 +22,23 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
-# Metro
+# === METRO ===
 .metro-health-check*
 
-# debug
+# === LOGS ===
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
+# === MACOS ===
 .DS_Store
 *.pem
 
-# local env files
+# === ENV FILES ===
 .env*.local
 
-# typescript
+# === TYPESCRIPT ===
 *.tsbuildinfo
 
-/ios
-/android
+# === iOS (si solo haces Android builds) ===
+ios/
