@@ -14,8 +14,8 @@ export default function GetHelpModal({ visible, onClose }: Props) {
           <Text style={styles.title}>¿Cómo podemos ayudarte?</Text>
           <Text style={styles.message}>
             Conéctate con nuestro equipo de soporte:
-            {'\n\n'}Teléfono/WhatsApp: (+593) 984706247
-            {'\n'}Email: info@milleniumfs.com
+            {'\n\n'}Teléfono/WhatsApp: (+1) 786-338-9897
+            {'\n'}Email: info@milleniumgd.com
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Cerrar</Text>

@@ -16,6 +16,7 @@ import { useSignUp } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import Checkbox from "expo-checkbox";
 import useFonts from "@/hooks/useFonts";
+import { Ionicons } from "@expo/vector-icons";
 
 import TermsModal from "@/components/modals/TermsModal";
 import PrivacyModal from "@/components/modals/PrivacyModal";
@@ -34,6 +35,7 @@ export default function SignUpScreen() {
   const [termsVisible, setTermsVisible] = useState(false);
   const [privacyVisible, setPrivacyVisible] = useState(false);
   const [code, setCode] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
@@ -49,26 +51,23 @@ export default function SignUpScreen() {
   const onSignUpPress = async () => {
     if (!isLoaded) return;
 
-    // Validate that all fields are filled
+    // Validaciones básicas
     if (!firstName || !lastName || !emailAddress || !password) {
       Alert.alert("Error", "Por favor, completa todos los campos");
       return;
     }
 
-    // Validate email format
     const emailRegex = /^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/;
     if (!emailRegex.test(emailAddress)) {
       Alert.alert("Error", "El formato del correo electrónico no es válido");
       return;
     }
 
-    // Validate password length
     if (password.length < 8) {
       Alert.alert("Error", "La contraseña debe tener al menos 8 caracteres");
       return;
     }
 
-    // Validate terms acceptance
     if (!acceptedTerms) {
       Alert.alert("Error", "Debes aceptar los términos y condiciones");
       return;
@@ -85,6 +84,9 @@ export default function SignUpScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       setPendingVerification(true);
     } catch (err: any) {
+      // 🔍 LOG DEL ERROR DETALLADO
+      console.log("🔴 ERROR SIGNUP CLERK >>>", JSON.stringify(err, null, 2));
+
       if (
         err.errors?.[0]?.code === "form_identifier_exists" ||
         err.errors?.[0]?.code === "form_param_exists"
@@ -122,7 +124,10 @@ export default function SignUpScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       Alert.alert("Éxito", "El código de verificación ha sido reenviado.");
     } catch (err: any) {
-      Alert.alert("Error", "No se pudo reenviar el código. Intenta de nuevo más tarde.");
+      Alert.alert(
+        "Error",
+        "No se pudo reenviar el código. Intenta de nuevo más tarde."
+      );
     }
   };
 
@@ -149,7 +154,10 @@ export default function SignUpScreen() {
                 style={styles.logo}
               />
               <Text style={styles.title}>
-                Ingresa tus datos para registrarte con MilleniumFS
+                Ingresa tus datos para registrarte
+              </Text>
+              <Text style={[styles.title, { fontWeight: "bold" }]}>
+                MilleniumGD
               </Text>
               <TextInput
                 style={styles.input}
@@ -180,15 +188,29 @@ export default function SignUpScreen() {
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}
               />
-              <TextInput
-                style={styles.input}
-                value={password}
-                placeholder="Password..."
-                secureTextEntry={true}
-                onChangeText={(text) => setPassword(text)}
-                ref={passwordRef}
-                returnKeyType="done"
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  value={password}
+                  placeholder="Contraseña nueva (mínimo 8 caracteres)"
+                  placeholderTextColor="#2C2F33"
+                  secureTextEntry={!showPassword}
+                  onChangeText={(text) => setPassword(text)}
+                  ref={passwordRef}
+                  returnKeyType="done"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color="#2C2F33"
+                  />
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.acceptTermsContainer}>
                 <Checkbox
                   value={acceptedTerms}
@@ -394,5 +416,25 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 15,
     fontFamily: "barlow-semibold",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "85%",
+    alignSelf: "center",
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderRadius: 4,
+    height: 40,
+    paddingHorizontal: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    fontFamily: "barlow-medium",
+    fontSize: 14,
+    color: "#2C2F33",
+  },
+  eyeIcon: {
+    paddingHorizontal: 5,
   },
 });

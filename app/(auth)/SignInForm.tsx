@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useRef } from "react";
 import { useSignIn } from "@clerk/clerk-expo";
 import { useRouter, Link } from "expo-router";
+import { MotiView } from "moti";
 import {
   View,
   Text,
@@ -11,7 +12,7 @@ import {
   Platform,
   Alert,
   Image,
-  FlatList
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import SignInWithOAuth from "@/components/SignInWithOAuth";
@@ -24,6 +25,11 @@ export default function SignInForm() {
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [verifyingReset, setVerifyingReset] = useState(false);
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const onSignInPress = useCallback(async () => {
     if (!isLoaded || !signIn) return;
@@ -75,7 +81,9 @@ export default function SignInForm() {
           setError("Demasiados intentos. Por favor, intenta más tarde");
           break;
         default:
-          setError("Hubo un problema al iniciar sesión. Por favor, inténtalo de nuevo");
+          setError(
+            "Hubo un problema al iniciar sesión. Por favor, inténtalo de nuevo"
+          );
       }
     }
   }, [isLoaded, emailAddress, password, signIn, setActive, router]);
@@ -90,10 +98,11 @@ export default function SignInForm() {
         strategy: "reset_password_email_code",
         identifier: emailAddress,
       });
+      setVerifyingReset(true);
       setError("");
       Alert.alert(
         "Listo!",
-        "El código para restablecer la contraseña ha sido enviado a tu correo electrónico."
+        "El código para restablecer la contraseña ha sido enviado."
       );
     } catch (error: any) {
       setError(
@@ -107,6 +116,46 @@ export default function SignInForm() {
       );
     }
   }, [emailAddress, signIn]);
+
+  const handlePasswordReset = useCallback(async () => {
+    if (!resetCode || !newPassword || !confirmPassword) {
+      setError("Por favor completa todos los campos");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError("La nueva contraseña debe tener al menos 8 caracteres");
+      return;
+    }
+
+    if (!signIn) {
+      setError("No se puede procesar la solicitud en este momento");
+      return;
+    }
+
+    try {
+      const result = await signIn.attemptFirstFactor({
+        strategy: "reset_password_email_code",
+        code: resetCode,
+        password: newPassword,
+      });
+
+      if (result.status === "complete" && setActive) {
+        await setActive({ session: result.createdSessionId });
+        router.replace("/");
+      } else {
+        setError("No se pudo completar el cambio de contraseña");
+      }
+    } catch (error: any) {
+      console.log("Error during password reset:", error);
+      setError(error.errors?.[0]?.message || "Error al cambiar la contraseña");
+    }
+  }, [resetCode, newPassword, confirmPassword, signIn, setActive, router]);
 
   return (
     <KeyboardAvoidingView
@@ -124,7 +173,11 @@ export default function SignInForm() {
               />
               <Text style={styles.welcomeTitle}>Bienvenido</Text>
               <Text style={styles.welcomeSubtitle}>
-                Ingresa con tu email y password a Millenium Football Stars.
+                Accede a tu cuenta de{" "}
+                <Text style={{ fontWeight: "bold" }}>
+                  Millenium Gestión Deportiva
+                </Text>{" "}
+                con tu email y contraseña.
               </Text>
             </View>
             <View style={styles.formSection}>
@@ -144,29 +197,45 @@ export default function SignInForm() {
                 returnKeyType="next"
                 onSubmitEditing={() => passwordInputRef.current?.focus()}
               />
-              <TextInput
-                ref={passwordInputRef}
-                style={styles.input}
-                value={password}
-                placeholder="Password..."
-                placeholderTextColor="#2C2F33"
-                secureTextEntry={true}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (error) setError("");
-                }}
-                textContentType="password"
-                autoComplete="password"
-                returnKeyType="done"
-                onSubmitEditing={onSignInPress}
-              />
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  ref={passwordInputRef}
+                  style={styles.passwordInput}
+                  value={password}
+                  placeholder="Contraseña..."
+                  placeholderTextColor="#2C2F33"
+                  secureTextEntry={!showPassword}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (error) setError("");
+                  }}
+                  textContentType="password"
+                  autoComplete="password"
+                  returnKeyType="done"
+                  onSubmitEditing={onSignInPress}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeIcon}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color="#2C2F33"
+                  />
+                </TouchableOpacity>
+              </View>
+
               {error !== "" && (
                 <View style={styles.errorContainer}>
                   <Ionicons name="alert-circle" size={16} color="red" />
                   <Text style={styles.errorText}>{error}</Text>
                 </View>
               )}
-              <TouchableOpacity style={styles.loginButton} onPress={onSignInPress}>
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={onSignInPress}
+              >
                 <Text style={styles.loginButtonText}>Ingresar</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={handleSendResetCode}>
@@ -174,6 +243,48 @@ export default function SignInForm() {
                   ¿Olvidaste tu contraseña?
                 </Text>
               </TouchableOpacity>
+
+              {verifyingReset && (
+                <MotiView
+                  from={{ opacity: 0, translateY: -10 }}
+                  animate={{ opacity: 1, translateY: 0 }}
+                  transition={{ type: "timing", duration: 400 }}
+                  style={{ width: "100%", alignItems: "center" }}
+                >
+                  <TextInput
+                    placeholder="Código de verificación"
+                    placeholderTextColor="#2C2F33"
+                    value={resetCode}
+                    onChangeText={setResetCode}
+                    style={styles.input}
+                  />
+                  <TextInput
+                    placeholder="Nueva contraseña"
+                    placeholderTextColor="#2C2F33"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    secureTextEntry
+                    style={styles.input}
+                  />
+                  <TextInput
+                    placeholder="Confirmar nueva contraseña"
+                    placeholderTextColor="#2C2F33"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    style={styles.input}
+                  />
+                  <TouchableOpacity
+                    style={styles.loginButton}
+                    onPress={handlePasswordReset}
+                  >
+                    <Text style={styles.loginButtonText}>
+                      Restablecer contraseña
+                    </Text>
+                  </TouchableOpacity>
+                </MotiView>
+              )}
+
               {/* Separator with "o" placed before the sign-up section */}
               <View style={styles.separatorContainer}>
                 <View style={styles.separator} />
@@ -220,9 +331,9 @@ const styles = StyleSheet.create({
   logo: {
     width: 50,
     height: 50,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginBottom: 10,
-    marginTop: 20
+    marginTop: 20,
   },
   welcomeTitle: {
     fontFamily: "barlow-regular",
@@ -248,7 +359,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#242c44",
     color: "#2C2F33",
-    marginVertical: 1,
+    marginVertical: 2,
     fontSize: 14,
     fontFamily: "barlow-regular",
   },
@@ -272,7 +383,7 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-regular",
     fontSize: 15,
     marginTop: 10,
-    textAlign: "center", 
+    textAlign: "center",
   },
   separatorContainer: {
     flexDirection: "row",
@@ -328,5 +439,27 @@ const styles = StyleSheet.create({
     width: "100%",
     marginTop: 20,
     marginBottom: 20,
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "80%",
+    backgroundColor: "white",
+    borderRadius: 3,
+    borderWidth: 1,
+    borderColor: "#242c44",
+    marginVertical: 2,
+    paddingHorizontal: 10,
+    height: 40,
+  },
+  passwordInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: "barlow-regular",
+    color: "#2C2F33",
+  },
+  eyeIcon: {
+    paddingLeft: 8,
+    paddingRight: 2,
   },
 });

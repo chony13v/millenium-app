@@ -1,7 +1,8 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAnalytics, isSupported } from "firebase/analytics";
-import { initializeAuth } from "firebase/auth";
+import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -13,23 +14,29 @@ const firebaseConfig = {
   measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-console.log("Firebase Config:", firebaseConfig);
+console.log('Firebase Config:', firebaseConfig);
 
-// Initialize Firebase
+// ✅ Initialize Firebase app
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+
+// ✅ Initialize Auth with AsyncStorage persistence (removes warning)
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
+
+// ✅ Firestore
 const db = getFirestore(app);
 
-// Initialize Auth with default memory persistence 
-const auth = initializeAuth(app);
-
-// Initialize analytics only if supported
+// ✅ Analytics (only if supported)
 let analytics = null;
-isSupported().then(supported => {
-  if (supported) {
-    analytics = getAnalytics(app);
-  } else {
-    console.log('Firebase Analytics is not supported in this environment');
-  }
-}).catch(err => console.log('Error checking analytics support:', err));
+isSupported()
+  .then((supported) => {
+    if (supported) {
+      analytics = getAnalytics(app);
+    } else {
+      console.log('Firebase Analytics is not supported in this environment');
+    }
+  })
+  .catch((err) => console.log('Error checking analytics support:', err));
 
-export { db, auth, app, analytics };
+export { app, db, auth, analytics };

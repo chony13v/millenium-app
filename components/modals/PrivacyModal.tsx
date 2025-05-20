@@ -36,7 +36,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>1. Introducción</Text>
           <Text style={{ fontFamily: 'outfit-regular', marginBottom: 15, fontSize: 14, lineHeight: 20, color: '#000000' }}>
-            Esta Política de Privacidad describe cómo MILLENIUMFS S.A.S. recopila, utiliza y protege la información personal de los usuarios de nuestra aplicación móvil para el registro y participación en actividades relacionadas con el fútbol juvenil.
+            Esta Política de Privacidad describe cómo MILLENIUMFS S.A.S. recopila, utiliza y protege la información personal de los usuarios de nuestra aplicación móvil para el registro y participación en actividades relacionadas con el fútbol juvenil. Esta app está destinada a adolescentes mayores de 13 años, y toda recolección de datos se realiza con autorización del padre o tutor legal.
           </Text>
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>2. Información que Recopilamos</Text>
@@ -48,6 +48,8 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             {'\n'}- Nombre completo del padre/tutor
             {'\n'}- Información de contacto (teléfono y correo electrónico)
             {'\n'}- Afiliación a equipo o club (si aplica)
+            {'\n'}- Datos de ubicación geográfica (cuando el usuario otorga permiso)
+            {'\n'}- Acceso a la cámara para tomar fotos relacionadas con el perfil o actividades
           </Text>
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>3. Uso de la Información</Text>
@@ -57,6 +59,8 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             {'\n'}- Comunicarnos con los padres o tutores
             {'\n'}- Garantizar la seguridad y bienestar de los participantes
             {'\n'}- Cumplir con requisitos legales y normativos
+            {'\n'}- Usar la cámara para capturar imágenes requeridas por el programa
+            {'\n'}- Obtener ubicación para mejorar la experiencia del usuario (ej. sugerencias por zona)
           </Text>
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>4. Compartición de la Información</Text>
@@ -76,7 +80,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             {'\n'}- Rectificar datos inexactos o incompletos
             {'\n'}- Solicitar la eliminación de sus datos personales
             {'\n'}- Oponerse al tratamiento de sus datos personales
-            {'\n'}Para ejercer estos derechos o si tiene preguntas, por favor contacte a: info@milleniumfs.com
+            {'\n'}Para ejercer estos derechos o si tiene preguntas, por favor contacte a: info@milleniumgd.com
           </Text>
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>7. Retención de Datos</Text>
@@ -106,7 +110,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>12. Contacto</Text>
           <Text style={{ fontFamily: 'outfit-regular', marginBottom: 15, fontSize: 14, lineHeight: 20, color: '#000000' }}>
-            Si tiene preguntas o inquietudes sobre esta Política de Privacidad, por favor contacte a info@milleniumfs.com
+            Si tiene preguntas o inquietudes sobre esta Política de Privacidad, por favor contacte a info@milleniumgd.com
           </Text>
         </ScrollView>
 

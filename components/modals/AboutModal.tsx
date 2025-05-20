@@ -25,7 +25,7 @@ export default function AboutModal({ visible, onClose }: Props) {
             {'\n\n'}Desarrollado por Millenium Football Solutions
             {'\n'}© 2025 Millenium. Todos los derechos reservados.
             {'\n\n'}Contáctanos:
-            {'\n'}info@milleniumfs.com
+            {'\n'}info@milleniumgd.com
             {'\n'}www.milleniumfs.com
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>

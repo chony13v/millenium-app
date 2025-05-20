@@ -2,7 +2,7 @@
   "expo": {
     "name": "millenium-app",
     "slug": "millenium-app",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "millenium-app",
@@ -21,9 +21,9 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.chony.milleniumapp",
-      "versionCode": 1,
-      "permissions": [],
-      "googleServicesFile": "./android/app/google-services.json"
+      "versionCode": 3,
+      "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "com.google.android.gms.permission.AD_ID"],
+      "googleServicesFile": "./google-services.json"
     },
 
     "web": {
@@ -32,32 +32,28 @@
       "favicon": "./assets/images/favicon.png"
     },
 
+    "splash": {
+      "image": "./assets/images/initial_layout.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#000000"
+    },
+
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "image": "./assets/images/initial_layout.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#000000"
         }
       ],
       [
         "expo-build-properties",
         {
           "android": {
-            "googleServicesFile": "./android/app/google-services.json"
+            "googleServicesFile": "./google-services.json"
           }
-        }
-      ],
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/images/icon.png",
-          "color": "#ffffff",
-          "sounds": ["default"],
-          "useNextNotificationsApi": true
         }
       ]
     ],
