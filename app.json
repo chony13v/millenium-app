@@ -2,7 +2,7 @@
   "expo": {
     "name": "millenium-app",
     "slug": "millenium-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "millenium-app",
@@ -10,34 +10,35 @@
     "newArchEnabled": true,
     "runtimeVersion": "1.0.0+firebase-test",
     "owner": "chony13v",
-
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.chony.milleniumapp"
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.chony.milleniumapp",
-      "versionCode": 3,
-      "permissions": ["CAMERA", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "com.google.android.gms.permission.AD_ID"],
+      "versionCode": 2,
+      "permissions": [
+        "CAMERA",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "com.google.android.gms.permission.AD_ID"
+      ],
       "googleServicesFile": "./google-services.json"
     },
-
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
     "splash": {
       "image": "./assets/images/initial_layout.png",
       "resizeMode": "cover",
       "backgroundColor": "#000000"
     },
-
     "plugins": [
       "expo-router",
       [
@@ -57,11 +58,9 @@
         }
       ]
     ],
-
     "experiments": {
       "typedRoutes": true
     },
-
     "extra": {
       "router": {
         "origin": false
