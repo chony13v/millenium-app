@@ -9,14 +9,39 @@ def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
-    entryFile = file(["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"].execute(null, rootDir).text.trim())
-    reactNativeDir = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
-    hermesCommand = new File(["node", "--print", "require.resolve('react-native/package.json')"].execute(null, rootDir).text.trim()).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
-    codegenDir = new File(["node", "--print", "require.resolve('@react-native/codegen/package.json', { paths: [require.resolve('react-native/package.json')] })"].execute(null, rootDir).text.trim()).getParentFile().getAbsoluteFile()
+    entryFile = file(
+      ["node", "-e", "require('expo/scripts/resolveAppEntry')", projectRoot, "android", "absolute"]
+        .execute(null, rootDir)
+        .text
+        .trim()
+    )
+    reactNativeDir = new File(
+      ["node", "--print", "require.resolve('react-native/package.json')"]
+        .execute(null, rootDir)
+        .text
+        .trim()
+    ).getParentFile().getAbsoluteFile()
+    hermesCommand = new File(
+      ["node", "--print", "require.resolve('react-native/package.json')"]
+        .execute(null, rootDir)
+        .text
+        .trim()
+    ).getParentFile().getAbsolutePath() + "/sdks/hermesc/%OS-BIN%/hermesc"
+    codegenDir = new File(
+      ["node", "--print", "require.resolve('@react-native/codegen/package.json', { paths: [require.resolve('react-native/package.json')] })"]
+        .execute(null, rootDir)
+        .text
+        .trim()
+    ).getParentFile().getAbsoluteFile()
 
     // Use Expo CLI to bundle the app, this ensures the Metro config
     // works correctly with Expo projects.
-    cliFile = new File(["node", "--print", "require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })"].execute(null, rootDir).text.trim())
+    cliFile = new File(
+      ["node", "--print", "require.resolve('@expo/cli', { paths: [require.resolve('expo/package.json')] })"]
+        .execute(null, rootDir)
+        .text
+        .trim()
+    )
     bundleCommand = "export:embed"
 
     /* Folders */
@@ -82,7 +107,6 @@ def jscFlavor = 'org.webkit:android-jsc:+'
 
 android {
     ndkVersion rootProject.ext.ndkVersion
-
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
@@ -118,7 +142,8 @@ android {
     }
     packagingOptions {
         jniLibs {
-            useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
+            // Force modern 16-KB-aligned packaging for native libs
+            useLegacyPackaging false
         }
     }
     androidResources {
@@ -149,6 +174,18 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // AndroidX Core KTX for EdgeToEdge and Insets support
+    implementation "androidx.core:core-ktx:1.10.1"
+    // (Optional) Activity KTX for modern Activity APIs
+    implementation "androidx.activity:activity-ktx:1.8.0"
+    // ───────────────────────────────────────────────────────────────────────────
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // (Optional) Material Components ≥1.12.0 to avoid deprecated edge-to-edge calls
+    // implementation "com.google.android.material:material:1.12.0-alpha05"
+    // ───────────────────────────────────────────────────────────────────────────
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

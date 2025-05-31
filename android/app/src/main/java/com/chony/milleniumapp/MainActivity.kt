@@ -1,8 +1,12 @@
 package com.chony.milleniumapp
-import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
 import android.os.Bundle
+import android.view.View                     // ▲ NEW
+import androidx.core.graphics.Insets        // ▲ NEW
+import androidx.core.view.EdgeToEdge        // ▲ NEW
+import androidx.core.view.ViewCompat        // ▲ NEW
+import androidx.core.view.WindowInsetsCompat// ▲ NEW
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -10,56 +14,61 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnable
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 
 import expo.modules.ReactActivityDelegateWrapper
+import expo.modules.splashscreen.SplashScreenManager
 
 class MainActivity : ReactActivity() {
+
   override fun onCreate(savedInstanceState: Bundle?) {
-    // Set the theme to AppTheme BEFORE onCreate to support
-    // coloring the background, status bar, and navigation bar.
-    // This is required for expo-splash-screen.
-    // setTheme(R.style.AppTheme);
-    // @generated begin expo-splashscreen - expo prebuild (DO NOT MODIFY) sync-f3ff59a738c56c9a6119210cb55f0b613eb8b6af
+    // ──────────────────────────────────────────────────────────────
+    // keep Expo splash-screen hook (GENERATED – do not modify)
+    // ──────────────────────────────────────────────────────────────
     SplashScreenManager.registerOnActivity(this)
-    // @generated end expo-splashscreen
+
+    // React Native setup
     super.onCreate(null)
+
+    // ──────────────────────────────────────────────────────────────
+    // Edge-to-edge handling for Android 15+ (SDK 35)
+    // ──────────────────────────────────────────────────────────────
+    // 1) Make status & nav bars transparent
+    EdgeToEdge.enable(this)
+
+    // 2) Grab React Native’s content view
+    val root: View = findViewById(android.R.id.content)
+
+    // 3) Apply system-bar insets as padding so UI is never hidden
+    ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+      val bars: Insets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+      view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+      WindowInsetsCompat.CONSUMED
+    }
   }
 
-  /**
-   * Returns the name of the main component registered from JavaScript. This is used to schedule
-   * rendering of the component.
-   */
+  /** Name of the JS component. */
   override fun getMainComponentName(): String = "main"
 
+  /** React Activity Delegate (unchanged). */
+  override fun createReactActivityDelegate(): ReactActivityDelegate =
+    ReactActivityDelegateWrapper(
+      this,
+      BuildConfig.IS_NEW_ARCHITECTURE_ENABLED,
+      object : DefaultReactActivityDelegate(
+        this,
+        mainComponentName,
+        fabricEnabled
+      ) {}
+    )
+
   /**
-   * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]
-   * which allows you to enable New Architecture with a single boolean flags [fabricEnabled]
+   * Align back-button behaviour with Android S+
    */
-  override fun createReactActivityDelegate(): ReactActivityDelegate {
-    return ReactActivityDelegateWrapper(
-          this,
-          BuildConfig.IS_NEW_ARCHITECTURE_ENABLED,
-          object : DefaultReactActivityDelegate(
-              this,
-              mainComponentName,
-              fabricEnabled
-          ){})
-  }
-
-  /**
-    * Align the back button behavior with Android S
-    * where moving root activities to background instead of finishing activities.
-    * @see <a href="https://developer.android.com/reference/android/app/Activity#onBackPressed()">onBackPressed</a>
-    */
   override fun invokeDefaultOnBackPressed() {
-      if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
-          if (!moveTaskToBack(false)) {
-              // For non-root activities, use the default implementation to finish them.
-              super.invokeDefaultOnBackPressed()
-          }
-          return
+    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+      if (!moveTaskToBack(false)) {
+        super.invokeDefaultOnBackPressed()
       }
-
-      // Use the default back button implementation on Android S
-      // because it's doing more than [Activity.moveTaskToBack] in fact.
-      super.invokeDefaultOnBackPressed()
+      return
+    }
+    super.invokeDefaultOnBackPressed()
   }
 }
