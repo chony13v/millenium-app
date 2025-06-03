@@ -289,7 +289,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <Text style={styles.title}>Información de registro:</Text>
+          <Text style={styles.title}>Información de Registro:</Text>
 
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>Número de Participante:</Text>
