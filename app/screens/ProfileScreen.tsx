@@ -347,7 +347,7 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.supportMessage}>
             Si deseas cambiar tu información, por favor contacta con soporte al
-            siguiente correo electrónico: info@milleniumgd.com
+            siguiente correo electrónico: info@milleniumfc.com
           </Text>
         </View>
       </ScrollView>

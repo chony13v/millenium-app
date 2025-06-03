@@ -21,12 +21,10 @@ import TermsModal from "@/components/modals/TermsModal";
 import PrivacyModal from "@/components/modals/PrivacyModal";
 
 import * as WebBrowser from "expo-web-browser";
-
 import {
   FORM_CONSTANTS,
   VALIDATION_PATTERNS,
   COLORS,
-  FONTS,
   CITIES,
   POSITIONS,
   CITY_DATE_TIMES,
@@ -231,7 +229,6 @@ export default function Profile() {
       dateTime?: string;
       parentFullName?: string;
       relationship?: string;
-      parentPhoneNumber?: string;
       parentEmail?: string;
       consentimientoParticipacion?: string;
       autorizacionFotos?: string;
@@ -290,15 +287,6 @@ export default function Profile() {
 
       if (!relationship.trim()) {
         newErrors.relationship = "Debes seleccionar la relación con el niño";
-        isValid = false;
-      }
-
-      if (!parentPhoneNumber.trim()) {
-        newErrors.parentPhoneNumber = "Debes ingresar el número de teléfono";
-        isValid = false;
-      } else if (!VALIDATION_PATTERNS.PHONE.test(parentPhoneNumber)) {
-        newErrors.parentPhoneNumber =
-          "El número de teléfono debe tener 10 dígitos";
         isValid = false;
       }
 
@@ -384,7 +372,6 @@ export default function Profile() {
     const newErrors: {
       parentFullName?: string;
       relationship?: string;
-      parentPhoneNumber?: string;
       parentEmail?: string;
     } = {};
 
@@ -398,15 +385,6 @@ export default function Profile() {
 
     if (!relationship.trim()) {
       newErrors.relationship = "Debes seleccionar la relación con el niño";
-      isValid = false;
-    }
-
-    if (!parentPhoneNumber.trim()) {
-      newErrors.parentPhoneNumber = "Debes ingresar el número de teléfono";
-      isValid = false;
-    } else if (!VALIDATION_PATTERNS.PHONE.test(parentPhoneNumber)) {
-      newErrors.parentPhoneNumber =
-        "El número de teléfono debe tener 10 dígitos";
       isValid = false;
     }
 
@@ -631,18 +609,7 @@ export default function Profile() {
 
   const handleParentPhoneNumberChange = (text: string) => {
     const numericValue = text.replace(/[^0-9]/g, "");
-    if (numericValue.length <= FORM_CONSTANTS.PHONE_LENGTH) {
       setParentPhoneNumber(numericValue);
-
-      if (!numericValue) {
-        setErrors((prev) => ({
-          ...prev,
-          parentPhoneNumber: "Debes ingresar el número de teléfono",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, parentPhoneNumber: undefined }));
-      }
-    }
   };
 
   const handleParentEmailChange = (text: string) => {
@@ -704,27 +671,17 @@ export default function Profile() {
       setCurrentSection(currentSection - 1);
     }
   };
-  function validateAndNext() {
+   function validateAndNext() {
     if (validateSection2()) {
       setCurrentSection(3);
     } else {
-      const missingFields = [];
-      if (!parentFullName.trim())
-        missingFields.push("• Nombre completo del padre/tutor");
-      if (!relationship.trim()) missingFields.push("• Relación con el niño");
-      if (
-        !parentPhoneNumber.trim() ||
-        !VALIDATION_PATTERNS.PHONE.test(parentPhoneNumber)
-      )
-        missingFields.push("• Número de teléfono válido");
+      const missing: string[] = [];
+      if (!parentFullName.trim()) missing.push("• Nombre completo del padre/tutor");
+      if (!relationship.trim())  missing.push("• Relación con el niño");
       if (parentEmail.trim() && !VALIDATION_PATTERNS.EMAIL.test(parentEmail))
-        missingFields.push("• Correo electrónico válido (si se proporciona)");
+        missing.push("• Correo electrónico válido (si se proporciona)");
 
-      Alert.alert(
-        "Campos Obligatorios",
-        "Por favor completa los siguientes campos obligatorios:\n\n" +
-          missingFields.join("\n")
-      );
+      Alert.alert("Campos Obligatorios", missing.join("\n"));
     }
   }
   return (

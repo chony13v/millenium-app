@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "millenium-app",
+    "name": "Millenium FC",
     "slug": "millenium-app",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "millenium-app",
@@ -20,7 +20,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.chony.milleniumapp",
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
@@ -35,9 +35,9 @@
       "favicon": "./assets/images/favicon.png"
     },
     "splash": {
-      "image": "./assets/images/initial_layout.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#000000"
+
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
     },
     "plugins": [
       "expo-router",

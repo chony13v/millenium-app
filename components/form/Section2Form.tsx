@@ -93,12 +93,11 @@ const Section2Form: React.FC<Section2FormProps> = ({
         value={parentPhoneNumber}
         onChangeText={handleParentPhoneNumberChange}
         keyboardType="numeric"
-        maxLength={10}
-        style={[styles.input, {borderColor: errors.parentPhoneNumber ? 'red' : 'gray'}]}
+   
+        style={[styles.input, {borderColor: 'gray'}]}
         returnKeyType='next'
         onSubmitEditing={() => parentEmailRef.current?.focus()}
       />
-      {errors.parentPhoneNumber && <Text style={styles.errorText}>{errors.parentPhoneNumber}</Text>}
 
       <Text style={styles.label}>Correo Electrónico (Opcional)</Text>
       <TextInput

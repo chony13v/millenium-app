@@ -157,7 +157,7 @@ export default function SignUpScreen() {
                 Ingresa tus datos para registrarte
               </Text>
               <Text style={[styles.title, { fontWeight: "bold" }]}>
-                MilleniumGD
+                MilleniumFC
               </Text>
               <TextInput
                 style={styles.input}

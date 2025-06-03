@@ -76,7 +76,7 @@ const TermsModal: React.FC<TermsModalProps> = ({ visible, onClose }) => (
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>9. Contacto</Text>
           <Text style={{ fontFamily: 'outfit-regular', marginBottom: 15, fontSize: 14, lineHeight: 20, color: '#000000' }}>
-            Para cualquier consulta o información adicional, por favor contáctenos en: info@milleniumgd.com
+            Para cualquier consulta o información adicional, por favor contáctenos en: info@milleniumfc.com
           </Text>
         </ScrollView>
 

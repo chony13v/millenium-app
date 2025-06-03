@@ -80,7 +80,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             {'\n'}- Rectificar datos inexactos o incompletos
             {'\n'}- Solicitar la eliminación de sus datos personales
             {'\n'}- Oponerse al tratamiento de sus datos personales
-            {'\n'}Para ejercer estos derechos o si tiene preguntas, por favor contacte a: info@milleniumgd.com
+            {'\n'}Para ejercer estos derechos o si tiene preguntas, por favor contacte a: info@milleniumfc.com
           </Text>
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>7. Retención de Datos</Text>
@@ -110,7 +110,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
 
           <Text style={{ fontFamily: 'outfit-bold', fontSize: 16, marginTop: 15, color: '#000000' }}>12. Contacto</Text>
           <Text style={{ fontFamily: 'outfit-regular', marginBottom: 15, fontSize: 14, lineHeight: 20, color: '#000000' }}>
-            Si tiene preguntas o inquietudes sobre esta Política de Privacidad, por favor contacte a info@milleniumgd.com
+            Si tiene preguntas o inquietudes sobre esta Política de Privacidad, por favor contacte a info@milleniumfc.com
           </Text>
         </ScrollView>
 

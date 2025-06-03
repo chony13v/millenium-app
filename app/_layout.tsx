@@ -12,6 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
+import LoadingBall from '@/components/LoadingBall';
 
 // 🔑 Firebase Auth
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
@@ -82,14 +83,9 @@ export default function RootLayout() {
     throw new Error('Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env');
   }
 
-  if (!appIsReady || isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={{ fontSize: 16, marginBottom: 8 }}>Cargando...</Text>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
+if (!appIsReady || isLoading) {
+  return <LoadingBall text="Cargando el campo de juego..." />;
+}
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
