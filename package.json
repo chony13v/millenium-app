@@ -16,11 +16,13 @@
   },
 
     "overrides": {
-    "@react-native/gradle-plugin": "0.75.4"
+    "@react-native/gradle-plugin": "0.75.4",        
+    "expo-modules-core": "1.9.0"            
   },
 
     "resolutions": {
-    "@react-native/gradle-plugin": "0.75.4"
+    "@react-native/gradle-plugin": "0.75.4",
+    "expo-modules-core": "1.9.0"
   },
 
   "dependencies": {

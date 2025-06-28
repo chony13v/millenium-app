@@ -4712,10 +4712,10 @@ expo-modules-autolinking@2.1.12:
     require-from-string "^2.0.2"
     resolve-from "^5.0.0"
 
-expo-modules-core@2.4.0:
-  version "2.4.0"
-  resolved "https://registry.yarnpkg.com/expo-modules-core/-/expo-modules-core-2.4.0.tgz#3081d62fadff913090cc5abfe46d9ec6b0e75789"
-  integrity sha512-Ko5eHBdvuMykjw9P9C9PF54/wBSsGOxaOjx92I5BwgKvEmUwN3UrXFV4CXzlLVbLfSYUQaLcB220xmPfgvT7Fg==
+expo-modules-core@1.9.0, expo-modules-core@2.4.0:
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/expo-modules-core/-/expo-modules-core-1.9.0.tgz#78bd66b7d39fcaa0a49dead41c68c7eadea11e67"
+  integrity sha512-mvuaK6Y8YZXlzQsFFWtJabn9zZZLHezwIRrIEdrze4Ybn39g7EJu6ZGnFIQm5BSjwQSONv/IZjdljkh6zCUIZQ==
   dependencies:
     invariant "^2.2.4"
 
