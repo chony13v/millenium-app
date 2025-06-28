@@ -25,7 +25,8 @@
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "com.google.android.gms.permission.AD_ID"
+        "com.google.android.gms.permission.AD_ID",
+        "NOTIFICATIONS"
       ],
       "googleServicesFile": "./google-services.json"
     },
@@ -35,7 +36,6 @@
       "favicon": "./assets/images/favicon.png"
     },
     "splash": {
-
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -56,7 +56,8 @@
             "googleServicesFile": "./google-services.json"
           }
         }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

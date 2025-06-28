@@ -52,3 +52,4 @@ android/app/build/
 android/build/
 android/local.properties
 android/app/debug.keystore
+inspect.json

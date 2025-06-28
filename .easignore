@@ -7,12 +7,16 @@ dist/
 web-build/
 expo-env.d.ts
 
-# === ANDROID (NO ignores la carpeta completa, solo lo innecesario) ===
-android/.gradle/
-android/app/build/
-android/build/
-android/local.properties
-android/app/debug.keystore
+# === ANDROID ===
+# Ignorar la carpeta completa para usar flujo managed (Opción A)
+android/
+
+# Si por alguna razón quieres mantener el ignore selectivo en lugar de la carpeta completa, comenta la línea anterior y descomenta estas:
+# android/.gradle/
+# android/app/build/
+# android/build/
+# android/local.properties
+# android/app/debug.keystore
 
 # === CERTIFICADOS / ARCHIVOS SENSIBLES ===
 *.orig.*
@@ -40,5 +44,5 @@ yarn-error.*
 # === TYPESCRIPT ===
 *.tsbuildinfo
 
-# === iOS (si solo haces Android builds) ===
+# === iOS ===
 ios/

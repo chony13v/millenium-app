@@ -4,15 +4,18 @@ import {
   ClerkProvider,
   ClerkLoaded,
   useAuth,
+  useUser,
 } from '@clerk/clerk-expo';
-import { esES } from '@clerk/localizations'; 
+import { esES } from '@clerk/localizations';
 import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useCallback } from 'react';
-import { View, ActivityIndicator, Text } from 'react-native';
 import LoadingBall from '@/components/LoadingBall';
+import { registerForPushNotificationsAsync, useNotificationListeners } from '@/hooks/usePushNotifications';
+import { db } from '@/config/FirebaseConfig';
+import { doc, setDoc } from 'firebase/firestore';
 
 // 🔑 Firebase Auth
 import { getAuth, signInWithCustomToken } from 'firebase/auth';
@@ -27,7 +30,7 @@ const FirebaseSync = () => {
 
   useEffect(() => {
     const link = async () => {
-      if (!isSignedIn) return; // espera a que el usuario esté logueado en Clerk
+      if (!isSignedIn) return;
 
       try {
         const token = await getToken({ template: 'integration_firebase' });
@@ -49,7 +52,7 @@ const FirebaseSync = () => {
     link();
   }, [isSignedIn, getToken]);
 
-  return null; // no renderiza nada
+  return null;
 };
 /* ------------------------------------------------------------------ */
 
@@ -57,11 +60,32 @@ export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [appIsReady, setAppIsReady] = useState(false);
   const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+  const { user } = useUser();
+
+  useNotificationListeners(); // 👂 Escucha notificaciones
+
+  useEffect(() => {
+    async function setupPush() {
+      const token = await registerForPushNotificationsAsync();
+      if (token && user?.id) {
+        await setDoc(
+          doc(db, 'Participantes', user.id),
+          { expoPushToken: token },
+          { merge: true }
+        );
+        console.log('✅ Push token guardado en Firestore');
+      }
+    }
+
+    if (user?.id) {
+      setupPush();
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     async function prepare() {
       try {
-        // Podés cargar aquí otros recursos si los necesitás
+        // Aquí podrías cargar fuentes, assets, etc.
       } catch (e) {
         console.warn('Error preparing app:', e);
       } finally {
@@ -83,9 +107,9 @@ export default function RootLayout() {
     throw new Error('Add EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env');
   }
 
-if (!appIsReady || isLoading) {
-  return <LoadingBall text="Cargando el campo de juego..." />;
-}
+  if (!appIsReady || isLoading) {
+    return <LoadingBall text="Cargando el campo de juego..." />;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
@@ -93,13 +117,11 @@ if (!appIsReady || isLoading) {
         <ClerkProvider
           tokenCache={tokenCache}
           publishableKey={publishableKey}
-          localization={esES} // 👈 aquí aplicamos español
+          localization={esES}
         >
           <ClerkLoaded>
-            {/* 🔗 Sincroniza Clerk → Firebase Auth */}
             <FirebaseSync />
 
-            {/* Resto de tu navegación */}
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(call)" options={{ headerShown: false }} />
