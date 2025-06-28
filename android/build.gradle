@@ -1,7 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
 ext {
-  expoKotlinVersion = "1.8.22"  
+  expoKotlinVersion = "1.8.0"  
 }
 
 buildscript {
@@ -13,8 +13,6 @@ buildscript {
         kotlinVersion = findProperty('android.kotlinVersion') ?: '1.8.22'
 
         ndkVersion = "26.1.10909125"
-
-        expoKotlinVersion = "1.8.22" 
     }
     repositories {
         google()
