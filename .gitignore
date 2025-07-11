@@ -1,18 +1,19 @@
 # === DEPENDENCIAS ===
-/node_modules
-/.pnp
+node_modules/
+.pnp/
 .pnp.js
 
 # === TESTING ===
-/coverage
+coverage/
 
 # === NEXT.JS (si aplicara)
-/.next/
-/out/
+.next/
+out/
 
 # === PRODUCCIÓN ===
-/build
-/dist
+build/
+dist/
+web-build/
 
 # === VARIABLES DE ENTORNO ===
 .env
@@ -25,30 +26,60 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+firebase-debug.log
 
-# === IDE - Visual Studio Code ===
+# === IDEs ===
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+.idea/
+*.sublime-workspace
+*.sublime-project
 
 # === MACOS ===
 .DS_Store
 .AppleDouble
 .LSOverride
 
-
 # === MISC ===
 *.pem
+*.log
 .vercel
+.expo/
+.expo-shared/
 
-# === EXPO ===
-expo-env.d.ts
-
-# === ANDROID (ignorar solo lo innecesario) ===
+# === ANDROID ===
 android/.gradle/
+android/.idea/
 android/app/build/
 android/build/
 android/local.properties
 android/app/debug.keystore
+android/gradle.properties
+android/gradlew
+android/gradlew.bat
+android/gradle/
+android/keystores/
+android/millenium-app.aab
+
+# === iOS ===
+ios/build/
+ios/Pods/
+ios/Podfile.lock
+ios/Runner.xcworkspace/
+ios/*.xcworkspace
+ios/DerivedData/
+ios/*.pbxuser
+ios/*.mode1v3
+ios/*.mode2v3
+ios/*.perspectivev3
+ios/*.xcodeproj/project.xcworkspace/
+ios/*.xcodeproj/xcuserdata/
+ios/Runner/GoogleService-Info.plist
+
+# === ASSETS PESADOS ===
+*.apk
+*.aab
+*.ipa
