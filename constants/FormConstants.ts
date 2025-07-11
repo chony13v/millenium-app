@@ -7,7 +7,7 @@ const VALIDATION_PATTERNS = {
   
   // Form Constants
   const FORM_CONSTANTS = {
-    AGE_RANGE: { min: 13, max: 20 },
+    AGE_RANGE: { min: 12, max: 18 },
     PHONE_LENGTH: 10,
     MAX_AFFILIATION_LENGTH: 50,
   };
@@ -30,10 +30,7 @@ const VALIDATION_PATTERNS = {
   
   // Static Data
   const CITIES = [
-    { key: "Ambato", label: "Ambato" },
-    { key: "Guayaquil", label: "Guayaquil" },
-    { key: "Manta", label: "Manta" },
-    { key: "Quito", label: "Quito" },
+    //{ key: "Quito", label: "Quito" },
     { key: "Riobamba", label: "Riobamba" },
   ].sort((a, b) => a.label.localeCompare(b.label));
   
@@ -45,74 +42,53 @@ const VALIDATION_PATTERNS = {
   ];
   
   const CITY_DATE_TIMES: { [key: string]: { key: string; label: string }[] } = {
-    Ambato: [
-      {
-        key: "Ambato, 25 de abril - 8:00 am",
-        label: "Ambato, 25 de abril - 8:00 am",
-      },
-      {
-        key: "Ambato, 25 de abril - 2:00 pm",
-        label: "Ambato, 25 de abril - 2:00 pm",
-      },
-      {
-        key: "Ambato, 26 de abril - 8:00 am",
-        label: "Ambato, 26 de abril - 8:00 am",
-      },
-    ],
-    Guayaquil: [
-      {
-        key: "Guayaquil, 25 de abril - 8:00 am",
-        label: "Guayaquil, 25 de abril - 8:00 am",
-      },
-      {
-        key: "Guayaquil, 25 de abril - 2:00 pm",
-        label: "Guayaquil, 25 de abril - 2:00 pm",
-      },
-      {
-        key: "Guayaquil, 26 de abril - 8:00 am",
-        label: "Guayaquil, 26 de abril - 8:00 am",
-      },
-    ],
-    Manta: [
-      {
-        key: "Manta, 25 de abril - 8:00 am",
-        label: "Manta, 25 de abril - 8:00 am",
-      },
-      {
-        key: "Manta, 25 de abril - 2:00 pm",
-        label: "Manta, 25 de abril - 2:00 pm",
-      },
-      {
-        key: "Manta, 26 de abril - 8:00 am",
-        label: "Manta, 26 de abril - 8:00 am",
-      },
-    ],
-    Quito: [
-      {
-        key: "Quito, 25 de abril - 8:00 am",
-        label: "Quito, 25 de abril - 8:00 am",
-      },
-      {
-        key: "Quito, 25 de abril - 2:00 pm",
-        label: "Quito, 25 de abril - 2:00 pm",
-      },
-      {
-        key: "Quito, 26 de abril - 8:00 am",
-        label: "Quito, 26 de abril - 8:00 am",
-      },
-    ],
+ 
+    // Quito: [
+    //   {
+    //     key: "Quito, 25 de abril - 8:00 am",
+    //     label: "Quito, 25 de abril - 8:00 am",
+    //   },
+    //   {
+    //     key: "Quito, 25 de abril - 2:00 pm",
+    //     label: "Quito, 25 de abril - 2:00 pm",
+    //   },
+    //   {
+    //     key: "Quito, 26 de abril - 8:00 am",
+    //     label: "Quito, 26 de abril - 8:00 am",
+    //   },
+    // ],
     Riobamba: [
       {
-        key: "Riobamba, 25 de abril - 8:00 am",
-        label: "Riobamba, 25 de abril - 8:00 am",
+        key: "San Luis, 19 de julio - 10:00 am",
+        label: "Estadio San Luis, 19 de julio - 10:00 am",
       },
       {
-        key: "Riobamba, 25 de abril - 2:00 pm",
-        label: "Riobamba, 25 de abril - 2:00 pm",
+        key: "Licán, 20 de julio - 10:00 am",
+        label: "Estadio San Pedro de Licán, 20 de julio - 10:00 am",
       },
       {
-        key: "Riobamba, 26 de abril - 8:00 am",
-        label: "Riobamba, 26 de abril - 8:00 am",
+        key: "San Juan, 21 de julio - 10:00 am",
+        label: "Estadio de San Juan, 21 de julio - 10:00 am",
+      },
+            {
+        key: "Quimiag, 22 de julio - 10:00 am",
+        label: "Estadio de Quimiag, 22 de julio - 10:00 am",
+      },
+            {
+        key: "Olmedo, 23 de julio - 10:00 am",
+        label: "Complejo Centro Deportivo Olmedo , 23 de julio - 10:00 am",
+      },
+            {
+        key: "Pungalá, 24 de julio - 10:00 am",
+        label: "Estadio de Pungalá, 24 de julio - 10:00 am",
+      },
+            {
+        key: "UNACH, 26 de julio - 10:00 am",
+        label: "Estadio de la UNACH, 26 de julio - 10:00 am",
+      },
+            {
+        key: "Olmedo, 27 de julio - 10:00 am",
+        label: "Complejo Centro Deportivo Olmedo, 27 de julio - 10:00 am",
       },
     ],
   };

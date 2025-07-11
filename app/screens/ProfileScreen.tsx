@@ -41,6 +41,7 @@ type Profile = {
   position: string;
   registrationDate: string;
   relationship: string;
+  economicSituation?: string; 
   uniqueNumber?: string;
 };
 export default function ProfileScreen() {
@@ -115,7 +116,7 @@ export default function ProfileScreen() {
 
   const pickImage = async () => {
     try {
-      setIsImageLoading(true); // Start loading
+      setIsImageLoading(true); 
 
       const { status } =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -324,6 +325,11 @@ export default function ProfileScreen() {
               <Text style={styles.infoValue}>
                 {profile.parentFullName} ({profile.relationship})
               </Text>
+            </View>
+
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Situación Económica:</Text>
+              <Text style={styles.infoValue}>{profile.economicSituation}</Text>
             </View>
 
             <View style={styles.infoRow}>

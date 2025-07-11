@@ -39,62 +39,61 @@ export default function Profile() {
   const { user } = useUser();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const [isLoading, setIsLoading] = useState(true);
-  const [contactInfo, setContactInfo] = useState("");
+
+  // Sección 1 & global
+  const [nombreCompleto, setNombreCompleto] = useState("");
   const [idNumber, setIdNumber] = useState("");
-  const [parentGuardianName, setParentGuardianName] = useState("");
-  const [selectedCity, setSelectedCity] = useState("");
-  const [selectedPosition, setSelectedPosition] = useState("");
   const [birthDate, setBirthDate] = useState("");
-  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const [selectedPosition, setSelectedPosition] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
   const [selectedDateTime, setSelectedDateTime] = useState("");
   const [dateTimes, setDateTimes] = useState<{ key: string; label: string }[]>(
     []
   );
-  const [errors, setErrors] = useState<{
-    idNumber?: string;
-    contactInfo?: string;
-    birthDate?: string;
-    terms?: string;
-    position?: string;
-    city?: string;
-    guardian?: string;
-    dateTime?: string;
-    afiliacionEquipo?: string;
-    informacionMedica?: string;
-    nombreCompleto?: string;
-    parentFullName?: string;
-    relationship?: string;
-    parentPhoneNumber?: string;
-    parentEmail?: string;
-    consentimientoParticipacion?: string;
-    autorizacionFotos?: string;
-    acuerdoPrivacidad?: string;
-  }>({});
-  
   const [informacionMedica, setInformacionMedica] = useState("");
+  const [afiliacionEquipo, setAfiliacionEquipo] = useState("");
+
+  // Sección 2
   const [parentFullName, setParentFullName] = useState("");
   const [relationship, setRelationship] = useState("");
+  const [economicSituation, setEconomicSituation] = useState(""); 
   const [parentPhoneNumber, setParentPhoneNumber] = useState("");
   const [parentEmail, setParentEmail] = useState("");
-  const [afiliacionEquipo, setAfiliacionEquipo] = useState("");
-  const [nombreCompleto, setNombreCompleto] = useState("");
 
-  const idNumberRef = React.useRef<TextInput>(null);
-  const contactInfoRef = React.useRef<TextInput>(null);
-  const parentGuardianRef = React.useRef<TextInput>(null);
-  const birthDateRef = React.useRef<TextInput>(null);
-
-  const [currentSection, setCurrentSection] = useState(1);
-
+  // Sección 3
   const [consentimientoParticipacion, setConsentimientoParticipacion] =
     useState(false);
   const [autorizacionFotos, setAutorizacionFotos] = useState(false);
   const [acuerdoPrivacidad, setAcuerdoPrivacidad] = useState(false);
+  const [esRiobambeno, setEsRiobambeno] = useState(false);              
 
+  // Errores
+  const [errors, setErrors] = useState<{
+    nombreCompleto?: string;
+    idNumber?: string;
+    birthDate?: string;
+    position?: string;
+    city?: string;
+    dateTime?: string;
+    informacionMedica?: string;
+    afiliacionEquipo?: string;
+    parentFullName?: string;
+    relationship?: string;
+    parentEmail?: string;
+    economicSituation?: string;           
+    consentimientoParticipacion?: string;
+    autorizacionFotos?: string;
+    acuerdoPrivacidad?: string;
+    esRiobambeno?: string;                 
+  }>({});
+
+  // UI state
   const [termsModalVisible, setTermsModalVisible] = useState(false);
-
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false);
+  const [currentSection, setCurrentSection] = useState(1);
 
+  // Warm up browser
   useEffect(() => {
     WebBrowser.warmUpAsync();
     return () => {
@@ -102,18 +101,17 @@ export default function Profile() {
     };
   }, []);
 
+  // Check existing registration
   useEffect(() => {
     const checkExistingRegistration = async () => {
       if (!user) return;
-
       try {
         const userRef = doc(db, "Participantes", user.id);
         const userDoc = await getDoc(userRef);
-
         if (userDoc.exists()) {
           Alert.alert(
             "Registro Existente",
-            "Ya te encuentras registrado para el torneo selectivo. Si tienes preguntas o necesitas actualizar tu información, por favor contáctanos a través de nuestros canales oficiales.",
+            "Ya te encuentras registrado para el torneo selectivo.",
             [
               {
                 text: "Entendido",
@@ -128,7 +126,7 @@ export default function Profile() {
         } else {
           Alert.alert(
             "Aviso Importante",
-            "Por favor, tenga en cuenta que este formulario debe ser completado por el padre, madre o tutor legal del joven aspirante al torneo.\n\nAsegúrese de que toda la información proporcionada sea precisa y esté actualizada.",
+            "Este formulario debe ser completado por el tutor legal del aspirante.",
             [{ text: "Entendido" }]
           );
         }
@@ -138,68 +136,47 @@ export default function Profile() {
         setIsLoading(false);
       }
     };
-
     checkExistingRegistration();
-  }, [user, navigation]);
+  }, [user]);
 
+  // Keyboard listeners
   useEffect(() => {
-    const keyboardDidShowListener = Keyboard.addListener(
-      "keyboardDidShow",
-      () => {
-        setKeyboardVisible(true);
-      }
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardVisible(true)
     );
-    const keyboardDidHideListener = Keyboard.addListener(
-      "keyboardDidHide",
-      () => {
-        setKeyboardVisible(false);
-      }
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardVisible(false)
     );
-
     return () => {
-      keyboardDidShowListener.remove();
-      keyboardDidHideListener.remove();
+      show.remove();
+      hide.remove();
     };
   }, []);
 
-  const calculateAge = (birthDateStr: string) => {
-    const [day, month, year] = birthDateStr
-      .split("/")
-      .map((num) => parseInt(num));
-    const birthDate = new Date(year, month - 1, day);
+  // Helpers
+  const calculateAge = (bdStr: string) => {
+    const [d, m, y] = bdStr.split("/").map((n) => parseInt(n, 10));
+    const bd = new Date(y, m - 1, d);
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && today.getDate() < birthDate.getDate())
-    ) {
-      age--;
-    }
+    let age = today.getFullYear() - bd.getFullYear();
+    const diff = today.getMonth() - bd.getMonth();
+    if (diff < 0 || (diff === 0 && today.getDate() < bd.getDate())) age--;
     return age;
   };
 
   const handleBirthDateChange = (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, "");
     let formatted = cleaned;
-
-    if (cleaned.length >= 4) {
+    if (cleaned.length >= 4)
       formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(
         2,
         4
       )}/${cleaned.slice(4, 8)}`;
-    } else if (cleaned.length >= 2) {
-      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
-    }
-
+    else if (cleaned.length >= 2) formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
     setBirthDate(formatted);
 
-    if (!formatted.match(VALIDATION_PATTERNS.DATE)) {
-      setErrors((prev) => ({
-        ...prev,
-        birthDate: "Ingresa una fecha válida (DD/MM/YYYY)",
-      }));
+    if (!VALIDATION_PATTERNS.DATE.test(formatted)) {
+      setErrors((prev) => ({ ...prev, birthDate: "Ingresa DD/MM/YYYY" }));
     } else {
       const age = calculateAge(formatted);
       if (
@@ -208,7 +185,7 @@ export default function Profile() {
       ) {
         setErrors((prev) => ({
           ...prev,
-          birthDate: "La edad debe estar entre 13 y 20 años",
+          birthDate: "Edad debe estar entre 12 y 18 años",
         }));
       } else {
         setErrors((prev) => ({ ...prev, birthDate: undefined }));
@@ -216,331 +193,178 @@ export default function Profile() {
     }
   };
 
-  const validateForm = () => {
-    let isValid = true;
-    const newErrors: {
-      nombreCompleto?: string;
-      informacionMedica?: string;
-      afiliacionEquipo?: string;
-      birthDate?: string;
-      terms?: string;
-      position?: string;
-      city?: string;
-      dateTime?: string;
-      parentFullName?: string;
-      relationship?: string;
-      parentEmail?: string;
-      consentimientoParticipacion?: string;
-      autorizacionFotos?: string;
-      acuerdoPrivacidad?: string;
-    } = {};
-
-    if (!nombreCompleto.trim()) {
-      newErrors.nombreCompleto = "Debes ingresar el nombre completo";
-      isValid = false;
-    }
-
-    if (
-      afiliacionEquipo &&
-      afiliacionEquipo.length > FORM_CONSTANTS.MAX_AFFILIATION_LENGTH
-    ) {
-      newErrors.afiliacionEquipo =
-        "La afiliación no debe exceder 50 caracteres";
-      isValid = false;
-    }
-
-    if (!birthDate || !VALIDATION_PATTERNS.DATE.test(birthDate)) {
-      newErrors.birthDate = "Ingresa una fecha válida (DD/MM/YYYY)";
-      isValid = false;
-    } else {
-      const age = calculateAge(birthDate);
-      if (
-        age < FORM_CONSTANTS.AGE_RANGE.min ||
-        age > FORM_CONSTANTS.AGE_RANGE.max
-      ) {
-        newErrors.birthDate = "La edad debe estar entre 13 y 20 años";
-        isValid = false;
-      }
-    }
-
-    if (!selectedPosition) {
-      newErrors.position = "Debes seleccionar una posición";
-      isValid = false;
-    }
-
-    if (!selectedCity) {
-      newErrors.city = "Debes seleccionar una ciudad";
-      isValid = false;
-    }
-
-    if (!selectedDateTime) {
-      newErrors.dateTime = "Debes seleccionar una fecha y hora";
-      isValid = false;
-    }
-
-    if (currentSection === 2) {
-      if (!parentFullName.trim()) {
-        newErrors.parentFullName =
-          "Debes ingresar el nombre completo del padre/madre/tutor";
-        isValid = false;
-      }
-
-      if (!relationship.trim()) {
-        newErrors.relationship = "Debes seleccionar la relación con el niño";
-        isValid = false;
-      }
-
-      if (parentEmail.trim() && !VALIDATION_PATTERNS.EMAIL.test(parentEmail)) {
-        newErrors.parentEmail = "Ingresa un correo electrónico válido";
-        isValid = false;
-      }
-    }
-
-    if (currentSection === 3) {
-      if (!consentimientoParticipacion) {
-        newErrors.consentimientoParticipacion =
-          "Debes dar tu consentimiento para la participación";
-        isValid = false;
-      }
-      if (!autorizacionFotos) {
-        newErrors.autorizacionFotos = "Debes autorizar el uso de fotos/videos";
-        isValid = false;
-      }
-      if (!acuerdoPrivacidad) {
-        newErrors.acuerdoPrivacidad = "Debes aceptar la política de privacidad";
-        isValid = false;
-      }
-    }
-
-    setErrors(newErrors);
-    return isValid;
-  };
-
+  // Validadores
   const validateSection1 = () => {
-    const newErrors: {
-      nombreCompleto?: string;
-      birthDate?: string;
-      position?: string;
-      idNumber?: string;
-      city?: string;
-    } = {};
-
-    let isValid = true;
-
+    const newErr: typeof errors = {};
+    let ok = true;
     if (!nombreCompleto.trim()) {
-      newErrors.nombreCompleto = "El nombre completo es obligatorio";
-      isValid = false;
+      newErr.nombreCompleto = "Obligatorio";
+      ok = false;
     }
-
-    if (!idNumber) {
-      newErrors.idNumber = "El número de cédula es obligatorio";
-      isValid = false;
-    } else if (idNumber.length !== FORM_CONSTANTS.PHONE_LENGTH) {
-      newErrors.idNumber = "El número de cédula debe tener 10 dígitos";
-      isValid = false;
+    if (idNumber.length !== FORM_CONSTANTS.PHONE_LENGTH) {
+      newErr.idNumber = "Debe tener 10 dígitos";
+      ok = false;
     }
-
-    if (!birthDate || !VALIDATION_PATTERNS.DATE.test(birthDate)) {
-      newErrors.birthDate = "Ingresa una fecha válida (DD/MM/YYYY)";
-      isValid = false;
+    if (!VALIDATION_PATTERNS.DATE.test(birthDate)) {
+      newErr.birthDate = "Ingresa DD/MM/YYYY";
+      ok = false;
     } else {
       const age = calculateAge(birthDate);
       if (
         age < FORM_CONSTANTS.AGE_RANGE.min ||
         age > FORM_CONSTANTS.AGE_RANGE.max
       ) {
-        newErrors.birthDate = "La edad debe estar entre 13 y 20 años";
-        isValid = false;
+        newErr.birthDate = "Edad debe estar entre 12 y 18 años";
+        ok = false;
       }
     }
-
     if (!selectedPosition) {
-      newErrors.position = "Debes seleccionar una posición";
-      isValid = false;
+      newErr.position = "Obligatorio";
+      ok = false;
     }
-
     if (!selectedCity) {
-      newErrors.city = "Debes seleccionar una ciudad para el torneo";
-      isValid = false;
+      newErr.city = "Obligatorio";
+      ok = false;
     }
-
-    setErrors(newErrors);
-    return isValid;
+    setErrors((prev) => ({ ...prev, ...newErr }));
+    return ok;
   };
 
   const validateSection2 = () => {
-    const newErrors: {
-      parentFullName?: string;
-      relationship?: string;
-      parentEmail?: string;
-    } = {};
-
-    let isValid = true;
-
+    const newErr: typeof errors = {};
+    let ok = true;
     if (!parentFullName.trim()) {
-      newErrors.parentFullName =
-        "Debes ingresar el nombre completo del padre/tutor";
-      isValid = false;
+      newErr.parentFullName = "Obligatorio";
+      ok = false;
     }
-
     if (!relationship.trim()) {
-      newErrors.relationship = "Debes seleccionar la relación con el niño";
-      isValid = false;
+      newErr.relationship = "Obligatorio";
+      ok = false;
     }
-
-    if (parentEmail.trim()) {
-      if (!VALIDATION_PATTERNS.EMAIL.test(parentEmail)) {
-        newErrors.parentEmail =
-          "Ingresa un correo electrónico válido (ejemplo@dominio.com)";
-        isValid = false;
-      }
+    if (!economicSituation.trim()) {
+      newErr.economicSituation = "Obligatorio";
+      ok = false;
     }
-
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-    return isValid;
+    if (parentEmail.trim() && !VALIDATION_PATTERNS.EMAIL.test(parentEmail)) {
+      newErr.parentEmail = "Correo inválido";
+      ok = false;
+    }
+    setErrors((prev) => ({ ...prev, ...newErr }));
+    return ok;
   };
 
   const validateSection3 = () => {
-    const newErrors: {
-      consentimientoParticipacion?: string;
-      autorizacionFotos?: string;
-      acuerdoPrivacidad?: string;
-    } = {};
-
-    let isValid = true;
-
+    const newErr: typeof errors = {};
+    let ok = true;
     if (!consentimientoParticipacion) {
-      newErrors.consentimientoParticipacion =
-        "Debes aceptar el consentimiento de participación";
-      isValid = false;
+      newErr.consentimientoParticipacion = "Requerido";
+      ok = false;
     }
-
     if (!autorizacionFotos) {
-      newErrors.autorizacionFotos = "Debes autorizar el uso de fotos y videos";
-      isValid = false;
+      newErr.autorizacionFotos = "Requerido";
+      ok = false;
     }
-
     if (!acuerdoPrivacidad) {
-      newErrors.acuerdoPrivacidad = "Debes aceptar la política de privacidad";
-      isValid = false;
+      newErr.acuerdoPrivacidad = "Requerido";
+      ok = false;
     }
-
-    setErrors((prev) => ({ ...prev, ...newErrors }));
-    return isValid;
+    if (!esRiobambeno) {
+      newErr.esRiobambeno = "Requerido";
+      ok = false;
+    }
+    setErrors((prev) => ({ ...prev, ...newErr }));
+    return ok;
   };
 
-  const handleIdNumberChange = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, "");
-    if (numericValue.length <= FORM_CONSTANTS.PHONE_LENGTH) {
-      setIdNumber(numericValue);
-
-      if (numericValue.length !== FORM_CONSTANTS.PHONE_LENGTH) {
-        setErrors((prev) => ({
-          ...prev,
-          idNumber: "El número de cédula debe tener 10 dígitos",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, idNumber: undefined }));
+  // Cambio de sección
+  const validateAndNext = () => {
+    if (currentSection === 1) {
+      if (validateSection1()) setCurrentSection(2);
+    } else if (currentSection === 2) {
+      if (validateSection2()) setCurrentSection(3);
+      else {
+        const missing: string[] = [];
+        if (!parentFullName.trim())
+          missing.push("• Nombre completo del padre/tutor");
+        if (!relationship.trim()) missing.push("• Relación con el niño");
+        if (!economicSituation.trim())
+          missing.push("• Situación económica actual");
+        if (
+          parentEmail.trim() &&
+          !VALIDATION_PATTERNS.EMAIL.test(parentEmail)
+        )
+          missing.push("• Correo electrónico válido (si se proporciona)");
+        Alert.alert("Campos Obligatorios", missing.join("\n"));
       }
+    } else {
+      handleFinalize();
     }
   };
 
-  const handleContactInfoChange = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, "");
-    setContactInfo(numericValue);
-  };
+  const handleFinalize = async () => {
+    if (!validateSection3()) {
+      const missing: string[] = [];
+      if (!consentimientoParticipacion)
+        missing.push("• Consentimiento participación");
+      if (!autorizacionFotos)
+        missing.push("• Autorización fotos/videos");
+      if (!acuerdoPrivacidad)
+        missing.push("• Acuerdo política de privacidad");
+      if (!esRiobambeno) missing.push("• Confirma residencia en Riobamba");
+      Alert.alert(
+        "Consentimientos Requeridos",
+        "Por favor acepta todos los consentimientos:\n\n" + missing.join("\n")
+      );
+      return;
+    }
 
-  const handleParentNameChange = (text: string) => {
-    const letterOnlyValue = text.replace(/[^a-záéíóúüñÁÉÍÓÚÜÑA-Z\s-]/g, "");
-    setParentGuardianName(letterOnlyValue);
-  };
-
-  const saveProfile = async () => {
+    // Guardar
+    if (!user) {
+      Alert.alert("Usuario no autenticado");
+      return;
+    }
     try {
-      if (!validateForm()) {
-        alert("Por favor completa todos los campos requeridos");
-        return;
-      }
-
-      if (!user) {
-        alert("El usuario no ha iniciado sesión");
-        return;
-      }
-
-      if (!validateSection3()) {
-        Alert.alert(
-          "Consentimientos Requeridos",
-          "Debes aceptar todos los consentimientos para poder completar el registro."
-        );
-        return;
-      }
-
       const userRef = doc(db, "Participantes", user.id);
       await setDoc(userRef, {
         fullName: nombreCompleto,
         email: user.primaryEmailAddress?.emailAddress,
-        idNumber: idNumber,
-        informacionMedica: informacionMedica,
-        afiliacionEquipo: afiliacionEquipo,
-        city: selectedCity,
-        position: selectedPosition,
-        birthDate: birthDate,
+        idNumber,
+        birthDate,
         edad: calculateAge(birthDate),
-        registrationDate: new Date().toISOString(),
+        position: selectedPosition,
+        city: selectedCity,
         dateTime: selectedDateTime,
-        // Sección 2: Información del Padre/Tutor
+        informacionMedica,
+        afiliacionEquipo,
+        // Sección 2
         parentFullName,
         relationship,
+        economicSituation,
         parentPhoneNumber,
         parentEmail,
+        // Sección 3
         consentimientoParticipacion,
         autorizacionFotos,
         acuerdoPrivacidad,
+        esRiobambeno,                
+        registrationDate: new Date().toISOString(),
       });
-      Alert.alert(
-        "¡Registro Exitoso!",
-        "¡Gracias por registrarte!\n\nTe contactaremos pronto."
-      );
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "(call)" }],
-      });
-    } catch (error) {
-      console.error("Error al guardar el registro: ", error);
-      Alert.alert(
-        "Error de Registro",
-        "Lo sentimos, hubo un problema al procesar tu registro.\nPor favor intenta nuevamente o contáctanos directamente.", // Message
-        [{ text: "OK" }]
-      );
+      Alert.alert("¡Registro exitoso!", "Te contactaremos pronto.");
+      navigation.reset({ index: 0, routes: [{ name: "(call)" }] });
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "No se pudo completar el registro.");
     }
   };
 
-  const handleCancelRegistration = () => {
-    Alert.alert(
-      "Cancelar Registro",
-      "¿Estás seguro de cancelar el registro? Tendrás que completar nuevamente la información para poder registrarte.",
-      [
-        {
-          text: "No",
-          style: "cancel",
-        },
-        {
-          text: "Sí",
-          onPress: () =>
-            navigation.reset({
-              index: 0,
-              routes: [{ name: "(call)" }],
-            }),
-          style: "destructive",
-        },
-      ]
-    );
+  const handlePreviousSection = () => {
+    if (currentSection > 1) setCurrentSection(currentSection - 1);
   };
 
-  const handleCityChange = (option: { key: string; label: string }) => {
-    setSelectedCity(option.key);
+  const handleCityChange = (opt: { key: string; label: string }) => {
+    setSelectedCity(opt.key);
+    setDateTimes(CITY_DATE_TIMES[opt.key] || []);
     setSelectedDateTime("");
-    setDateTimes(CITY_DATE_TIMES[option.key] || []);
   };
 
   if (isLoading) {
@@ -551,139 +375,6 @@ export default function Profile() {
     );
   }
 
-  const textInputStyle = {
-    height: 40,
-    borderWidth: 1,
-    width: "100%",
-    paddingHorizontal: 10,
-    color: COLORS.TEXT_BLACK,
-  };
-
-  const handleNombreCompletoChange = (text: string) => {
-    const letterOnlyValue = text.replace(/[^a-záéíóúüñÁÉÍÓÚÜÑA-Z\s-]/g, "");
-    setNombreCompleto(letterOnlyValue);
-
-    if (!letterOnlyValue.trim()) {
-      setErrors((prev) => ({
-        ...prev,
-        nombreCompleto: "El nombre completo es obligatorio",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, nombreCompleto: undefined }));
-    }
-  };
-  const handleInformacionMedicaChange = (text: string) => {
-    setInformacionMedica(text);
-  };
-  const handleAfiliacionEquipoChange = (text: string) => {
-    const validValue = text.replace(/[^a-zA-Z0-9\s-]/g, "");
-    setAfiliacionEquipo(validValue);
-  };
-
-  const handleRelationshipChange = (option: { key: string; label: string }) => {
-    setRelationship(option.key);
-
-    if (!option.key) {
-      setErrors((prev) => ({
-        ...prev,
-        relationship: "Debes seleccionar la relación con el niño",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, relationship: undefined }));
-    }
-  };
-
-  const handleParentFullNameChange = (text: string) => {
-    const letterOnlyValue = text.replace(/[^a-záéíóúüñÁÉÍÓÚÜÑA-Z\s-]/g, "");
-    setParentFullName(letterOnlyValue);
-
-    if (!letterOnlyValue.trim()) {
-      setErrors((prev) => ({
-        ...prev,
-        parentFullName: "Debes ingresar el nombre completo del padre/tutor",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, parentFullName: undefined }));
-    }
-  };
-
-  const handleParentPhoneNumberChange = (text: string) => {
-    const numericValue = text.replace(/[^0-9]/g, "");
-      setParentPhoneNumber(numericValue);
-  };
-
-  const handleParentEmailChange = (text: string) => {
-    setParentEmail(text);
-    const emailRegex = VALIDATION_PATTERNS.EMAIL;
-
-    // Only validate format if email is provided
-    if (text.trim() && !emailRegex.test(text)) {
-      setErrors((prev) => ({
-        ...prev,
-        parentEmail:
-          "Ingresa un correo electrónico válido (ejemplo@dominio.com)",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, parentEmail: undefined }));
-    }
-  };
-
-  const handleSelectedPositionChange = (option: {
-    key: string;
-    label: string;
-  }) => {
-    setSelectedPosition(option.key);
-
-    if (!option.key) {
-      setErrors((prev) => ({
-        ...prev,
-        position: "Debes seleccionar una posición",
-      }));
-    } else {
-      setErrors((prev) => ({ ...prev, position: undefined }));
-    }
-  };
-
-  const handleNextSection = () => {
-    if (validateSection1()) {
-      setCurrentSection(2);
-    } else {
-      const missingFields = [];
-      if (!nombreCompleto.trim())
-        missingFields.push("• Nombre completo del niño");
-      if (!idNumber || idNumber.length !== FORM_CONSTANTS.PHONE_LENGTH)
-        missingFields.push("• Número de cédula");
-      if (!birthDate || !VALIDATION_PATTERNS.DATE.test(birthDate))
-        missingFields.push("• Fecha de nacimiento");
-      if (!selectedPosition) missingFields.push("• Posición favorita");
-      if (!selectedCity) missingFields.push("• Ubicación del torneo");
-
-      Alert.alert(
-        "Campos Obligatorios",
-        "Por favor completa los siguientes campos obligatorios:\n\n" +
-          missingFields.join("\n")
-      );
-    }
-  };
-
-  const handlePreviousSection = () => {
-    if (currentSection > 1) {
-      setCurrentSection(currentSection - 1);
-    }
-  };
-   function validateAndNext() {
-    if (validateSection2()) {
-      setCurrentSection(3);
-    } else {
-      const missing: string[] = [];
-      if (!parentFullName.trim()) missing.push("• Nombre completo del padre/tutor");
-      if (!relationship.trim())  missing.push("• Relación con el niño");
-      if (parentEmail.trim() && !VALIDATION_PATTERNS.EMAIL.test(parentEmail))
-        missing.push("• Correo electrónico válido (si se proporciona)");
-
-      Alert.alert("Campos Obligatorios", missing.join("\n"));
-    }
-  }
   return (
     <View style={styles.container}>
       <TermsModal
@@ -694,19 +385,14 @@ export default function Profile() {
         visible={privacyModalVisible}
         onClose={() => setPrivacyModalVisible(false)}
       />
+
       {!isKeyboardVisible && (
         <Text style={styles.headerText}>
-          Registro para el torneo selectivo 2025:
+          Registro para el torneo selectivo 2025
         </Text>
       )}
-      <KeyboardAwareScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 20,
-        }}
-      >
+
+      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.card}>
           <Image source={{ uri: user?.imageUrl }} style={styles.avatar} />
           <Text style={styles.userName}>{user?.fullName}</Text>
@@ -729,15 +415,17 @@ export default function Profile() {
             dateTimes={dateTimes}
             positions={POSITIONS}
             cities={CITIES}
-            handleNombreCompletoChange={handleNombreCompletoChange}
-            handleIdNumberChange={handleIdNumberChange}
+            handleNombreCompletoChange={setNombreCompleto}
+            handleIdNumberChange={setIdNumber}
             handleBirthDateChange={handleBirthDateChange}
-            handleSelectedPositionChange={handleSelectedPositionChange}
+            handleSelectedPositionChange={({ key }) =>
+              setSelectedPosition(key)
+            }
             handleCityChange={handleCityChange}
             setSelectedDateTime={setSelectedDateTime}
-            handleInformacionMedicaChange={handleInformacionMedicaChange}
-            handleAfiliacionEquipoChange={handleAfiliacionEquipoChange}
-            handleNextSection={handleNextSection}
+            handleInformacionMedicaChange={setInformacionMedica}
+            handleAfiliacionEquipoChange={setAfiliacionEquipo}
+            handleNextSection={validateAndNext}
           />
         )}
 
@@ -745,13 +433,15 @@ export default function Profile() {
           <Section2Form
             parentFullName={parentFullName}
             relationship={relationship}
+            economicSituation={economicSituation} 
             parentPhoneNumber={parentPhoneNumber}
             parentEmail={parentEmail}
             errors={errors}
-            handleParentFullNameChange={handleParentFullNameChange}
-            handleRelationshipChange={handleRelationshipChange}
-            handleParentPhoneNumberChange={handleParentPhoneNumberChange}
-            handleParentEmailChange={handleParentEmailChange}
+            handleParentFullNameChange={setParentFullName}
+            handleRelationshipChange={({ key }) => setRelationship(key)}
+            handleEconomicSituationChange={({ key }) => setEconomicSituation(key)}
+            handleParentPhoneNumberChange={setParentPhoneNumber}
+            handleParentEmailChange={setParentEmail}
             handlePreviousSection={handlePreviousSection}
             validateAndNext={validateAndNext}
           />
@@ -762,35 +452,43 @@ export default function Profile() {
             consentimientoParticipacion={consentimientoParticipacion}
             autorizacionFotos={autorizacionFotos}
             acuerdoPrivacidad={acuerdoPrivacidad}
+            esRiobambeno={esRiobambeno}              
             errors={errors}
-            setConsentimientoParticipacion={setConsentimientoParticipacion}
+            setConsentimientoParticipacion={
+              setConsentimientoParticipacion
+            }
             setAutorizacionFotos={setAutorizacionFotos}
             setAcuerdoPrivacidad={setAcuerdoPrivacidad}
+            setEsRiobambeno={setEsRiobambeno}        
             setTermsModalVisible={setTermsModalVisible}
             setPrivacyModalVisible={setPrivacyModalVisible}
-            handlePreviousSection={() => setCurrentSection(2)}
+            handlePreviousSection={handlePreviousSection}
             validateSection3={validateSection3}
-            saveProfile={saveProfile}
+            saveProfile={handleFinalize}
           />
         )}
-        <View
-          style={{
-            width: "100%",
-            alignItems: "center",
-            marginTop: 30,
-            marginBottom: 20,
-          }}
-        >
+
+        <View style={styles.cancelContainer}>
           <Text
-            onPress={handleCancelRegistration}
-            style={{
-              color: "#1a1a1a",
-              fontSize: 16,
-              fontFamily: "barlow-regular",
-              textDecorationLine: "underline",
-              textAlign: "center",
-              paddingVertical: 10,
-            }}
+            onPress={() =>
+              Alert.alert(
+                "Cancelar registro",
+                "¿Seguro deseas cancelar?",
+                [
+                  { text: "No", style: "cancel" },
+                  {
+                    text: "Sí",
+                    style: "destructive",
+                    onPress: () =>
+                      navigation.reset({
+                        index: 0,
+                        routes: [{ name: "(call)" }],
+                      }),
+                  },
+                ]
+              )
+            }
+            style={styles.cancelText}
           >
             ¿Deseas cancelar el registro?
           </Text>
@@ -809,16 +507,21 @@ const styles = StyleSheet.create({
   headerText: {
     fontFamily: "barlow-semibold",
     fontSize: 15,
-    marginBottom: 10,
     marginTop: 20,
+    marginBottom: 10,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#fff",
     padding: 24,
     borderRadius: 16,
-    marginTop: 5,
-    marginBottom: 5,
     alignItems: "center",
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -837,21 +540,24 @@ const styles = StyleSheet.create({
   userName: {
     fontFamily: "barlow-semibold",
     fontSize: 20,
-    color: "#222222",
+    color: "#222",
     marginBottom: 4,
   },
   userEmail: {
     fontFamily: "barlow-regular",
     fontSize: 16,
-    color: "#666666",
+    color: "#666",
     marginBottom: 4,
   },
+  cancelContainer: {
+    width: "100%",
+    alignItems: "center",
+    marginVertical: 20,
+  },
   cancelText: {
-    color: "#222222",
+    color: "#1a1a1a",
     fontSize: 16,
     fontFamily: "barlow-regular",
     textDecorationLine: "underline",
-    textAlign: "center",
-    paddingVertical: 10,
   },
 });

@@ -15,6 +15,7 @@ export default function useFonts() {
         'barlow-medium': require('../assets/fonts/BarlowCondensed-Medium.ttf'),
         'barlow-regular': require('../assets/fonts/BarlowCondensed-Regular.ttf'),
         'barlow-semibold': require('../assets/fonts/Barlow-SemiBold.ttf'),
+        'barlow-extrabold': require('../assets/fonts/Barlow-ExtraBold.ttf'),
       });
       setFontsLoaded(true);
     }
