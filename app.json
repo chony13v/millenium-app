@@ -16,7 +16,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/LogoFC.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.chony.milleniumapp",

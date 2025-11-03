@@ -174,7 +174,7 @@ export default function CallRoutesLayout() {
             }}
           />
           <Image
-            source={require("../../assets/images/logo_alcaldiaRiobamba.png")}
+            source={require("../../assets/images/manabi_logo.png")}
             style={{
               width: 300,
               height: 30,

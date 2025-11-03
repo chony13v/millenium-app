@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -19,23 +18,21 @@ import { db } from "@/config/FirebaseConfig";
 import { Colors } from "@/constants/Colors";
 import { ADMIN_EMAILS, isAdmin } from "@/config/AdminConfig";
 import AddEventModal from "@/components/modals/AddEventModal";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const auth = getAuth();
 
 LocaleConfig.locales["es"] = {
   monthNames: [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
   ],
   monthNamesShort: [
-    "Ene.", "Feb.", "Mar.", "Abr.", "May.", "Jun.",
-    "Jul.", "Ago.", "Sep.", "Oct.", "Nov.", "Dic."
+    "Ene.","Feb.","Mar.","Abr.","May.","Jun.",
+    "Jul.","Ago.","Sep.","Oct.","Nov.","Dic."
   ],
-  dayNames: [
-    "Domingo", "Lunes", "Martes", "Miércoles",
-    "Jueves", "Viernes", "Sábado"
-  ],
-  dayNamesShort: ["Dom.", "Lun.", "Mar.", "Mié.", "Jue.", "Vie.", "Sáb."]
+  dayNames: ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+  dayNamesShort: ["Dom.","Lun.","Mar.","Mié.","Jue.","Vie.","Sáb."],
 };
 LocaleConfig.defaultLocale = "es";
 
@@ -43,6 +40,7 @@ export default function CalendarScreen() {
   const router = useRouter();
   const { user } = useUser();
   const { getToken } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [markedDates, setMarkedDates] = useState<any>({});
   const [eventDetails, setEventDetails] = useState<{ [key: string]: { description: string; id?: string; time?: string } }>({});
@@ -137,11 +135,7 @@ export default function CalendarScreen() {
         const dateTime = data.dateTime;
         const parsedDate = parseDateTime(dateTime);
         if (parsedDate) {
-          marked[parsedDate] = {
-            marked: true,
-            dotColor: "#F02B44",
-            isEvent: true,
-          };
+          marked[parsedDate] = { marked: true, dotColor: "#F02B44", isEvent: true };
           details[parsedDate] = { description: dateTime };
         }
       }
@@ -150,16 +144,8 @@ export default function CalendarScreen() {
       globalSnapshot.forEach((docSnap) => {
         const data = docSnap.data();
         const date = data.date;
-        marked[date] = {
-          marked: true,
-          dotColor: "#A020F0",
-          isEvent: true,
-        };
-        details[date] = {
-          description: data.description,
-          id: docSnap.id,
-          time: data.time,
-        };
+        marked[date] = { marked: true, dotColor: "#A020F0", isEvent: true };
+        details[date] = { description: data.description, id: docSnap.id, time: data.time };
       });
 
       setMarkedDates(marked);
@@ -176,10 +162,7 @@ export default function CalendarScreen() {
     const hasEvent = markedDates[date.dateString]?.isEvent;
 
     return (
-      <TouchableOpacity
-        style={styles.dayContainer}
-        onPress={() => handleDayPress(date)}
-      >
+      <TouchableOpacity style={styles.dayContainer} onPress={() => handleDayPress(date)}>
         <Text
           style={[
             styles.dayText,
@@ -203,7 +186,8 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.headerBackground}>
+      {/* Header con el MISMO espacio que Drawer/Settings */}
+      <View style={[styles.headerBackground, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color="#242c44" />
         </TouchableOpacity>
@@ -233,9 +217,7 @@ export default function CalendarScreen() {
             markingType="custom"
             markedDates={markedDates}
             onDayPress={handleDayPress}
-            dayComponent={({ date, state = "" }) =>
-              date && renderDay({ date, state })
-            }
+            dayComponent={({ date, state = "" }) => date && renderDay({ date, state })}
             theme={{
               backgroundColor: "#ffffff",
               calendarBackground: "#ffffff",
@@ -268,13 +250,15 @@ export default function CalendarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
+
+  // Header: sin height fija y con padding dinámico (insets.top + 12)
   headerBackground: {
     backgroundColor: "#FFFFFF",
-    height: 80,
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    paddingTop: 40,
+    paddingBottom: 8,          // un poco de aire bajo el header
+    paddingHorizontal: 12,
   },
   headerTitle: {
     fontSize: 20,
@@ -282,12 +266,15 @@ const styles = StyleSheet.create({
     color: "#000000",
     marginLeft: 10,
   },
-  backButton: { marginLeft: 20 },
+  backButton: { marginLeft: 8 },
+
   content: { flex: 1, backgroundColor: "#FFFFFF", padding: 20 },
+
   dayContainer: { alignItems: "center", justifyContent: "center", padding: 5 },
   dayText: { fontSize: 16, color: Colors.NAVY_BLUE },
   disabledDayText: { color: "#d9e1e8" },
   eventIcon: { marginTop: 2 },
+
   addEventRow: {
     flexDirection: "row",
     justifyContent: "center",

@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ScrollView,
   Alert,
 } from "react-native";
@@ -17,10 +16,12 @@ import HelpSupportModal from "@/components/modals/HelpSupportModal";
 import GetHelpModal from "@/components/modals/GetHelpModal";
 import AboutModal from "@/components/modals/AboutModal";
 import { Colors } from "@/constants/Colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const { user } = useUser();
+  const insets = useSafeAreaInsets();
 
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
   const [isHelpSupportVisible, setIsHelpSupportVisible] = useState(false);
@@ -73,21 +74,24 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.headerContainer}>
+    <View style={styles.container}>
+      {/* Header con alineación al safe area (igual que el Drawer) */}
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
           <Ionicons name="arrow-back" size={24} color={Colors.NAVY_BLUE} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>Configuración</Text>
         </View>
+        {/* Spacer para balancear el header */}
         <View style={styles.backButton} />
       </View>
+
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollViewContent}
-        bounces={true}
+        bounces
         overScrollMode="always"
       >
         <View style={styles.section}>
@@ -161,7 +165,7 @@ export default function SettingsScreen() {
         visible={isAboutVisible}
         onClose={() => setIsAboutVisible(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -171,18 +175,19 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F8F8",
   },
   headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    // paddingTop lo damos dinámico con insets.top + 12
+    paddingHorizontal: 4,
   },
   headerTitleContainer: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 20,
-    fontFamily: 'barlow-regular',
+    fontFamily: "barlow-regular",
     color: Colors.NAVY_BLUE,
   },
   backButton: {
@@ -214,7 +219,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontFamily: 'barlow-medium',
+    fontFamily: "barlow-medium",
     color: Colors.NAVY_BLUE,
     marginLeft: 8,
   },
@@ -240,7 +245,7 @@ const styles = StyleSheet.create({
   settingItemText: {
     fontSize: 16,
     color: "#333333",
-    fontFamily: 'barlow-regular',
+    fontFamily: "barlow-regular",
     marginLeft: 12,
   },
   helpSection: {
@@ -258,14 +263,14 @@ const styles = StyleSheet.create({
   },
   helpTitle: {
     fontSize: 24,
-    fontFamily: 'barlow-semibold',
+    fontFamily: "barlow-semibold",
     color: Colors.NAVY_BLUE,
     marginTop: 16,
   },
   helpDescription: {
     fontSize: 16,
     color: "#333333",
-    fontFamily: 'barlow-light',
+    fontFamily: "barlow-light",
     textAlign: "center",
     marginTop: 8,
   },
@@ -290,7 +295,7 @@ const styles = StyleSheet.create({
   getHelpButtonText: {
     color: "#FFFFFF",
     fontSize: 18,
-    fontFamily: 'barlow-medium',
+    fontFamily: "barlow-medium",
     marginLeft: 8,
   },
   aboutButton: {
@@ -314,12 +319,12 @@ const styles = StyleSheet.create({
   },
   aboutButtonText: {
     fontSize: 18,
-    fontFamily: 'barlow-semibold',
+    fontFamily: "barlow-semibold",
     color: Colors.NAVY_BLUE,
   },
   aboutVersion: {
     fontSize: 14,
-    fontFamily: 'barlow-regular',
+    fontFamily: "barlow-regular",
     color: "#888888",
   },
 });

@@ -168,7 +168,7 @@ export default function SignInForm() {
           <>
             <View style={styles.topSection}>
               <Image
-                source={require("@/assets/images/logo_millenium.png")}
+                source={require("@/assets/images/LogoFC.png")}
                 style={styles.logo}
               />
               <Text style={styles.welcomeTitle}>Bienvenido</Text>

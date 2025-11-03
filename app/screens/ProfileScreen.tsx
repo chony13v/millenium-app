@@ -264,7 +264,7 @@ export default function ProfileScreen() {
                     style={styles.checkIcon}
                   />
                   <Image
-                    source={require("@/assets/images/logo_millenium.png")}
+                    source={require("@/assets/images/LogoFC.png")}
                     style={styles.logoIcon}
                   />
                 </View>
@@ -347,7 +347,7 @@ export default function ProfileScreen() {
 
           <View style={styles.logoBackground}>
             <Image
-              source={require("@/assets/images/logo_alcaldiaRiobamba.png")}
+              source={require("@/assets/images/manabi_logo.png")}
               style={styles.logo}
             />
           </View>

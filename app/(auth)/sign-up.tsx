@@ -150,7 +150,7 @@ export default function SignUpScreen() {
           {!pendingVerification && (
             <View style={styles.formContainer}>
               <Image
-                source={require("@/assets/images/logo_millenium.png")}
+                source={require("@/assets/images/LogoFC.png")}
                 style={styles.logo}
               />
               <Text style={styles.title}>

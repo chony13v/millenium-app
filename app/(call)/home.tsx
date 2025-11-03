@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { FlatList } from "react-native";
+import { FlatList, View } from "react-native";
 import DrawerLayout from "react-native-gesture-handler/DrawerLayout";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import Academy from "@/components/home/Academy";
@@ -31,15 +31,6 @@ export default function HomeScreen() {
     setIsSignOutVisible(true);
   };
 
-  const renderItem = () => (
-    <>
-      <Header onMenuPress={() => drawerRef.current?.openDrawer()} />
-      <CategoryIcons />
-      <Academy />
-      <News />
-    </>
-  );
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <DrawerLayout
@@ -56,14 +47,27 @@ export default function HomeScreen() {
           />
         )}
       >
-        <FlatList
-          data={[{ key: 'home' }]}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.key}
-          showsVerticalScrollIndicator={false}
-        />
+        <View style={{ flex: 1 }}>
+          <Header onMenuPress={() => drawerRef.current?.openDrawer()} />
+          <FlatList
+            data={[{ key: "home" }]}
+            renderItem={() => (
+              <>
+                <CategoryIcons />
+                <Academy />
+                <News />
+              </>
+            )}
+            keyExtractor={(item) => item.key}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 24 }}
+          />
+        </View>
       </DrawerLayout>
-      <SignOutDialog visible={isSignOutVisible} onClose={() => setIsSignOutVisible(false)} />
+      <SignOutDialog
+        visible={isSignOutVisible}
+        onClose={() => setIsSignOutVisible(false)}
+      />
     </GestureHandlerRootView>
   );
 }
