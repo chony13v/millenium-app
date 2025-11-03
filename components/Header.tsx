@@ -4,6 +4,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import useFonts from '@/hooks/useFonts';
 import { useUser } from '@clerk/clerk-expo';
 import LoadingBall from './LoadingBall';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface HeaderProps {
   onMenuPress: () => void;
@@ -12,19 +13,22 @@ interface HeaderProps {
 export default function Header({ onMenuPress }: HeaderProps) {
   const fontsLoaded = useFonts();
   const { user } = useUser();
+  const insets = useSafeAreaInsets();
   
   if (!fontsLoaded) {
     return <LoadingBall text="Cargando perfil..." />;
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 5 }]}>
+      
       <TouchableOpacity 
         style={styles.menuButton}
         onPress={onMenuPress}
       >
         <MaterialIcons name="menu" size={28} color="black" />
       </TouchableOpacity>
+
       <View style={styles.userInfo}>
         <View style={styles.greeting}>
           <Text style={styles.greetingText}>
@@ -38,12 +42,14 @@ export default function Header({ onMenuPress }: HeaderProps) {
 
 const styles = StyleSheet.create({
   container: {
-    height: 60,
     backgroundColor: 'white',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 10,
     justifyContent: 'space-between',
+    paddingBottom: -10, 
+    zIndex: 15,
+    elevation: 15,
   },
   userInfo: {
     flexDirection: 'row',
@@ -57,7 +63,7 @@ const styles = StyleSheet.create({
   },
   menuButton: {
     marginRight: 20,
-    padding: 5,
+    padding: 10,
   },
   greetingText: {
     color: "black", 

@@ -11,7 +11,8 @@ import {
 import { db } from "@/config/FirebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { useRouter } from "expo-router";
-import LoadingBall from '@/components/LoadingBall';
+import LoadingBall from "@/components/LoadingBall";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface CategoryItem {
   id: string;
@@ -21,9 +22,12 @@ interface CategoryItem {
 }
 
 export default function CategoryIcons() {
+  const insets = useSafeAreaInsets();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const HEADER_HEIGHT = -30;
 
   useEffect(() => {
     (async () => {
@@ -48,7 +52,7 @@ export default function CategoryIcons() {
 
   const handlePress = (link: string) => {
     try {
-      if (!link || link.trim() === '') {
+      if (!link || link.trim() === "") {
         Alert.alert(
           "Error",
           "El link no está disponible. Por favor, inténtelo de nuevo más tarde.",
@@ -68,19 +72,34 @@ export default function CategoryIcons() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "white" }}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "white",
+        paddingTop: insets.top + HEADER_HEIGHT,
+      }}
+    >
       <View style={styles.container}>
-        <Text style={{ fontFamily: 'barlow-light', fontSize: 16, marginHorizontal: 20, marginBottom: 20 }}>
-        Síguenos en nuestros canales oficiales:</Text>
+        <Text
+          style={{
+            fontFamily: "barlow-light",
+            fontSize: 16,
+            marginHorizontal: 20,
+            marginBottom: 20,
+          }}
+        >
+          Síguenos en nuestros canales oficiales:
+        </Text>
+
         <FlatList
           horizontal
           data={categories}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
-                style={styles.item}
-                onPress={() => handlePress(item.link)}
-                activeOpacity={0.7} 
+              style={styles.item}
+              onPress={() => handlePress(item.link)}
+              activeOpacity={0.7}
             >
               <Image source={{ uri: item.icon }} style={styles.icon} />
               <Text style={styles.name}>{item.name}</Text>
@@ -90,6 +109,7 @@ export default function CategoryIcons() {
           contentContainerStyle={{ paddingLeft: 20 }}
         />
       </View>
+
       <View style={styles.separator} />
     </View>
   );
@@ -97,24 +117,21 @@ export default function CategoryIcons() {
 
 const styles = StyleSheet.create({
   container: {
-  
     paddingBottom: 10,
   },
   separator: {
     borderBottomWidth: 2,
-    borderBottomColor: '#F0F4FF',
+    borderBottomColor: "#F0F4FF",
     marginHorizontal: 20,
   },
   item: {
     alignItems: "center",
     marginRight: 15,
-
   },
   icon: {
     width: 40,
     height: 40,
     resizeMode: "contain",
-
   },
   name: {
     marginTop: 5,
