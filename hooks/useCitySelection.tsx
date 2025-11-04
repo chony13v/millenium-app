@@ -7,24 +7,26 @@ import React, {
   useMemo,
   useState,
 } from "react";
+import { isCityId, type CityId } from "@/constants/cities";
 
 type CitySelectionContextValue = {
-  selectedCity: string | null;
+  selectedCity: CityId | null;
   isLoading: boolean;
   hasHydrated: boolean;
-  selectCity: (city: string) => Promise<void>;
+  selectCity: (city: CityId) => Promise<void>;
   clearCity: () => Promise<void>;
 };
 
-const CitySelectionContext =
-  createContext<CitySelectionContextValue | undefined>(undefined);
+const CitySelectionContext = createContext<
+  CitySelectionContextValue | undefined
+>(undefined);
 
 type CityProviderProps = {
   children: React.ReactNode;
 };
 
 export const CitySelectionProvider = ({ children }: CityProviderProps) => {
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<CityId | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
 
@@ -38,7 +40,15 @@ export const CitySelectionProvider = ({ children }: CityProviderProps) => {
         );
 
         if (storedCity && isMounted) {
-          setSelectedCity(storedCity);
+          if (isCityId(storedCity)) {
+            setSelectedCity(storedCity);
+          } else {
+            console.warn(
+              "Valor de ciudad almacenado inválido, limpiando preferencia",
+              storedCity
+            );
+            await AsyncStorage.removeItem("@millenium:selected-city");
+          }
         }
       } catch (error) {
         console.warn("No se pudo cargar la ciudad almacenada", error);
@@ -57,7 +67,7 @@ export const CitySelectionProvider = ({ children }: CityProviderProps) => {
     };
   }, []);
 
-  const selectCity = useCallback(async (city: string) => {
+  const selectCity = useCallback(async (city: CityId) => {
     setSelectedCity(city);
 
     try {

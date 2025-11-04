@@ -1,7 +1,7 @@
-import { initializeApp, getApps } from 'firebase/app';
+import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getAuth } from 'firebase/auth';
+import { initializeAuth } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
 
 const firebaseConfig = {
@@ -17,18 +17,22 @@ const firebaseConfig = {
 console.log('Firebase Config:', firebaseConfig);
 
 // ✅ Initialize Firebase app
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // ✅ Initialize Auth with AsyncStorage persistence (removes warning)
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+let auth;
 
-// ✅ Firestore
-const db = getFirestore(app);
+try {
+  auth = initializeAuth(app, {
+    // For web/Expo, you can use browserLocalPersistence or browserSessionPersistence
+    // persistence: browserLocalPersistence,
+  });
+} catch (error) {
+  auth = getAuth(app);
+}
 
 // ✅ Analytics (only if supported)
-let analytics = null;
+let analytics: ReturnType<typeof getAnalytics> | null = null;
 isSupported()
   .then((supported) => {
     if (supported) {
@@ -38,5 +42,8 @@ isSupported()
     }
   })
   .catch((err) => console.log('Error checking analytics support:', err));
+
+// ✅ Initialize Firestore
+const db = getFirestore(app);
 
 export { app, db, auth, analytics };

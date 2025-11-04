@@ -10,12 +10,14 @@ import {
   Alert,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
 import * as Location from "expo-location";
 import { getDistance } from "geolib";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import LoadingBall from "@/components/LoadingBall";
+import { useCitySelection } from "@/hooks/useCitySelection";
+import type { CityId } from "@/constants/cities";
 
 interface FieldItem {
   id: string;
@@ -24,6 +26,7 @@ interface FieldItem {
   latitude?: number;
   longitude?: number;
   locationUrl?: string;
+  cityId?: CityId;
 }
 
 const handleLocationPress = (
@@ -51,11 +54,71 @@ export default function Field() {
     {}
   );
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
+  const { selectedCity, hasHydrated } = useCitySelection();
 
   useEffect(() => {
-    getFieldList();
     getUserLocation();
   }, []);
+
+    useEffect(() => {
+    setDistances({});
+  }, [selectedCity]);
+
+  useEffect(() => {
+    setDistances({});
+  }, [selectedCity]);
+
+  useEffect(() => {
+    if (!hasHydrated) {
+      return;
+    }
+
+    if (!selectedCity) {
+      setFieldList([]);
+      setLoading(false);
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchFields = async () => {
+      setLoading(true);
+      try {
+        const q = query(
+          collection(db, "Field"),
+          // Los documentos "Field" deben incluir un campo "cityId" con uno de los
+          // identificadores definidos en constants/cities.ts. Aquí filtramos por la
+          // ciudad seleccionada para mostrar únicamente sus canchas.
+          where("cityId", "==", selectedCity)
+        );
+        const querySnapshot = await getDocs(q);
+        const items: FieldItem[] = [];
+        querySnapshot.forEach((doc) => {
+          items.push({ ...doc.data(), id: doc.id } as FieldItem);
+        });
+
+        if (isActive) {
+          setFieldList(items);
+        }
+      } catch (error) {
+        console.error("Error fetching field data:", error);
+        if (isActive) {
+          setFieldList([]);
+        }
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchFields();
+
+    return () => {
+      isActive = false;
+    };
+  }, [selectedCity, hasHydrated]);
+
 
   const getUserLocation = async () => {
     try {
@@ -140,22 +203,6 @@ export default function Field() {
     }
   }, [userLocation, fieldList, calculateDistances]);
 
-  const getFieldList = async () => {
-    try {
-      const q = query(collection(db, "Field"));
-      const querySnapshot = await getDocs(q);
-      const items: FieldItem[] = [];
-      querySnapshot.forEach((doc) => {
-        items.push({ ...doc.data(), id: doc.id } as FieldItem);
-      });
-      setFieldList(items);
-    } catch (error) {
-      console.error("Error fetching field data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Memoize the sorted list to prevent unnecessary re-sorting
   const sortedFieldList = useMemo(() => {
     if (!distances || fieldList.length === 0) return fieldList;
@@ -229,9 +276,40 @@ export default function Field() {
     imageError,
   ]);
 
+    if (!hasHydrated) {
+    return <LoadingBall text="Cargando ciudades..." />;
+  }
+
+  if (!selectedCity) {
+    return (
+      <View style={styles.emptyStateContainer}>
+        <Text style={styles.emptyStateTitle}>Selecciona una ciudad</Text>
+        <Text style={styles.emptyStateDescription}>
+          Elige una ciudad desde la pantalla anterior para ver los centros
+          deportivos disponibles.
+        </Text>
+      </View>
+    );
+  }
+
+
   if (loading) {
     return <LoadingBall text="Cargando campos deportivos..." />;
   }
+
+    if (fieldList.length === 0) {
+    return (
+      <View style={styles.emptyStateContainer}>
+        <Text style={styles.emptyStateTitle}>
+          No hay centros deportivos disponibles
+        </Text>
+        <Text style={styles.emptyStateDescription}>
+          Aún no tenemos canchas registradas para esta ciudad. Vuelve más tarde.
+        </Text>
+      </View>
+    );
+  }
+
 
   return (
     <FlatList
@@ -333,6 +411,27 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 80,
+  },
+    emptyStateContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    backgroundColor: "white",
+  },
+  emptyStateTitle: {
+    fontFamily: "barlow-medium",
+    fontSize: 20,
+    color: "#0A2240",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  emptyStateDescription: {
+    fontFamily: "barlow-regular",
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    lineHeight: 22,
   },
   loadingContainer: {
     flex: 1,

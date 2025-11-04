@@ -21,43 +21,16 @@ import {
 import { useWarmUpBrowser } from "@/components/SignInWithOAuth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCitySelection } from "@/hooks/useCitySelection";
-
-type CityOption = {
-  id: string;
-  title: string;
-  description: string;
-  gradient: [string, string];
-};
-
-const CITY_OPTIONS: CityOption[] = [
-  {
-    id: "bgr",
-    title: "BGR",
-    description: "Talento emergente listo para brillar en cada torneo.", 
-    gradient: ["#1d4ed8", "#38bdf8"],
-  },
-  {
-    id: "riobamba",
-    title: "Riobamba",
-    description: "La ciudad jardín que vibra con el fútbol formativo.",
-    gradient: ["#7c3aed", "#a855f7"],
-  },
-  {
-    id: "manabi",
-    title: "Manabí",
-    description: "Capital del sol y sede principal de la academia.",
-    gradient: ["#22c55e", "#86efac"],
-  },
-];
+import { CITY_OPTIONS, type CityId } from "@/constants/cities";
 
 const CitySelectionScreen = () => {
   const { selectCity } = useCitySelection();
-  const [highlightedCity, setHighlightedCity] = React.useState<string | null>(
+  const [highlightedCity, setHighlightedCity] = React.useState<CityId | null>(
     null
   );
 
   const handleSelect = React.useCallback(
-    async (cityId: string) => {
+    async (cityId: CityId) => {
       setHighlightedCity(cityId);
       try {
         await selectCity(cityId);
@@ -194,7 +167,7 @@ const CitySelectionScreen = () => {
                   ]}
                 >
                   <LinearGradient
-                    colors={option.gradient}
+                    colors={[...option.gradient]}
                     start={[0, 0]}
                     end={[1, 1]}
                     style={{ padding: 20 }}
