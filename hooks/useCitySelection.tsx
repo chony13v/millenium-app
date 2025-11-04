@@ -1,7 +1,9 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -9,6 +11,7 @@ import React, {
 type CitySelectionContextValue = {
   selectedCity: string | null;
   isLoading: boolean;
+  hasHydrated: boolean;
   selectCity: (city: string) => Promise<void>;
   clearCity: () => Promise<void>;
 };
@@ -22,18 +25,66 @@ type CityProviderProps = {
 
 export const CitySelectionProvider = ({ children }: CityProviderProps) => {
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadStoredCity = async () => {
+      try {
+        const storedCity = await AsyncStorage.getItem(
+          "@millenium:selected-city"
+        );
+
+        if (storedCity && isMounted) {
+          setSelectedCity(storedCity);
+        }
+      } catch (error) {
+        console.warn("No se pudo cargar la ciudad almacenada", error);
+      } finally {
+        if (isMounted) {
+          setHasHydrated(true);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadStoredCity();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const selectCity = useCallback(async (city: string) => {
     setSelectedCity(city);
+
+    try {
+      await AsyncStorage.setItem("@millenium:selected-city", city);
+    } catch (error) {
+      console.warn("No se pudo guardar la ciudad seleccionada", error);
+    }
   }, []);
 
   const clearCity = useCallback(async () => {
     setSelectedCity(null);
+    try {
+      await AsyncStorage.removeItem("@millenium:selected-city");
+    } catch (error) {
+      console.warn("No se pudo limpiar la ciudad almacenada", error);
+    }
   }, []);
 
   const value = useMemo(
-    () => ({ selectedCity, isLoading: false, selectCity, clearCity }),
-    [clearCity, selectCity, selectedCity]
+    () => ({
+      selectedCity,
+      isLoading,
+      hasHydrated,
+      selectCity,
+      clearCity,
+    }),
+    [clearCity, hasHydrated, isLoading, selectCity, selectedCity]
   );
 
   return (

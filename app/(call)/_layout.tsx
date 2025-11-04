@@ -52,6 +52,22 @@ const CITY_OPTIONS: CityOption[] = [
 
 const CitySelectionScreen = () => {
   const { selectCity } = useCitySelection();
+  const [highlightedCity, setHighlightedCity] = React.useState<string | null>(
+    null
+  );
+
+  const handleSelect = React.useCallback(
+    async (cityId: string) => {
+      setHighlightedCity(cityId);
+      try {
+        await selectCity(cityId);
+      } catch (error) {
+        console.warn("No se pudo seleccionar la ciudad", error);
+        setHighlightedCity(null);
+      }
+    },
+    [selectCity]
+  );
 
   return (
     <LinearGradient
@@ -65,18 +81,17 @@ const CitySelectionScreen = () => {
           style={{
             flex: 1,
             paddingHorizontal: 24,
-            paddingVertical: 32,
+            paddingVertical: 28,
             justifyContent: "space-between",
           }}
         >
-          <View>
+          <View style={{ gap: 16 }}>
             <Text
               style={{
                 color: "#60a5fa",
                 fontWeight: "600",
                 letterSpacing: 2,
                 fontSize: 12,
-                marginBottom: 12,
                 textTransform: "uppercase",
               }}
             >
@@ -87,7 +102,6 @@ const CitySelectionScreen = () => {
                 color: "white",
                 fontSize: 28,
                 fontWeight: "800",
-                marginBottom: 12,
               }}
             >
               ¿Dónde quieres jugar hoy?
@@ -102,6 +116,48 @@ const CitySelectionScreen = () => {
               Selecciona la ciudad para personalizar la comunidad, canchas y
               eventos destacados.
             </Text>
+            <View
+              style={{
+                backgroundColor: "rgba(96,165,250,0.12)",
+                borderRadius: 14,
+                padding: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <View
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: "rgba(96,165,250,0.35)",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text
+                  style={{
+                    color: "white",
+                    fontWeight: "700",
+                    fontSize: 14,
+                  }}
+                >
+                  1
+                </Text>
+              </View>
+              <Text
+                style={{
+                  color: "rgba(255,255,255,0.75)",
+                  fontSize: 13,
+                  lineHeight: 18,
+                  flex: 1,
+                }}
+              >
+                Esta selección se guardará para tus próximos ingresos, pero
+                siempre podrás cambiarla cuando lo necesites.
+              </Text>
+            </View>
           </View>
           <View style={{ flex: 1, marginTop: 28 }}>
             <ScrollView
@@ -111,13 +167,18 @@ const CitySelectionScreen = () => {
               {CITY_OPTIONS.map((option) => (
                 <Pressable
                   key={option.id}
-                  onPress={() => selectCity(option.id)}
+                  onPress={() => handleSelect(option.id)}
                   style={({ pressed }) => [
                     {
                       width: "100%",
                       borderRadius: 20,
                       overflow: "hidden",
                       marginBottom: 16,
+                      borderWidth: highlightedCity === option.id ? 2 : 0,
+                      borderColor:
+                        highlightedCity === option.id
+                          ? "rgba(255,255,255,0.35)"
+                          : "transparent",
                       transform: [{ scale: pressed ? 0.98 : 1 }],
                       opacity: pressed ? 0.92 : 1,
                     },
@@ -148,6 +209,27 @@ const CitySelectionScreen = () => {
                     >
                       {option.description}
                     </Text>
+                    {highlightedCity === option.id && (
+                      <View
+                        style={{
+                          marginTop: 18,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <ActivityIndicator color="white" />
+                        <Text
+                          style={{
+                            color: "rgba(255,255,255,0.85)",
+                            fontSize: 13,
+                            fontWeight: "600",
+                          }}
+                        >
+                          Personalizando tu experiencia...
+                        </Text>
+                      </View>
+                    )}
                   </LinearGradient>
                 </Pressable>
               ))}
@@ -162,7 +244,16 @@ const CitySelectionScreen = () => {
 export default function CallRoutesLayout() {
   const { isSignedIn } = useAuth();
   const [isKeyboardVisible, setKeyboardVisible] = React.useState(false);
-  const { selectedCity, isLoading: isCityLoading } = useCitySelection();
+  const {
+    selectedCity,
+    isLoading: isCityLoading,
+    clearCity,
+  } = useCitySelection();
+  const selectedCityInfo = React.useMemo(
+    () => CITY_OPTIONS.find((option) => option.id === selectedCity),
+    [selectedCity]
+  );
+
   useWarmUpBrowser();
 
   React.useEffect(() => {
@@ -366,11 +457,62 @@ export default function CallRoutesLayout() {
                 marginBottom: 3,
               }}
             />
-            <Image
-              source={require("../../assets/images/logo_alcaldiaRiobamba.png")}
+
+            <View
               style={{
-                width: 450,
-                height: 94,
+                width: "100%",
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 10,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#1f2a44",
+                  fontWeight: "700",
+                  fontSize: 13,
+                  letterSpacing: 0.3,
+                }}
+              >
+                Proyecto: {selectedCityInfo?.title ?? selectedCity}
+              </Text>
+              <Pressable
+                onPress={clearCity}
+                style={({ pressed }) => ({
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  backgroundColor: pressed
+                    ? "rgba(36,44,68,0.12)"
+                    : "rgba(36,44,68,0.08)",
+                })}
+              >
+                <Text
+                  style={{
+                    color: "#1f2a44",
+                    fontSize: 12,
+                    fontWeight: "600",
+                    letterSpacing: 0.4,
+                  }}
+                >
+                  Cambiar ciudad
+                </Text>
+              </Pressable>
+            </View>
+            <View
+              style={{
+                width: "80%",
+                height: 1.25,
+                backgroundColor: "rgba(36, 44, 68, 0.18)",
+                marginBottom: 10,
+              }}
+            />
+            <Image
+              source={require("../../assets/images/manabi_logo.png")}
+              style={{
+                width: 340,
+                height: 64,
                 resizeMode: "contain",
               }}
             />
