@@ -13,6 +13,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState, useCallback } from "react";
 import LoadingBall from "@/components/LoadingBall";
+import { CitySelectionProvider } from "@/hooks/useCitySelection";
 import {
   registerForPushNotificationsAsync,
   useNotificationListeners,
@@ -97,10 +98,12 @@ const AfterClerkLoaded = () => {
     <>
       <HideSplashScreen />
       <FirebaseSync />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen name="(call)" options={{ headerShown: false }} />
-      </Stack>
+      <CitySelectionProvider>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(call)" options={{ headerShown: false }} />
+        </Stack>
+      </CitySelectionProvider>
     </>
   );
 };

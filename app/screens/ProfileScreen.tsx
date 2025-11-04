@@ -347,7 +347,7 @@ export default function ProfileScreen() {
 
           <View style={styles.logoBackground}>
             <Image
-              source={require("@/assets/images/manabi_logo.png")}
+              source={require("@/assets/images/logo_alcaldiaRiobamba.png")}
               style={styles.logo}
             />
           </View>

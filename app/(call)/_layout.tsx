@@ -1,6 +1,17 @@
 import { Redirect, Tabs } from "expo-router";
 import React from "react";
-import { SafeAreaView, Image, View, Platform, StatusBar, Keyboard } from "react-native";
+import {
+  SafeAreaView,
+  Image,
+  View,
+  Platform,
+  StatusBar,
+  Keyboard,
+  Text,
+  Pressable,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 import {
   MaterialCommunityIcons,
@@ -8,19 +19,159 @@ import {
   FontAwesome6,
 } from "@expo/vector-icons";
 import { useWarmUpBrowser } from "@/components/SignInWithOAuth";
+import { LinearGradient } from "expo-linear-gradient";
+import { useCitySelection } from "@/hooks/useCitySelection";
+
+type CityOption = {
+  id: string;
+  title: string;
+  description: string;
+  gradient: [string, string];
+};
+
+const CITY_OPTIONS: CityOption[] = [
+  {
+    id: "manta",
+    title: "Manta",
+    description: "Capital del sol y sede principal de la academia.",
+    gradient: ["#1d4ed8", "#38bdf8"],
+  },
+  {
+    id: "portoviejo",
+    title: "Portoviejo",
+    description: "La ciudad jardín que vibra con el fútbol formativo.",
+    gradient: ["#7c3aed", "#a855f7"],
+  },
+  {
+    id: "chone",
+    title: "Chone",
+    description: "Talento emergente listo para brillar en cada torneo.",
+    gradient: ["#22c55e", "#86efac"],
+  },
+];
+
+const CitySelectionScreen = () => {
+  const { selectCity } = useCitySelection();
+
+  return (
+    <LinearGradient
+      colors={["#0f172a", "#1e293b", "#111827"]}
+      start={[0, 0]}
+      end={[1, 1]}
+      style={{ flex: 1 }}
+    >
+      <SafeAreaView style={{ flex: 1 }}>
+        <View
+          style={{
+            flex: 1,
+            paddingHorizontal: 24,
+            paddingVertical: 32,
+            justifyContent: "space-between",
+          }}
+        >
+          <View>
+            <Text
+              style={{
+                color: "#60a5fa",
+                fontWeight: "600",
+                letterSpacing: 2,
+                fontSize: 12,
+                marginBottom: 12,
+                textTransform: "uppercase",
+              }}
+            >
+              Bienvenido a Millenium Academy
+            </Text>
+            <Text
+              style={{
+                color: "white",
+                fontSize: 28,
+                fontWeight: "800",
+                marginBottom: 12,
+              }}
+            >
+              ¿Dónde quieres jugar hoy?
+            </Text>
+            <Text
+              style={{
+                color: "rgba(255,255,255,0.7)",
+                fontSize: 15,
+                lineHeight: 22,
+              }}
+            >
+              Selecciona la ciudad para personalizar la comunidad, canchas y
+              eventos destacados.
+            </Text>
+          </View>
+          <View style={{ flex: 1, marginTop: 28 }}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 24 }}
+            >
+              {CITY_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.id}
+                  onPress={() => selectCity(option.id)}
+                  style={({ pressed }) => [
+                    {
+                      width: "100%",
+                      borderRadius: 20,
+                      overflow: "hidden",
+                      marginBottom: 16,
+                      transform: [{ scale: pressed ? 0.98 : 1 }],
+                      opacity: pressed ? 0.92 : 1,
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={option.gradient}
+                    start={[0, 0]}
+                    end={[1, 1]}
+                    style={{ padding: 20 }}
+                  >
+                    <Text
+                      style={{
+                        color: "white",
+                        fontSize: 22,
+                        fontWeight: "700",
+                        marginBottom: 6,
+                      }}
+                    >
+                      {option.title}
+                    </Text>
+                    <Text
+                      style={{
+                        color: "rgba(255,255,255,0.85)",
+                        fontSize: 14,
+                        lineHeight: 20,
+                      }}
+                    >
+                      {option.description}
+                    </Text>
+                  </LinearGradient>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
+  );
+};
 
 export default function CallRoutesLayout() {
   const { isSignedIn } = useAuth();
   const [isKeyboardVisible, setKeyboardVisible] = React.useState(false);
+  const { selectedCity, isLoading: isCityLoading } = useCitySelection();
   useWarmUpBrowser();
 
   React.useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
-      'keyboardDidShow',
+      "keyboardDidShow",
       () => setKeyboardVisible(true)
     );
     const keyboardDidHideListener = Keyboard.addListener(
-      'keyboardDidHide',
+      "keyboardDidHide",
       () => setKeyboardVisible(false)
     );
 
@@ -32,6 +183,34 @@ export default function CallRoutesLayout() {
 
   if (!isSignedIn) {
     return <Redirect href={"/(auth)/sign-in"} />;
+  }
+
+  if (isCityLoading) {
+    return (
+      <SafeAreaView
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#0f172a",
+        }}
+      >
+        <ActivityIndicator size="large" color="#60a5fa" />
+        <Text
+          style={{
+            color: "rgba(255,255,255,0.85)",
+            fontSize: 16,
+            marginTop: 16,
+          }}
+        >
+          Preparando tu experiencia...
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!selectedCity) {
+    return <CitySelectionScreen />;
   }
 
   const CustomTabIcon = ({
@@ -157,31 +336,46 @@ export default function CallRoutesLayout() {
             }}
           />
         </Tabs>
-        <View
-          style={{
-            alignItems: "center",
-            backgroundColor: "white",
-            paddingTop: 2,
-          }}
-        >
-          <View
+
+        {!isKeyboardVisible && (
+          <LinearGradient
+            colors={["#f1f6ff", "#e0ecff"]}
+            start={[0, 0]}
+            end={[1, 1]}
             style={{
-              width: "90%",
-              height: 1,
-              backgroundColor: "#E0E0E0",
-              marginBottom: 2,
-              marginTop: 2,
+              alignItems: "center",
+              paddingTop: 5,
+              paddingBottom: Platform.OS === "ios" ? 10 : 16,
+              paddingHorizontal: 10,
+              borderTopLeftRadius: 10,
+              borderTopRightRadius: 10,
+              marginHorizontal: 18,
+              marginBottom: Platform.OS === "ios" ? 6 : 8,
+              shadowColor: "#1e2a4d",
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.1,
+              shadowRadius: 10,
+              elevation: 6,
             }}
-          />
-          <Image
-            source={require("../../assets/images/manabi_logo.png")}
-            style={{
-              width: 300,
-              height: 30,
-              resizeMode: "contain",
-            }}
-          />
-        </View>
+          >
+            <View
+              style={{
+                width: "100%",
+                height: 1.5,
+                backgroundColor: "rgba(36, 44, 68, 0.18)",
+                marginBottom: 3,
+              }}
+            />
+            <Image
+              source={require("../../assets/images/logo_alcaldiaRiobamba.png")}
+              style={{
+                width: 450,
+                height: 94,
+                resizeMode: "contain",
+              }}
+            />
+          </LinearGradient>
+        )}
       </View>
     </SafeAreaView>
   );

@@ -19,7 +19,7 @@ export default function SignInScreen() {
 
   return (
     <ImageBackground
-      source={require("@/assets/images/initial_layout.png")}
+      source={require("@/assets/images/home_bg.png")}
       style={styles.backgroundImage}
       resizeMode="cover"
     >
@@ -72,14 +72,14 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    justifyContent: "flex-end", // mueve todo hacia abajo
+    justifyContent: "flex-end",
     alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 130, 
   },
   transparentButton: {
     height: 55,
-    width: "90%",
+    width: "80%",
     maxWidth: 320,
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 14,
