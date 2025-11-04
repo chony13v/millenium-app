@@ -1,18 +1,15 @@
-// Validation Patterns
 const VALIDATION_PATTERNS = {
     DATE: /^(\d{2})\/(\d{2})\/(\d{4})$/,
     EMAIL: /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/,
     PHONE: /^\d{10}$/,
   };
   
-  // Form Constants
   const FORM_CONSTANTS = {
     AGE_RANGE: { min: 12, max: 18 },
     PHONE_LENGTH: 10,
     MAX_AFFILIATION_LENGTH: 50,
   };
   
-  // Color Constants
   const COLORS = {
     GRADIENT: ["#2b2d42", "#3498db"],
     TEXT_WHITE: "#FFFFFF",
@@ -20,7 +17,6 @@ const VALIDATION_PATTERNS = {
     ACTIVITY_INDICATOR: "#4630EB",
   };
   
-  // Font Constants
   const FONTS = {
     OUTFIT_BOLD: "outfit-bold",
     OUTFIT_MEDIUM: "outfit-medium",
@@ -28,9 +24,8 @@ const VALIDATION_PATTERNS = {
     OUTFIT_SEMIBOLD: "outfit-semibold",
   };
   
-  // Static Data
   const CITIES = [
-    //{ key: "Quito", label: "Quito" },
+    { key: "Portoviejo", label: "Portoviejo" },
     { key: "Riobamba", label: "Riobamba" },
   ].sort((a, b) => a.label.localeCompare(b.label));
   
@@ -43,20 +38,20 @@ const VALIDATION_PATTERNS = {
   
   const CITY_DATE_TIMES: { [key: string]: { key: string; label: string }[] } = {
  
-    // Quito: [
-    //   {
-    //     key: "Quito, 25 de abril - 8:00 am",
-    //     label: "Quito, 25 de abril - 8:00 am",
-    //   },
-    //   {
-    //     key: "Quito, 25 de abril - 2:00 pm",
-    //     label: "Quito, 25 de abril - 2:00 pm",
-    //   },
-    //   {
-    //     key: "Quito, 26 de abril - 8:00 am",
-    //     label: "Quito, 26 de abril - 8:00 am",
-    //   },
-    // ],
+    Portoviejo: [
+      {
+        key: "Portoviejo, 25 de abril - 8:00 am",
+        label: "Estadio-Portoviejo, 25 de abril - 8:00 am",
+      },
+      {
+        key: "Portoviejo, 25 de abril - 2:00 pm",
+        label: "Estadio2-Portoviejo, 25 de abril - 2:00 pm",
+      },
+      {
+        key: "Portoviejo, 26 de abril - 8:00 am",
+        label: "Estadio3-Portoviejo, 26 de abril - 8:00 am",
+      },
+    ],
     Riobamba: [
       {
         key: "San Luis, 19 de julio - 10:00 am",

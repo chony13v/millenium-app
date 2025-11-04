@@ -3,7 +3,7 @@
     "name": "Millenium FC",
     "slug": "millenium-app",
     "version": "1.0.6",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "millenium-app",
     "userInterfaceStyle": "automatic",

@@ -31,21 +31,21 @@ type CityOption = {
 
 const CITY_OPTIONS: CityOption[] = [
   {
-    id: "manta",
-    title: "Manta",
-    description: "Capital del sol y sede principal de la academia.",
+    id: "bgr",
+    title: "BGR",
+    description: "Talento emergente listo para brillar en cada torneo.", 
     gradient: ["#1d4ed8", "#38bdf8"],
   },
   {
-    id: "portoviejo",
-    title: "Portoviejo",
+    id: "riobamba",
+    title: "Riobamba",
     description: "La ciudad jardín que vibra con el fútbol formativo.",
     gradient: ["#7c3aed", "#a855f7"],
   },
   {
-    id: "chone",
-    title: "Chone",
-    description: "Talento emergente listo para brillar en cada torneo.",
+    id: "manabi",
+    title: "Manabí",
+    description: "Capital del sol y sede principal de la academia.",
     gradient: ["#22c55e", "#86efac"],
   },
 ];
@@ -69,12 +69,15 @@ const CitySelectionScreen = () => {
     [selectCity]
   );
 
+  const TOP_SPACING =
+    (Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0) + 8;
+
   return (
     <LinearGradient
       colors={["#0f172a", "#1e293b", "#111827"]}
       start={[0, 0]}
       end={[1, 1]}
-      style={{ flex: 1 }}
+      style={{ flex: 1, paddingTop: TOP_SPACING }}
     >
       <SafeAreaView style={{ flex: 1 }}>
         <View
@@ -85,18 +88,20 @@ const CitySelectionScreen = () => {
             justifyContent: "space-between",
           }}
         >
+          {/* HEADER */}
           <View style={{ gap: 16 }}>
             <Text
               style={{
                 color: "#60a5fa",
-                fontWeight: "600",
+                fontWeight: "700",
                 letterSpacing: 2,
                 fontSize: 12,
                 textTransform: "uppercase",
               }}
             >
-              Bienvenido a Millenium Academy
+              BIENVENIDO A MILLENIUM ACADEMY
             </Text>
+
             <Text
               style={{
                 color: "white",
@@ -106,6 +111,7 @@ const CitySelectionScreen = () => {
             >
               ¿Dónde quieres jugar hoy?
             </Text>
+
             <Text
               style={{
                 color: "rgba(255,255,255,0.7)",
@@ -116,6 +122,7 @@ const CitySelectionScreen = () => {
               Selecciona la ciudad para personalizar la comunidad, canchas y
               eventos destacados.
             </Text>
+
             <View
               style={{
                 backgroundColor: "rgba(96,165,250,0.12)",
@@ -159,6 +166,8 @@ const CitySelectionScreen = () => {
               </Text>
             </View>
           </View>
+
+          {/* CITY LIST */}
           <View style={{ flex: 1, marginTop: 28 }}>
             <ScrollView
               showsVerticalScrollIndicator={false}
@@ -200,6 +209,7 @@ const CitySelectionScreen = () => {
                     >
                       {option.title}
                     </Text>
+
                     <Text
                       style={{
                         color: "rgba(255,255,255,0.85)",
@@ -209,6 +219,7 @@ const CitySelectionScreen = () => {
                     >
                       {option.description}
                     </Text>
+
                     {highlightedCity === option.id && (
                       <View
                         style={{
@@ -241,6 +252,10 @@ const CitySelectionScreen = () => {
   );
 };
 
+/* ================================================
+   LAYOUT CON TABS SEGÚN CIUDAD SELECCIONADA
+=================================================== */
+
 export default function CallRoutesLayout() {
   const { isSignedIn } = useAuth();
   const [isKeyboardVisible, setKeyboardVisible] = React.useState(false);
@@ -249,6 +264,7 @@ export default function CallRoutesLayout() {
     isLoading: isCityLoading,
     clearCity,
   } = useCitySelection();
+
   const selectedCityInfo = React.useMemo(
     () => CITY_OPTIONS.find((option) => option.id === selectedCity),
     [selectedCity]
@@ -379,6 +395,7 @@ export default function CallRoutesLayout() {
               ),
             }}
           />
+
           <Tabs.Screen
             name="fields"
             options={{
@@ -394,6 +411,7 @@ export default function CallRoutesLayout() {
               ),
             }}
           />
+
           <Tabs.Screen
             name="metodology"
             options={{
@@ -410,6 +428,7 @@ export default function CallRoutesLayout() {
               ),
             }}
           />
+
           <Tabs.Screen
             name="profile"
             options={{
@@ -477,6 +496,7 @@ export default function CallRoutesLayout() {
               >
                 Proyecto: {selectedCityInfo?.title ?? selectedCity}
               </Text>
+
               <Pressable
                 onPress={clearCity}
                 style={({ pressed }) => ({
@@ -500,6 +520,7 @@ export default function CallRoutesLayout() {
                 </Text>
               </Pressable>
             </View>
+
             <View
               style={{
                 width: "80%",
@@ -508,6 +529,7 @@ export default function CallRoutesLayout() {
                 marginBottom: 10,
               }}
             />
+
             <Image
               source={require("../../assets/images/manabi_logo.png")}
               style={{
