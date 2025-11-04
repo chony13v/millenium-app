@@ -7,8 +7,9 @@ import {
   StyleSheet,
   ImageBackground,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
 import { Ionicons } from "@expo/vector-icons";
-import SignInWithOAuth from "@/components/SignInWithOAuth";
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -18,41 +19,41 @@ export default function SignInScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require("@/assets/images/home_bg.png")}
-      style={styles.backgroundImage}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          <TouchableOpacity
-            onPress={handleSignInWithEmail}
-            activeOpacity={0.9}
-            style={styles.transparentButton}
-          >
-            <View style={styles.buttonContent}>
-              <Ionicons name="mail-outline" size={20} color="#ffffff" />
-              <Text style={styles.buttonText}>Continuar con tu email</Text>
+    <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+      <StatusBar style="light" translucent backgroundColor="transparent" />
+      <ImageBackground
+        source={require("@/assets/images/home_bg.png")}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay}>
+          <View style={styles.container}>
+            <TouchableOpacity
+              onPress={handleSignInWithEmail}
+              activeOpacity={0.9}
+              style={styles.transparentButton}
+            >
+              <View style={styles.buttonContent}>
+                <Ionicons name="mail-outline" size={20} color="#ffffff" />
+                <Text style={styles.buttonText}>Continuar con tu email</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.separatorContainer}>
+              <View style={styles.separatorLine} />
+              <Text style={styles.separatorText}>o</Text>
+              <View style={styles.separatorLine} />
             </View>
-          </TouchableOpacity>
 
-          <View style={styles.separatorContainer}>
-            <View style={styles.separatorLine} />
-            <Text style={styles.separatorText}>o</Text>
-            <View style={styles.separatorLine} />
-          </View>
-
-          {/* <SignInWithOAuth /> */}
-
-          <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>¿No tienes una cuenta?</Text>
-            <Link href="/sign-up">
-              <Text style={styles.signUpLink}>Regístrate acá</Text>
-            </Link>
+            <View style={styles.signUpContainer}>
+              <Text style={styles.signUpText}>¿No tienes una cuenta?</Text>
+              <Link href="/sign-up">
+                <Text style={styles.signUpLink}>Regístrate acá</Text>
+              </Link>
+            </View>
           </View>
         </View>
-      </View>
-    </ImageBackground>
+      </ImageBackground>
+    </SafeAreaView>
   );
 }
 
@@ -66,6 +67,10 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#000000",
+  },
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.1)",
@@ -75,11 +80,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 130, 
+    paddingBottom: 100,
   },
   transparentButton: {
     height: 55,
-    width: "80%",
+    width: "70%",
     maxWidth: 320,
     backgroundColor: "rgba(255,255,255,0.15)",
     borderRadius: 14,

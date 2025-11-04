@@ -20,7 +20,7 @@ export default function Header({ onMenuPress }: HeaderProps) {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 5 }]}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       
       <TouchableOpacity 
         style={styles.menuButton}
