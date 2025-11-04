@@ -1,5 +1,4 @@
-// AddEventModal.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Modal,
   View,
@@ -10,9 +9,18 @@ import {
   ActivityIndicator,
   Alert,
 } from "react-native";
-import { addDoc, collection, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  doc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
 import { Colors } from "@/constants/Colors";
+import ModalSelector from "react-native-modal-selector";
+import { CITY_OPTIONS, type CityId } from "@/constants/cities";
+import { MaskedTextInput } from "react-native-mask-text";
 
 interface AddEventModalProps {
   visible: boolean;
@@ -21,10 +29,12 @@ interface AddEventModalProps {
   mode?: "add" | "edit";
   initialEvent?: {
     id: string;
-    date: string;
-    time: string;
+    date: string;        // Esperado en Firestore como YYYY-MM-DD
+    time: string;        // HH:MM (24h)
     description: string;
+    cityId?: CityId;
   };
+  cityId?: CityId | null;
 }
 
 export default function AddEventModal({
@@ -33,44 +43,123 @@ export default function AddEventModal({
   onSave,
   mode = "add",
   initialEvent,
+  cityId,
 }: AddEventModalProps) {
-  const [eventData, setEventData] = useState({ date: "", time: "", description: "" });
+  const [eventData, setEventData] = useState({
+    date: "",            // aquí lo manejamos como DD/MM/AAAA en UI
+    time: "",
+    description: "",
+    cityId: (cityId ?? "") as CityId | "",
+  });
+
   const [isSaving, setIsSaving] = useState(false);
+
+  const citySelectorOptions = useMemo(
+    () =>
+      CITY_OPTIONS.map((option, index) => ({
+        key: index,
+        label: option.title,
+        value: option.id,
+      })),
+    []
+  );
+
+  /** ───────────── Helpers de fecha y hora ───────────── */
+
+  const ddmmyyyyFromISO = (iso: string): string => {
+    // ISO esperado: YYYY-MM-DD
+    const m = iso?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return iso ?? "";
+    const [, yyyy, mm, dd] = m;
+    return `${dd}/${mm}/${yyyy}`;
+  };
+
+  const isoFromDDMMYYYY = (ddmmyyyy: string): string | null => {
+    const m = ddmmyyyy.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!m) return null;
+    const [, dd, mm, yyyy] = m;
+
+    // Validación de calendario básica
+    const day = Number(dd);
+    const month = Number(mm);
+    const year = Number(yyyy);
+    if (month < 1 || month > 12) return null;
+
+    const lastDay = new Date(year, month, 0).getDate(); // día 0 del siguiente mes = último día del actual
+    if (day < 1 || day > lastDay) return null;
+
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const isValidTime = (hhmm: string): boolean => {
+    // 24h, permite 00:00 a 23:59
+    return /^([01]\d|2[0-3]):([0-5]\d)$/.test(hhmm);
+  };
+
+  /** ───────────── Carga/Reset según modo ───────────── */
 
   useEffect(() => {
     if (mode === "edit" && initialEvent) {
       setEventData({
-        date: initialEvent.date,
-        time: initialEvent.time,
-        description: initialEvent.description,
+        date: initialEvent.date ? ddmmyyyyFromISO(initialEvent.date) : "",
+        time: initialEvent.time ?? "",
+        description: initialEvent.description ?? "",
+        cityId: initialEvent.cityId ?? ((cityId ?? "") as CityId | ""),
       });
     } else {
-      setEventData({ date: "", time: "", description: "" });
+      setEventData({
+        date: "",
+        time: "",
+        description: "",
+        cityId: (cityId ?? "") as CityId | "",
+      });
     }
-  }, [visible, mode, initialEvent]);
+  }, [visible, mode, initialEvent, cityId]);
+
+  /** ───────────── Guardado ───────────── */
 
   const handleSave = async () => {
-    if (!eventData.date || !eventData.time || !eventData.description) {
+    // Validaciones
+    const isoDate = isoFromDDMMYYYY(eventData.date);
+    if (!isoDate) {
+      Alert.alert("Fecha inválida", "Usa el formato DD/MM/AAAA (p. ej. 01/04/2025).");
+      return;
+    }
+    if (!isValidTime(eventData.time)) {
+      Alert.alert("Hora inválida", "Usa el formato 24 horas HH:MM (p. ej. 08:30 o 14:05).");
+      return;
+    }
+    if (!eventData.description || !eventData.cityId) {
       Alert.alert("Error", "Por favor completa todos los campos");
       return;
     }
 
     setIsSaving(true);
     try {
+      const payload = {
+        date: isoDate,                 // Guardamos normalizado en YYYY-MM-DD
+        time: eventData.time,
+        description: eventData.description.trim(),
+        cityId: eventData.cityId,
+      };
+
       if (mode === "edit" && initialEvent?.id) {
-        await updateDoc(doc(db, "GlobalEvents", initialEvent.id), {
-          ...eventData,
-        });
+        await updateDoc(doc(db, "GlobalEvents", initialEvent.id), payload);
         Alert.alert("Éxito", "Evento actualizado correctamente");
       } else {
         await addDoc(collection(db, "GlobalEvents"), {
-          ...eventData,
+          ...payload,
           createdAt: new Date(),
         });
         Alert.alert("Éxito", "Evento guardado correctamente");
       }
 
-      setEventData({ date: "", time: "", description: "" });
+      setEventData({
+        date: "",
+        time: "",
+        description: "",
+        cityId: (cityId ?? "") as CityId | "",
+      });
       onClose();
       onSave();
     } catch (error) {
@@ -80,6 +169,8 @@ export default function AddEventModal({
       setIsSaving(false);
     }
   };
+
+  /** ───────────── Eliminación ───────────── */
 
   const handleDelete = async () => {
     if (!initialEvent?.id) return;
@@ -108,6 +199,8 @@ export default function AddEventModal({
     );
   };
 
+  /** ───────────── Render ───────────── */
+
   return (
     <Modal
       animationType="slide"
@@ -119,23 +212,66 @@ export default function AddEventModal({
         <Text style={styles.modalTitle}>
           {mode === "edit" ? "Editar Evento Global" : "Agregar Evento Global"}
         </Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Fecha (YYYY-MM-DD)"
+
+        <ModalSelector
+          data={citySelectorOptions}
+          onChange={(option) =>
+            setEventData((prev) => ({
+              ...prev,
+              cityId: option.value as CityId,
+            }))
+          }
+          cancelText="Cerrar"
+          initValue="Selecciona una ciudad"
+          style={styles.selectorContainer}
+        >
+          <TextInput
+            style={styles.input}
+            placeholder="Selecciona una ciudad"
+            placeholderTextColor="#666"
+            editable={false}
+            value={
+              eventData.cityId
+                ? CITY_OPTIONS.find((option) => option.id === eventData.cityId)?.title ?? ""
+                : ""
+            }
+          />
+        </ModalSelector>
+
+        {/* Fecha con máscara DD/MM/AAAA */}
+        <MaskedTextInput
+          mask="99/99/9999"
+          placeholder="DD/MM/AAAA"
+          placeholderTextColor="#666"
+          keyboardType="number-pad"
           value={eventData.date}
-          onChangeText={(text) => setEventData({ ...eventData, date: text })}
-        />
-        <TextInput
+          onChangeText={(text) =>
+            setEventData((prev) => ({ ...prev, date: text }))
+          }
           style={styles.input}
-          placeholder="Hora (HH:MM)"
-          value={eventData.time}
-          onChangeText={(text) => setEventData({ ...eventData, time: text })}
         />
+
+        {/* Hora con máscara HH:MM (24h) */}
+        <MaskedTextInput
+          mask="99:99"
+          placeholder="__:__"
+          placeholderTextColor="#666"
+          keyboardType="number-pad"
+          value={eventData.time}
+          onChangeText={(text) =>
+            setEventData((prev) => ({ ...prev, time: text }))
+          }
+          style={styles.input}
+        />
+
         <TextInput
           style={styles.input}
           placeholder="Descripción"
+          placeholderTextColor="#666"
           value={eventData.description}
-          onChangeText={(text) => setEventData({ ...eventData, description: text })}
+          onChangeText={(text) =>
+            setEventData((prev) => ({ ...prev, description: text }))
+          }
         />
 
         <View style={styles.modalButtons}>
@@ -148,11 +284,19 @@ export default function AddEventModal({
               <Text style={styles.buttonText}>Eliminar</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={onClose}>
+          <TouchableOpacity
+            style={[styles.button, styles.cancelButton]}
+            onPress={onClose}
+            disabled={isSaving}
+          >
             <Text style={styles.buttonText}>Cancelar</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.button, styles.saveButton, isSaving && styles.saveButtonSaving]}
+            style={[
+              styles.button,
+              styles.saveButton,
+              isSaving && styles.saveButtonSaving,
+            ]}
             onPress={handleSave}
             disabled={isSaving}
           >
@@ -196,15 +340,20 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 15,
   },
+  selectorContainer: {
+    width: "100%",
+    marginBottom: 15,
+  },
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
+    gap: 8,
   },
   button: {
     padding: 10,
     borderRadius: 10,
-    width: "30%",
+    flexGrow: 1,
   },
   saveButton: {
     backgroundColor: Colors.NAVY_BLUE,

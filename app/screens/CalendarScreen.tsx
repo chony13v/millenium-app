@@ -20,10 +20,10 @@ import { isAdmin } from "@/config/AdminConfig";
 import AddEventModal from "@/components/modals/AddEventModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCitySelection } from "@/hooks/useCitySelection";
-import { type CityId } from "@/constants/cities";
+import { CITY_OPTIONS, type CityId, isCityId } from "@/constants/cities";
 
 type MarkedDate = { marked: boolean; dotColor: string; isEvent: boolean };
-type EventDetail = { description: string; id?: string; time?: string };
+type EventDetail = { description: string; id?: string; time?: string; cityId?: CityId };
 
 const auth = getAuth();
 
@@ -53,9 +53,12 @@ export default function CalendarScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [editEvent, setEditEvent] = useState<null | { id: string; date: string; time: string; description: string }>(null);
+    const [editEvent, setEditEvent] = useState<
+    | null
+    | { id: string; date: string; time: string; description: string; cityId: CityId }
+  >(null);
   const [firebaseReady, setFirebaseReady] = useState(false);
-  const AddEventModalAny = AddEventModal as any;
+
 
   useEffect(() => {
     const checkAndSignIn = async () => {
@@ -66,6 +69,7 @@ export default function CalendarScreen() {
         if (!token) throw new Error("No se recibió token de Firebase");
 
         await signInWithCustomToken(auth, token);
+        console.log('firebase uid:', auth.currentUser?.uid, 'email:', auth.currentUser?.email);
         setFirebaseReady(true);
 
         const email = user.primaryEmailAddress.emailAddress;
@@ -127,7 +131,12 @@ export default function CalendarScreen() {
         );
         const globalSnapshot = await getDocs(eventsQuery);
         globalSnapshot.forEach((docSnap) => {
-          const data = docSnap.data() as { date?: string; description?: string; time?: string };
+            const data = docSnap.data() as {
+            date?: string;
+            description?: string;
+            time?: string;
+            cityId?: string;
+          };
           const date = data.date;
           if (!date) {
             return;
@@ -138,6 +147,7 @@ export default function CalendarScreen() {
             description: data.description ?? "",
             id: docSnap.id,
             time: data.time,
+            cityId: isCityId(data.cityId) ? data.cityId : undefined,
           };
         });
 
@@ -180,6 +190,7 @@ export default function CalendarScreen() {
           date,
           time: event.time || "",
           description: event.description,
+          cityId: event.cityId ?? selectedCity ?? CITY_OPTIONS[0].id,
         });
         setModalVisible(true);
       } else {
@@ -285,11 +296,10 @@ export default function CalendarScreen() {
           />
         )}
       </View>
-      <AddEventModalAny
+      <AddEventModal
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onSave={refreshEvents}
-        cityId={selectedCity}
         mode={editEvent ? "edit" : "add"}
         initialEvent={editEvent || undefined}
       />

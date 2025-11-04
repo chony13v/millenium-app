@@ -11,6 +11,7 @@ import {
   Pressable,
   ActivityIndicator,
   ScrollView,
+  type ImageSourcePropType,
 } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 import {
@@ -22,6 +23,14 @@ import { useWarmUpBrowser } from "@/components/SignInWithOAuth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { CITY_OPTIONS, type CityId } from "@/constants/cities";
+
+const DEFAULT_CITY_LOGO = require("../../assets/images/manabi_logo.png");
+
+const CITY_LOGOS: Record<CityId, ImageSourcePropType> = {
+  manabi: DEFAULT_CITY_LOGO,
+  riobamba: require("../../assets/images/logo_alcaldiaRiobamba.png"),
+  bgr: require("../../assets/images/logo_bgr.png"),
+};
 
 const CitySelectionScreen = () => {
   const { selectCity } = useCitySelection();
@@ -427,12 +436,12 @@ export default function CallRoutesLayout() {
             end={[1, 1]}
             style={{
               alignItems: "center",
-              paddingTop: 5,
-              paddingBottom: Platform.OS === "ios" ? 10 : 16,
-              paddingHorizontal: 10,
-              borderTopLeftRadius: 10,
-              borderTopRightRadius: 10,
-              marginHorizontal: 18,
+              paddingTop: 6,
+              paddingBottom: Platform.OS === "ios" ? 10 : 14,
+              paddingHorizontal: 12,
+              borderTopLeftRadius: 12,
+              borderTopRightRadius: 12,
+              marginHorizontal: 12,
               marginBottom: Platform.OS === "ios" ? 6 : 8,
               shadowColor: "#1e2a4d",
               shadowOffset: { width: 0, height: 4 },
@@ -441,22 +450,24 @@ export default function CallRoutesLayout() {
               elevation: 6,
             }}
           >
+            {/* ── Top hairline (full width) */}
             <View
               style={{
                 width: "100%",
                 height: 1.5,
                 backgroundColor: "rgba(36, 44, 68, 0.18)",
-                marginBottom: 3,
+                marginBottom: 4,
               }}
             />
 
+            {/* Title + action */}
             <View
               style={{
                 width: "100%",
                 flexDirection: "row",
                 alignItems: "center",
                 justifyContent: "space-between",
-                marginBottom: 10,
+                marginBottom: 8,
               }}
             >
               <Text
@@ -494,22 +505,28 @@ export default function CallRoutesLayout() {
               </Pressable>
             </View>
 
+            {/* ── Separator (full width) */}
             <View
               style={{
-                width: "80%",
-                height: 1.25,
-                backgroundColor: "rgba(36, 44, 68, 0.18)",
-                marginBottom: 10,
+                width: "100%",
+                height: 1,
+                backgroundColor: "rgba(36, 44, 68, 0.16)",
+                marginBottom: 8,
               }}
             />
 
+            {/* CITY LOGOS: full width, shorter height */}
             <Image
-              source={require("../../assets/images/manabi_logo.png")}
+              source={CITY_LOGOS[selectedCity] ?? DEFAULT_CITY_LOGO}
               style={{
-                width: 340,
-                height: 64,
-                resizeMode: "contain",
+                width: "100%",  // full horizontal coverage
+                height: 40,     // smaller height
+                resizeMode: "contain", // keep aspect ratio without cropping
               }}
+              // accessibility
+              accessible
+              accessibilityRole="image"
+              accessibilityLabel="Logo del proyecto seleccionado"
             />
           </LinearGradient>
         )}
