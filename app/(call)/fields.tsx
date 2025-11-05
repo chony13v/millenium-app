@@ -10,6 +10,7 @@ import {
   Alert,
 } from "react-native";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
 import * as Location from "expo-location";
@@ -18,6 +19,7 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import LoadingBall from "@/components/LoadingBall";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import type { CityId } from "@/constants/cities";
+import useLocationBucket from "@/src/hooks/useLocationBucket";
 
 interface FieldItem {
   id: string;
@@ -55,6 +57,17 @@ export default function Field() {
   );
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
   const { selectedCity, hasHydrated } = useCitySelection();
+    const { topBucket, trackOnFieldOpen, loadTopBucket } = useLocationBucket();
+
+  useFocusEffect(
+    useCallback(() => {
+      trackOnFieldOpen();
+    }, [trackOnFieldOpen])
+  );
+
+  useEffect(() => {
+    loadTopBucket();
+  }, [loadTopBucket]);
 
   useEffect(() => {
     getUserLocation();
@@ -313,7 +326,17 @@ export default function Field() {
 
   return (
     <FlatList
-      ListHeaderComponent={<Text style={styles.title}>Centros deportivos</Text>}
+        ListHeaderComponent={
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>Centros deportivos</Text>
+          {topBucket && (
+            <Text style={styles.bucketText}>
+              Zona habitual: {topBucket.latCenter.toFixed(2)},{" "}
+              {topBucket.lngCenter.toFixed(2)}
+            </Text>
+          )}
+        </View>
+      }
       data={sortedFieldList}
       keyExtractor={(item) => item.id}
       renderItem={memoizedRenderItem}
@@ -342,6 +365,16 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     textAlign: "center",
     width: "100%",
+  },
+    headerContainer: {
+    alignItems: "center",
+    paddingBottom: 8,
+  },
+  bucketText: {
+    fontFamily: "barlow-regular",
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
   },
   loader: {
     marginTop: 20,

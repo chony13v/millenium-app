@@ -48,3 +48,17 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+## Location Buckets
+
+To enable approximate location tracking in ~1 km buckets:
+
+```bash
+expo install expo-location
+```
+
+### Permissions
+
+- **iOS**: ensure `app.json` includes `NSLocationWhenInUseUsageDescription` under `expo.ios.infoPlist` with a message explaining that the app uses approximate location to sugerir canchas cercanas.
+- **Android**: confirm `app.json` lists `ACCESS_FINE_LOCATION` (and any other required location permissions) inside `expo.android.permissions`.

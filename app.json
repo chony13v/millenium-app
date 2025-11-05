@@ -12,7 +12,10 @@
     "owner": "chony13v",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chony.milleniumapp"
+      "bundleIdentifier": "com.chony.milleniumapp",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación aproximada para mostrar canchas cercanas y mejorar las recomendaciones."
+      }
     },
     "android": {
       "adaptiveIcon": {
