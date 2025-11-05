@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'expo-router'
 import * as WebBrowser from 'expo-web-browser'
 import { useOAuth } from '@clerk/clerk-expo'
@@ -28,30 +28,27 @@ const SignInWithOAuth = () => {
 
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' })
 
+  const redirectUrl = useMemo(
+    () => Linking.createURL('/home', { scheme: 'milleniumfs' }),
+    []
+  )
+
   const onPress = useCallback(async () => {
     try {
       const { createdSessionId, setActive } = await startOAuthFlow({
-        redirectUrl: Linking.createURL("/home", { scheme: 'milleniumfs' }),
+        redirectUrl,
       })
 
-      if (createdSessionId) {
-        await setActive!({ session: createdSessionId })
+      if (createdSessionId && setActive) {
+        await setActive({ session: createdSessionId })
         router.replace('/home')
       } else {
-
+        console.warn('OAuth flow did not return a session. Check Clerk configuration.')
       }
     } catch (err) {
       console.error('OAuth error', err)
     }
-  }, [router])
-
-  const openLink = async (url: string) => {
-    try {
-      await WebBrowser.openBrowserAsync(url);
-    } catch (error) {
-      console.error('Failed to open URL:', error);
-    }
-  }
+  }, [redirectUrl, router, startOAuthFlow])
 
   const [isTermsVisible, setIsTermsVisible] = useState(false)
   const [isPrivacyVisible, setIsPrivacyVisible] = useState(false)
