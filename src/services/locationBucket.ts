@@ -88,7 +88,7 @@ export interface PersistedLocationResult {
 }
 
 interface PersistBucketBasePayload {
-  uid: string;
+  userId: string;
   coords: Location.LocationObjectCoords;
   step: number;
   extraData?: Record<string, unknown>;
@@ -126,7 +126,7 @@ const logLocationEvent = async (
 };
 
 const persistBucketBase = async ({
-  uid,
+  userId,
   coords,
   step,
   extraData = {},
@@ -135,7 +135,7 @@ const persistBucketBase = async ({
   const lngCenter = grid(coords.longitude, step);
   const bucketId = makeBucketId(coords.latitude, coords.longitude, step);
 
-  const bucketRef = doc(db, "users", uid, "locationBuckets", bucketId);
+  const bucketRef = doc(db, "users", userId, "locationBuckets", bucketId);
   await setDoc(
     bucketRef,
     {
@@ -170,19 +170,19 @@ const normalizePlace = (
 };
 
 export const persistUserLocationBucket = async ({
-  uid,
+  userId,
   coords,
   step = DEFAULT_STEP,
   place,
   source = "manual_update",
 }: {
-  uid: string | null | undefined;
+  userId: string | null | undefined;
   coords: Location.LocationObjectCoords;
   step?: number;
   place?: ResolvedGeocodePlace | null;
   source?: string;
 }): Promise<PersistedLocationResult | null> => {
-  if (!uid) {
+  if (!userId) {
     return null;
   }
 
@@ -202,7 +202,7 @@ export const persistUserLocationBucket = async ({
   }
 
   const { bucketId, latCenter, lngCenter } = await persistBucketBase({
-    uid,
+    userId,
     coords,
     step,
     extraData,
@@ -212,7 +212,7 @@ export const persistUserLocationBucket = async ({
     source,
   });
 
-  const bucket = (await getUserTopBucket(uid, step)) ?? {
+  const bucket = (await getUserTopBucket(userId, step)) ?? {
     bucketId,
     latCenter,
     lngCenter,
@@ -231,10 +231,10 @@ export const persistUserLocationBucket = async ({
  * o la escritura en Firestore.
  */
 export const trackLocationBucketOnFieldOpen = async (
-  uid: string | null | undefined,
+  userId: string | null | undefined,
   step: number = DEFAULT_STEP
 ): Promise<UserLocationBucket | null> => {
-  if (!uid) {
+  if (!userId) {
     return null;
   }
 
@@ -246,6 +246,7 @@ export const trackLocationBucketOnFieldOpen = async (
       permission = await Location.requestForegroundPermissionsAsync();
       status = permission.status;
     }
+
     if (status !== "granted") {
       return null;
     }
@@ -255,7 +256,7 @@ export const trackLocationBucketOnFieldOpen = async (
     });
 
     const { bucketId, latCenter, lngCenter } = await persistBucketBase({
-      uid,
+      userId,
       coords: location.coords,
       step,
       extraData: { source: "field_open" },
@@ -271,7 +272,7 @@ export const trackLocationBucketOnFieldOpen = async (
     try {
       const bucketsSnapshot = await getDocs(
         query(
-          collection(db, "users", uid, "locationBuckets"),
+          collection(db, "users", userId, "locationBuckets"),
           orderBy("count", "desc"),
           limit(2)
         )
@@ -322,15 +323,15 @@ export const trackLocationBucketOnFieldOpen = async (
  * hay datos suficientes.
  */
 export const getUserTopBucket = async (
-  uid: string | null | undefined,
+  userId: string | null | undefined,
   step: number = DEFAULT_STEP
 ): Promise<UserLocationBucket | null> => {
-  if (!uid) {
+  if (!userId) {
     return null;
   }
 
   try {
-    const bucketsRef = collection(db, "users", uid, "locationBuckets");
+    const bucketsRef = collection(db, "users", userId, "locationBuckets");
     const bucketsSnapshot = await getDocs(
       query(bucketsRef, orderBy("count", "desc"), limit(1))
     );

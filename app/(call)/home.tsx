@@ -67,70 +67,73 @@ export default function HomeScreen() {
     return null;
   }, [lastPlaceLabel, topBucket]);
 
-  const handleLocationUpdate = useCallback(async () => {
-    if (isUpdatingLocation) {
-      return;
-    }
-
-    setIsUpdatingLocation(true);
-
-    try {
-      const result = await updateFromDevice();
-
-      if (!result) {
+  const handleLocationUpdate = useCallback(
+    async (source?: string) => {
+      if (isUpdatingLocation) {
         return;
       }
 
-      if (result.place) {
-        const label =
-          result.place.formattedAddress ||
-          [result.place.neighborhood, result.place.city]
-            .filter(Boolean)
-            .join(", ");
+      setIsUpdatingLocation(true);
 
-        if (label) {
-          setLastPlaceLabel(label);
+      try {
+        const result = await updateFromDevice({ source });
+
+        if (!result) {
+          return;
         }
 
-        Alert.alert(
-          "Ubicación actualizada",
-          label
-            ? `Ahora te mostraremos noticias y canchas cercanas a ${label}.`
-            : "Guardamos tu ubicación para personalizar el contenido."
-        );
-      } else {
-        Alert.alert(
-          "Ubicación actualizada",
-          "Guardamos tu ubicación para personalizar el contenido."
-        );
-      }
-    } catch (error) {
-      const err = error as LocationUpdateError;
-      let message =
-        "Ocurrió un error al obtener tu ubicación. Inténtalo nuevamente más tarde.";
+        if (result.place) {
+          const label =
+            result.place.formattedAddress ||
+            [result.place.neighborhood, result.place.city]
+              .filter(Boolean)
+              .join(", ");
 
-      switch (err.code) {
-        case "services-disabled":
-          message =
-            "Activa los servicios de ubicación en tu dispositivo para poder mostrarte contenido cercano.";
-          break;
-        case "permission-denied":
-          message =
-            'Necesitamos tu permiso para acceder a la ubicación. Puedes activarlo cuando quieras desde el botón de "Actualizar ubicación".';
-          break;
-        case "location-unavailable":
-          message =
-            "No pudimos obtener tu ubicación actual. Verifica tu conexión o intenta nuevamente en unos minutos.";
-          break;
-        default:
-          break;
-      }
+          if (label) {
+            setLastPlaceLabel(label);
+          }
 
-      Alert.alert("No pudimos actualizar tu ubicación", message);
-    } finally {
-      setIsUpdatingLocation(false);
-    }
-  }, [isUpdatingLocation, updateFromDevice]);
+          Alert.alert(
+            "Ubicación actualizada",
+            label
+              ? `Ahora te mostraremos noticias y canchas cercanas a ${label}.`
+              : "Guardamos tu ubicación para personalizar el contenido."
+          );
+        } else {
+          Alert.alert(
+            "Ubicación actualizada",
+            "Guardamos tu ubicación para personalizar el contenido."
+          );
+        }
+      } catch (error) {
+        const err = error as LocationUpdateError;
+        let message =
+          "Ocurrió un error al obtener tu ubicación. Inténtalo nuevamente más tarde.";
+
+        switch (err.code) {
+          case "services-disabled":
+            message =
+              "Activa los servicios de ubicación en tu dispositivo para poder mostrarte contenido cercano.";
+            break;
+          case "permission-denied":
+            message =
+              'Necesitamos tu permiso para acceder a la ubicación. Puedes activarlo cuando quieras desde el botón de "Actualizar ubicación".';
+            break;
+          case "location-unavailable":
+            message =
+              "No pudimos obtener tu ubicación actual. Verifica tu conexión o intenta nuevamente en unos minutos.";
+            break;
+          default:
+            break;
+        }
+
+        Alert.alert("No pudimos actualizar tu ubicación", message);
+      } finally {
+        setIsUpdatingLocation(false);
+      }
+    },
+    [isUpdatingLocation, updateFromDevice]
+  );
 
   useEffect(() => {
     loadTopBucket();
@@ -165,7 +168,7 @@ export default function HomeScreen() {
               text: "Activar ahora",
               onPress: () => {
                 void AsyncStorage.setItem(LOCATION_OPT_IN_KEY, "accepted");
-                void handleLocationUpdate();
+                void handleLocationUpdate("onboarding_accept");
               },
             },
           ]
@@ -218,7 +221,7 @@ export default function HomeScreen() {
                       styles.locationButton,
                       isUpdatingLocation && styles.locationButtonDisabled,
                     ]}
-                    onPress={handleLocationUpdate}
+                    onPress={() => handleLocationUpdate()}
                     activeOpacity={0.85}
                     disabled={isUpdatingLocation}
                   >
