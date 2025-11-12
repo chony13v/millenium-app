@@ -7,19 +7,32 @@ import {
   Linking,
   TouchableOpacity,
   Dimensions,
-  Alert,
+  ActivityIndicator,
 } from "react-native";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/config/FirebaseConfig";
-import * as Location from "expo-location";
 import { getDistance } from "geolib";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import type { LocationObjectCoords } from "expo-location";
+
 import LoadingBall from "@/components/LoadingBall";
-import { useCitySelection } from "@/hooks/useCitySelection";
-import type { CityId } from "@/constants/cities";
-import useLocationBucket from "@/src/hooks/useLocationBucket";
+import useForegroundLocation from "@/src/hooks/useForegroundLocation";
+import { loadNearbyFields } from "@/src/services/firestore/nearbyContent";
+
+const screenWidth = Dimensions.get("window").width;
+const SIX_HOURS_IN_MS = 6 * 60 * 60 * 1000;
+
+type FieldFirestore = {
+  imageUrl?: string;
+  title?: string;
+  latitude?: number;
+  longitude?: number;
+  locationUrl?: string;
+  city?: string;
+  citySlug?: string | null;
+  latBucket?: number | null;
+  lonBucket?: number | null;
+};
 
 interface FieldItem {
   id: string;
@@ -28,7 +41,6 @@ interface FieldItem {
   latitude?: number;
   longitude?: number;
   locationUrl?: string;
-  cityId?: CityId;
 }
 
 const handleLocationPress = (
@@ -37,447 +49,401 @@ const handleLocationPress = (
   longitude?: number
 ) => {
   if (locationUrl) {
-    Linking.openURL(locationUrl);
-  } else if (latitude && longitude) {
+    Linking.openURL(locationUrl).catch((error) =>
+      console.warn("No se pudo abrir la ubicación", error)
+    );
+    return;
+  }
+
+  if (latitude && longitude) {
     const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
-    Linking.openURL(url);
+    Linking.openURL(url).catch((error) =>
+      console.warn("No se pudo abrir Google Maps", error)
+    );
   }
 };
 
-const screenWidth = Dimensions.get("window").width;
+const mapFieldRecord = (
+  record: FieldFirestore & { id: string }
+): FieldItem => ({
+  id: record.id,
+  imageUrl: typeof record.imageUrl === "string" ? record.imageUrl : "",
+  title: typeof record.title === "string" ? record.title : "Centro deportivo",
+  latitude: typeof record.latitude === "number" ? record.latitude : undefined,
+  longitude:
+    typeof record.longitude === "number" ? record.longitude : undefined,
+  locationUrl:
+    typeof record.locationUrl === "string" ? record.locationUrl : undefined,
+});
 
 export default function Field() {
+  const { ensureFreshLocation } = useForegroundLocation();
   const [fieldList, setFieldList] = useState<FieldItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userLocation, setUserLocation] =
-    useState<Location.LocationObjectCoords | null>(null);
   const [distances, setDistances] = useState<{ [key: string]: number }>({});
   const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>(
     {}
   );
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
-  const { selectedCity, hasHydrated } = useCitySelection();
-    const { topBucket, trackOnFieldOpen, loadTopBucket } = useLocationBucket();
 
-  useFocusEffect(
-    useCallback(() => {
-      trackOnFieldOpen();
-    }, [trackOnFieldOpen])
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  const [userCoords, setUserCoords] = useState<LocationObjectCoords | null>(
+    null
   );
 
-  useEffect(() => {
-    loadTopBucket();
-  }, [loadTopBucket]);
-
-  useEffect(() => {
-    getUserLocation();
-  }, []);
-
-    useEffect(() => {
-    setDistances({});
-  }, [selectedCity]);
-
-  useEffect(() => {
-    setDistances({});
-  }, [selectedCity]);
-
-  useEffect(() => {
-    if (!hasHydrated) {
-      return;
-    }
-
-    if (!selectedCity) {
-      setFieldList([]);
-      setLoading(false);
-      return;
-    }
-
-    let isActive = true;
-
-    const fetchFields = async () => {
-      setLoading(true);
-      try {
-        const q = query(
-          collection(db, "Field"),
-          // Los documentos "Field" deben incluir un campo "cityId" con uno de los
-          // identificadores definidos en constants/cities.ts. Aquí filtramos por la
-          // ciudad seleccionada para mostrar únicamente sus canchas.
-          where("cityId", "==", selectedCity)
-        );
-        const querySnapshot = await getDocs(q);
-        const items: FieldItem[] = [];
-        querySnapshot.forEach((doc) => {
-          items.push({ ...doc.data(), id: doc.id } as FieldItem);
-        });
-
-        if (isActive) {
-          setFieldList(items);
-        }
-      } catch (error) {
-        console.error("Error fetching field data:", error);
-        if (isActive) {
-          setFieldList([]);
-        }
-      } finally {
-        if (isActive) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchFields();
-
-    return () => {
-      isActive = false;
-    };
-  }, [selectedCity, hasHydrated]);
-
-
-  const getUserLocation = async () => {
-    try {
-      const servicesEnabled = await Location.hasServicesEnabledAsync();
-      if (!servicesEnabled) {
-        Alert.alert(
-          "Servicios de ubicación desactivados",
-          "Activa los servicios de ubicación para ver la distancia a los centros deportivos."
-        );
-        return;
-      }
-
-      const { status } = await Location.requestForegroundPermissionsAsync();
-
-      if (status !== "granted") {
-        Alert.alert(
-          "Permiso de ubicación denegado",
-          "No podemos calcular las distancias sin acceso a tu ubicación. Habilítala en la configuración de tu dispositivo."
-        );
-
-        return;
-      }
-
-      try {
-        const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        setUserLocation(location.coords);
-      } catch (locationError) {
-        console.warn(
-          "Fallo al obtener la ubicación actual, intentando la última ubicación conocida.",
-          locationError
-        );
-        const lastKnownLocation = await Location.getLastKnownPositionAsync();
-        if (lastKnownLocation) {
-          setUserLocation(lastKnownLocation.coords);
-          Alert.alert(
-            "Usando tu última ubicación conocida",
-            "No pudimos obtener tu ubicación actual, mostrando distancias aproximadas."
-          );
-        } else {
-          Alert.alert(
-            "No se pudo obtener tu ubicación",
-            "Verifica que los servicios de ubicación estén activos y vuelve a intentarlo."
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error al preparar la ubicación del usuario:", error);
-      Alert.alert(
-        "Error de ubicación",
-        "Ocurrió un problema al obtener tu ubicación. Inténtalo nuevamente más tarde."
-      );
-    }
-  };
-
   const calculateDistances = useCallback(
-    (fields: FieldItem[]) => {
-      if (!userLocation) return;
-
+    (fields: FieldItem[], coords: LocationObjectCoords) => {
       const newDistances: { [key: string]: number } = {};
+
       fields.forEach((field) => {
         if (field.latitude && field.longitude) {
           const distance = getDistance(
             {
-              latitude: userLocation.latitude,
-              longitude: userLocation.longitude,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
             },
-            { latitude: field.latitude, longitude: field.longitude }
+            {
+              latitude: field.latitude,
+              longitude: field.longitude,
+            }
           );
-          newDistances[field.id] = distance;
+
+          newDistances[field.id] = distance / 1000; // convert to km
         }
       });
+
       setDistances(newDistances);
     },
-    [userLocation]
+    []
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const refreshFields = async () => {
+        setLoading(true);
+        setWarningMessage(null);
+
+        try {
+          const result = await ensureFreshLocation({
+            maxAgeMs: SIX_HOURS_IN_MS,
+          });
+
+          if (!isActive) {
+            return;
+          }
+
+          if (result.status === "success" && result.location) {
+            setUserCoords(result.location.coords);
+            const records = await loadNearbyFields<FieldFirestore>({
+              latBucket: result.location.latBucket ?? undefined,
+              lonBucket: result.location.lonBucket ?? undefined,
+              citySlug: result.location.citySlug ?? undefined,
+            });
+
+            if (!isActive) {
+              return;
+            }
+
+            const items = records.map((record) =>
+              mapFieldRecord({ id: record.id, ...record.data })
+            );
+
+            setFieldList(items);
+            if (items.length > 0) {
+              calculateDistances(items, result.location.coords);
+            } else {
+              setDistances({});
+            }
+          } else {
+            setFieldList([]);
+            setUserCoords(null);
+
+            if (result.status === "permission-denied") {
+              setWarningMessage(
+                "Activa los permisos de ubicación desde la configuración para ver canchas cercanas."
+              );
+            } else if (result.status === "services-disabled") {
+              setWarningMessage(
+                "Activa los servicios de ubicación de tu dispositivo para mostrar canchas cercanas."
+              );
+            } else if (result.status === "opted-out") {
+              setWarningMessage(
+                "Activa el contenido por barrio desde la configuración para recibir recomendaciones cercanas."
+              );
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching nearby fields:", error);
+          if (isActive) {
+            setFieldList([]);
+            setUserCoords(null);
+            setWarningMessage(
+              "No pudimos cargar las canchas cercanas. Inténtalo nuevamente más tarde."
+            );
+          }
+        } finally {
+          if (isActive) {
+            setLoading(false);
+          }
+        }
+      };
+
+      refreshFields();
+
+      return () => {
+        isActive = false;
+      };
+    }, [calculateDistances, ensureFreshLocation])
   );
 
   useEffect(() => {
-    if (userLocation && fieldList.length > 0) {
-      calculateDistances(fieldList);
+    if (userCoords) {
+      calculateDistances(fieldList, userCoords);
     }
-  }, [userLocation, fieldList, calculateDistances]);
+  }, [calculateDistances, fieldList, userCoords]);
 
-  // Memoize the sorted list to prevent unnecessary re-sorting
-  const sortedFieldList = useMemo(() => {
-    if (!distances || fieldList.length === 0) return fieldList;
-    return [...fieldList].sort((a, b) => {
-      const distanceA = distances[a.id] || Infinity;
-      const distanceB = distances[b.id] || Infinity;
-      return distanceA - distanceB;
-    });
-  }, [fieldList, distances]);
+  const renderItem = useCallback(
+    ({ item }: { item: FieldItem }) => {
+      const distance = distances[item.id];
+      const hasImageError = imageError[item.id];
+      const isImageLoading = imageLoading[item.id];
 
-  const renderItem = ({ item }: { item: FieldItem }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri: item.imageUrl,
-            cache: "force-cache",
-            headers: {
-              Pragma: "no-cache",
-            },
-          }}
-          style={styles.image}
-          resizeMode="cover"
-          onLoadStart={() =>
-            setImageLoading((prev) => ({ ...prev, [item.id]: true }))
-          }
-          onLoadEnd={() =>
-            setImageLoading((prev) => ({ ...prev, [item.id]: false }))
-          }
-          onError={() => {
-            setImageError((prev) => ({ ...prev, [item.id]: true }));
-            setImageLoading((prev) => ({ ...prev, [item.id]: false }));
-            console.warn("Error loading image:", item.imageUrl);
-          }}
-          defaultSource={require("@/assets/images/placeholder.png")} // Add a default placeholder image
-        />
-        {imageLoading[item.id] && (
-          <View style={styles.imageLoaderContainer}>
-            <LoadingBall text="Cargando imagen..." />
+      return (
+        <View style={styles.cardContainer}>
+          <View style={styles.cardContent}>
+            <View style={styles.imageContainer}>
+              {isImageLoading && !hasImageError && (
+                <ActivityIndicator size="small" color="#F02B44" />
+              )}
+              {hasImageError ? (
+                <View style={styles.imagePlaceholder}>
+                  <MaterialIcons
+                    name="image-not-supported"
+                    size={48}
+                    color="#CBD5F5"
+                  />
+                </View>
+              ) : (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.image}
+                  onLoadStart={() =>
+                    setImageLoading((prev) => ({ ...prev, [item.id]: true }))
+                  }
+                  onLoad={() =>
+                    setImageLoading((prev) => ({ ...prev, [item.id]: false }))
+                  }
+                  onError={() => {
+                    setImageLoading((prev) => ({ ...prev, [item.id]: false }));
+                    setImageError((prev) => ({ ...prev, [item.id]: true }));
+                  }}
+                />
+              )}
+            </View>
+            <View style={styles.infoContainer}>
+              <Text style={styles.title}>{item.title}</Text>
+              {distance ? (
+                <View style={styles.distanceContainer}>
+                  <MaterialIcons name="place" size={18} color="#F02B44" />
+                  <Text style={styles.distanceText}>
+                    {distance.toFixed(1)} km de distancia
+                  </Text>
+                </View>
+              ) : null}
+              <TouchableOpacity
+                style={styles.locationButton}
+                onPress={() =>
+                  handleLocationPress(
+                    item.locationUrl,
+                    item.latitude,
+                    item.longitude
+                  )
+                }
+              >
+                <FontAwesome name="map-marker" size={16} color="#FFFFFF" />
+                <Text style={styles.locationButtonText}>Ver ubicación</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        )}
-        {imageError[item.id] && (
-          <View style={styles.errorContainer}>
-            <FontAwesome name="image" size={40} color="#666" />
-            <Text style={styles.errorText}>No se pudo cargar la imagen</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.textContainer}>
-        <TouchableOpacity
-          style={styles.titleContainer}
-          onPress={() =>
-            handleLocationPress(item.locationUrl, item.latitude, item.longitude)
-          }
-        >
-          <Text style={styles.headerTitle}>{item.title}</Text>
-          <MaterialIcons name="location-on" size={20} color="#4630EB" />
-        </TouchableOpacity>
-        {distances[item.id] !== undefined && (
-          <Text style={styles.distanceText}>
-            {(distances[item.id] / 1000).toFixed(2)} km de distancia
-          </Text>
-        )}
-      </View>
-    </View>
+        </View>
+      );
+    },
+    [distances, imageError, imageLoading]
   );
 
-  const memoizedRenderItem = useCallback(renderItem, [
-    distances,
-    imageLoading,
-    imageError,
-  ]);
+  const keyExtractor = useCallback((item: FieldItem) => item.id, []);
 
-    if (!hasHydrated) {
-    return <LoadingBall text="Cargando ciudades..." />;
-  }
+  const headerComponent = useMemo(() => {
+    if (!warningMessage) {
+      return null;
+    }
 
-  if (!selectedCity) {
     return (
-      <View style={styles.emptyStateContainer}>
-        <Text style={styles.emptyStateTitle}>Selecciona una ciudad</Text>
-        <Text style={styles.emptyStateDescription}>
-          Elige una ciudad desde la pantalla anterior para ver los centros
-          deportivos disponibles.
-        </Text>
+      <View style={styles.warningBanner}>
+        <Text style={styles.warningText}>{warningMessage}</Text>
       </View>
     );
-  }
-
+  }, [warningMessage]);
 
   if (loading) {
-    return <LoadingBall text="Cargando campos deportivos..." />;
+    return <LoadingBall text="Buscando canchas cercanas..." />;
   }
 
-    if (fieldList.length === 0) {
+  if (fieldList.length === 0) {
     return (
-      <View style={styles.emptyStateContainer}>
-        <Text style={styles.emptyStateTitle}>
-          No hay centros deportivos disponibles
-        </Text>
-        <Text style={styles.emptyStateDescription}>
-          Aún no tenemos canchas registradas para esta ciudad. Vuelve más tarde.
-        </Text>
+      <View style={styles.container}>
+        {headerComponent}
+        <View style={styles.emptyStateContainer}>
+          <Text style={styles.emptyStateTitle}>Sin canchas cercanas</Text>
+          <Text style={styles.emptyStateDescription}>
+            {warningMessage
+              ? warningMessage
+              : "Aún no encontramos canchas en tu zona. Prueba más tarde."}
+          </Text>
+        </View>
       </View>
     );
   }
 
-
   return (
-    <FlatList
-        ListHeaderComponent={
-        <View style={styles.headerContainer}>
-          <Text style={styles.title}>Centros deportivos</Text>
-          {topBucket && (
-            <Text style={styles.bucketText}>
-              Zona habitual: {topBucket.latCenter.toFixed(2)},{" "}
-              {topBucket.lngCenter.toFixed(2)}
-            </Text>
-          )}
-        </View>
-      }
-      data={sortedFieldList}
-      keyExtractor={(item) => item.id}
-      renderItem={memoizedRenderItem}
-      style={[styles.list, { backgroundColor: "white" }]}
-      contentContainerStyle={styles.listContent}
-      showsVerticalScrollIndicator={false}
-      scrollEnabled={true}
-      removeClippedSubviews={true}
-      maxToRenderPerBatch={3}
-      initialNumToRender={3}
-      windowSize={3}
-    />
+    <View style={styles.container}>
+      <FlatList
+        data={fieldList}
+        keyExtractor={keyExtractor}
+        renderItem={renderItem}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={headerComponent}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#FFFFFF",
+    paddingTop: 16,
   },
-  title: {
-    fontFamily: "barlow-regular",
-    fontSize: 35,
-    color: "#0A2240",
-    paddingVertical: 10,
-    marginBottom: 5,
-    textAlign: "center",
-    width: "100%",
+
+  listContent: {
+    paddingBottom: 24,
   },
-    headerContainer: {
-    alignItems: "center",
-    paddingBottom: 8,
+
+  cardContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    backgroundColor: "#F5F6FA",
+    overflow: "hidden",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
-  bucketText: {
-    fontFamily: "barlow-regular",
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  loader: {
-    marginTop: 20,
-  },
-  list: {
-    paddingHorizontal: 10,
-  },
-  itemContainer: {
-    marginBottom: 20,
-    alignItems: "center",
-  },
-  titleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  textContainer: {
-    alignItems: "flex-start",
-    width: "100%",
-    paddingTop: 10,
-    paddingHorizontal: 10,
-  },
-  headerTitle: {
-    fontFamily: "barlow-medium",
-    fontSize: 16,
-    marginBottom: 5,
-    color: "#0A2240",
-  },
-  distanceText: {
-    fontFamily: "barlow-regular",
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 5,
+
+  cardContent: {
+    flexDirection: screenWidth > 400 ? "row" : "column",
   },
   imageContainer: {
-    width: screenWidth * 0.9,
-    height: screenWidth * 0.9 * (9 / 16),
-    borderRadius: 3,
-    overflow: "hidden",
-    backgroundColor: "#f0f0f0",
+    width: screenWidth > 400 ? screenWidth * 0.4 : "100%",
+    height: 180,
+    backgroundColor: "#CBD5F5",
     justifyContent: "center",
     alignItems: "center",
   },
   image: {
     width: "100%",
     height: "100%",
+    resizeMode: "cover",
   },
-  imageLoaderContainer: {
-    position: "absolute",
-    width: "100%",
-    height: "100%",
-  },
-  errorContainer: {
-    position: "absolute",
+
+  imagePlaceholder: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
   },
-  errorText: {
-    color: "#666",
-    marginTop: 10,
+
+  infoContainer: {
+    flex: 1,
+    padding: 16,
+    gap: 12,
+    justifyContent: "center",
+  },
+  title: {
+    fontFamily: "barlow-bold",
+    fontSize: 18,
+    color: "#0F172A",
+  },
+  distanceContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+
+    gap: 8,
+  },
+
+  distanceText: {
     fontFamily: "barlow-regular",
     fontSize: 14,
-    textAlign: "center",
+
+    color: "#475569",
   },
-  listContent: {
-    paddingBottom: 80,
-  },
-    emptyStateContainer: {
-    flex: 1,
-    justifyContent: "center",
+
+  locationButton: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "white",
+
+    gap: 8,
+    backgroundColor: "#F02B44",
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+  },
+
+  locationButtonText: {
+    fontFamily: "barlow-medium",
+
+    fontSize: 14,
+    color: "#FFFFFF",
+  },
+  emptyStateContainer: {
+    marginHorizontal: 20,
+    marginTop: 24,
+    padding: 24,
+    borderRadius: 16,
+    backgroundColor: "#F5F6FA",
   },
   emptyStateTitle: {
-    fontFamily: "barlow-medium",
-    fontSize: 20,
-    color: "#0A2240",
-    textAlign: "center",
-    marginBottom: 10,
+    fontFamily: "barlow-bold",
+    fontSize: 18,
+    color: "#0F172A",
+    marginBottom: 8,
   },
   emptyStateDescription: {
     fontFamily: "barlow-regular",
-    fontSize: 16,
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 22,
+
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "white",
+
+  warningBanner: {
+    backgroundColor: "#FFF4E6",
+    borderRadius: 12,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
-  soccerBall: {
-    marginBottom: 20,
-  },
-  loadingText: {
-    fontFamily: "barlow-medium",
-    fontSize: 16,
-    color: "#0A2240",
+
+  warningText: {
+    fontFamily: "barlow-regular",
+    fontSize: 13,
+    color: "#C2410C",
   },
 });

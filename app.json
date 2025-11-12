@@ -14,8 +14,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.chony.milleniumapp",
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Usamos tu ubicación en segundo plano para mantener tus recomendaciones actualizadas.",
-        "UIBackgroundModes": ["location"]
+        "NSLocationWhenInUseUsageDescription": "Usamos tu ubicación para mostrar contenido y canchas cercanas mientras utilizas la app."
       }
     },
     "android": {

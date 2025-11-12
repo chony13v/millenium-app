@@ -24,10 +24,38 @@ import SignOutDialog from "@/components/SignOutDialog";
 import CategoryIcons from "@/components/home/Category";
 import News from "@/components/home/News";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {
-  useLocationBucket,
-  type LocationUpdateError,
-} from "@/src/hooks/useLocationBucket";
+
+import useForegroundLocation, {
+  type ForegroundLocationSnapshot,
+} from "@/src/hooks/useForegroundLocation";
+
+const SIX_HOURS_IN_MS = 6 * 60 * 60 * 1000;
+
+const formatLocationLabel = (
+  location: ForegroundLocationSnapshot | null
+): string | null => {
+  if (!location) {
+    return null;
+  }
+
+  const pieces = [location.neighborhood, location.city]
+    .filter((value): value is string =>
+      Boolean(value && value.trim().length > 0)
+    )
+    .map((value) => value.trim());
+
+  if (pieces.length > 0) {
+    return pieces.join(", ");
+  }
+
+  const { latitude, longitude } = location.coords;
+
+  if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+    return `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`;
+  }
+
+  return null;
+};
 
 export default function HomeScreen() {
   const drawerRef = useRef<DrawerLayout>(null);
@@ -35,7 +63,19 @@ export default function HomeScreen() {
   const [isSignOutVisible, setIsSignOutVisible] = useState(false);
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const [lastPlaceLabel, setLastPlaceLabel] = useState<string | null>(null);
-  const { updateFromDevice, topBucket, loadTopBucket } = useLocationBucket();
+  const { ensureFreshLocation, lastKnownLocation } = useForegroundLocation();
+  const [lastManualLocation, setLastManualLocation] =
+    useState<ForegroundLocationSnapshot | null>(null);
+
+  useEffect(() => {
+    void ensureFreshLocation({ maxAgeMs: SIX_HOURS_IN_MS });
+  }, [ensureFreshLocation]);
+
+  useEffect(() => {
+    if (lastKnownLocation) {
+      setLastManualLocation((current) => current ?? lastKnownLocation);
+    }
+  }, [lastKnownLocation]);
 
   const handleCalendarPress = () => {
     router.push("/screens/CalendarScreen");
@@ -58,14 +98,8 @@ export default function HomeScreen() {
       return lastPlaceLabel;
     }
 
-    if (topBucket) {
-      return `${topBucket.latCenter.toFixed(2)}, ${topBucket.lngCenter.toFixed(
-        2
-      )}`;
-    }
-
-    return null;
-  }, [lastPlaceLabel, topBucket]);
+    return formatLocationLabel(lastManualLocation ?? lastKnownLocation ?? null);
+  }, [lastKnownLocation, lastManualLocation, lastPlaceLabel]);
 
   const handleLocationUpdate = useCallback(
     async (source?: string) => {
@@ -74,20 +108,12 @@ export default function HomeScreen() {
       }
 
       setIsUpdatingLocation(true);
-
       try {
-        const result = await updateFromDevice({ source });
+        const result = await ensureFreshLocation({ maxAgeMs: 0 });
 
-        if (!result) {
-          return;
-        }
-
-        if (result.place) {
-          const label =
-            result.place.formattedAddress ||
-            [result.place.neighborhood, result.place.city]
-              .filter(Boolean)
-              .join(", ");
+        if (result.status === "success" && result.location) {
+          setLastManualLocation(result.location);
+          const label = formatLocationLabel(result.location);
 
           if (label) {
             setLastPlaceLabel(label);
@@ -99,18 +125,13 @@ export default function HomeScreen() {
               ? `Ahora te mostraremos noticias y canchas cercanas a ${label}.`
               : "Guardamos tu ubicación para personalizar el contenido."
           );
-        } else {
-          Alert.alert(
-            "Ubicación actualizada",
-            "Guardamos tu ubicación para personalizar el contenido."
-          );
+          return;
         }
-      } catch (error) {
-        const err = error as LocationUpdateError;
+
         let message =
           "Ocurrió un error al obtener tu ubicación. Inténtalo nuevamente más tarde.";
 
-        switch (err.code) {
+        switch (result.status) {
           case "services-disabled":
             message =
               "Activa los servicios de ubicación en tu dispositivo para poder mostrarte contenido cercano.";
@@ -119,25 +140,31 @@ export default function HomeScreen() {
             message =
               'Necesitamos tu permiso para acceder a la ubicación. Puedes activarlo cuando quieras desde el botón de "Actualizar ubicación".';
             break;
-          case "location-unavailable":
+          case "opted-out":
             message =
-              "No pudimos obtener tu ubicación actual. Verifica tu conexión o intenta nuevamente en unos minutos.";
+              "Activa el contenido por barrio desde la configuración para personalizar tus recomendaciones.";
+            break;
+          case "missing-user":
+            message =
+              "Inicia sesión para actualizar tu ubicación y ver contenido personalizado.";
             break;
           default:
             break;
         }
 
         Alert.alert("No pudimos actualizar tu ubicación", message);
+      } catch (error) {
+        console.warn("handleLocationUpdate failed", error);
+        Alert.alert(
+          "No pudimos actualizar tu ubicación",
+          "Ocurrió un error inesperado. Inténtalo nuevamente más tarde."
+        );
       } finally {
         setIsUpdatingLocation(false);
       }
     },
-    [isUpdatingLocation, updateFromDevice]
+    [ensureFreshLocation, isUpdatingLocation]
   );
-
-  useEffect(() => {
-    loadTopBucket();
-  }, [loadTopBucket]);
 
   useEffect(() => {
     const LOCATION_OPT_IN_KEY = "@millenium:location-opt-in";
@@ -168,7 +195,7 @@ export default function HomeScreen() {
               text: "Activar ahora",
               onPress: () => {
                 void AsyncStorage.setItem(LOCATION_OPT_IN_KEY, "accepted");
-                void handleLocationUpdate("onboarding_accept");
+                void handleLocationUpdate();
               },
             },
           ]

@@ -21,6 +21,7 @@ import {
 import { db } from "@/config/FirebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
+import stopLegacyLocationTasks from "@/src/background/legacyLocationCleanup";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -118,7 +119,7 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Aquí podrías cargar fuentes, assets, etc.
+        await stopLegacyLocationTasks();
       } catch (e) {
         console.warn("Error preparing app:", e);
       } finally {

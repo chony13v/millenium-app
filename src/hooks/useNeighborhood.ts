@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Location from "expo-location";
-import * as Random from "expo-random";
 import { useUser } from "@clerk/clerk-expo";
 
 import {
@@ -9,7 +6,6 @@ import {
   logLocationUpdate,
   logNeighborhoodInferred,
 } from "@/src/analytics";
-import { inferNeighborhoodFromCoords, toBucket } from "@/src/utils/geo";
 import {
   getUserLocation,
   upsertUserLocation,
@@ -19,8 +15,11 @@ import {
   attachPushTokenToUser,
   registerForPushNotificationsAsync,
 } from "@/src/services/push/RegisterPushToken";
-
-const ANON_STORAGE_KEY = "locationAnonId";
+import { ensureLocationUserId } from "@/src/services/location/userLocationIdentity";
+import {
+  ensureFreshLocationForUser,
+  type ForegroundLocationSnapshot,
+} from "@/src/hooks/useForegroundLocation";
 
 export interface NeighborhoodSnapshot {
   city: string | null;
@@ -50,14 +49,6 @@ const toSnapshot = (doc: LocationBucketDocument): NeighborhoodSnapshot => ({
   accuracy: doc.accuracy,
 });
 
-const generateAnonId = async (): Promise<string> => {
-  const bytes = await Random.getRandomBytesAsync(16);
-  const hex = Array.from(bytes)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-  return hex;
-};
-
 export const useNeighborhood = (): UseNeighborhoodState => {
   const { user } = useUser();
   const [data, setData] = useState<NeighborhoodSnapshot | null>(null);
@@ -65,18 +56,7 @@ export const useNeighborhood = (): UseNeighborhoodState => {
   const [loading, setLoading] = useState<boolean>(false);
 
   const ensureUserId = useCallback(async (): Promise<string> => {
-    if (user?.id) {
-      return user.id;
-    }
-
-    const cached = await AsyncStorage.getItem(ANON_STORAGE_KEY);
-    if (cached) {
-      return cached;
-    }
-
-    const anonId = await generateAnonId();
-    await AsyncStorage.setItem(ANON_STORAGE_KEY, anonId);
-    return anonId;
+    return ensureLocationUserId(user?.id ?? null);
   }, [user?.id]);
 
   useEffect(() => {
@@ -145,9 +125,12 @@ export const useNeighborhood = (): UseNeighborhoodState => {
 
       try {
         const userId = await ensureUserId();
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const result = await ensureFreshLocationForUser({
+          maxAgeMs: 0,
+          getUserId: async () => userId,
+        });
 
-        if (status !== Location.PermissionStatus.GRANTED) {
+        if (result.status === "permission-denied") {
           setLocationOptInState(false);
           await logLocationOptIn(false);
           await upsertUserLocation(userId, {
@@ -165,58 +148,44 @@ export const useNeighborhood = (): UseNeighborhoodState => {
           return null;
         }
 
-        const currentLocation = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-
-        const inference = await inferNeighborhoodFromCoords(
-          currentLocation.coords
-        );
-
-        if (inference.neighborhood) {
-          await logNeighborhoodInferred(inference.neighborhood);
+        if (result.status !== "success" || !result.location) {
+          return null;
         }
 
-        const latBucket = toBucket(currentLocation.coords.latitude);
-        const lonBucket = toBucket(currentLocation.coords.longitude);
-        const accuracy = currentLocation.coords.accuracy ?? null;
+        const locationSnapshot: ForegroundLocationSnapshot = result.location;
+
+        if (locationSnapshot.neighborhood) {
+          await logNeighborhoodInferred(locationSnapshot.neighborhood);
+        }
 
         const expoPushToken = await registerForPushNotificationsAsync();
 
-        await upsertUserLocation(userId, {
-          locationOptIn: true,
-          city: inference.city,
-          citySlug: inference.citySlug,
-          neighborhood: inference.neighborhood,
-          neighborhoodSlug: inference.neighborhoodSlug,
-          latBucket,
-          lonBucket,
-          accuracy,
-          expoPushToken: expoPushToken ?? undefined,
-        });
-
         if (expoPushToken) {
+          await upsertUserLocation(userId, {
+            locationOptIn: true,
+            expoPushToken,
+          });
           await attachPushTokenToUser(userId, expoPushToken, {
-            citySlug: inference.citySlug,
-            neighborhoodSlug: inference.neighborhoodSlug,
+            citySlug: locationSnapshot.citySlug,
+            neighborhoodSlug: locationSnapshot.neighborhoodSlug,
           });
         }
 
         const snapshot: NeighborhoodSnapshot = {
-          city: inference.city,
-          citySlug: inference.citySlug,
-          neighborhood: inference.neighborhood,
-          neighborhoodSlug: inference.neighborhoodSlug,
-          latBucket,
-          lonBucket,
-          accuracy,
+          city: locationSnapshot.city,
+          citySlug: locationSnapshot.citySlug,
+          neighborhood: locationSnapshot.neighborhood,
+          neighborhoodSlug: locationSnapshot.neighborhoodSlug,
+          latBucket: locationSnapshot.latBucket,
+          lonBucket: locationSnapshot.lonBucket,
+          accuracy: locationSnapshot.accuracy,
         };
 
         setData(snapshot);
         await logLocationUpdate(
-          inference.city,
-          inference.neighborhood,
-          accuracy
+          locationSnapshot.city,
+          locationSnapshot.neighborhood,
+          locationSnapshot.accuracy
         );
         return snapshot;
       } catch (error) {
