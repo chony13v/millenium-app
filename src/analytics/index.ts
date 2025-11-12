@@ -42,8 +42,41 @@ export const logNeighborhoodInferred = async (
   await logSafely("neighborhood_inferred", { neighborhood });
 };
 
+interface LogNewsOpenParams {
+  newsId: string;
+  priority: string;
+  scope: string;
+  citySlug: string | null;
+  neighborhoodSlug: string | null;
+}
+
+export const logNewsOpen = async ({
+  newsId,
+  priority,
+  scope,
+  citySlug,
+  neighborhoodSlug,
+}: LogNewsOpenParams): Promise<void> => {
+  const payload: Record<string, unknown> = {
+    newsId,
+    priority,
+    scope,
+  };
+
+  if (citySlug) {
+    payload.citySlug = citySlug;
+  }
+
+  if (neighborhoodSlug) {
+    payload.neighborhoodSlug = neighborhoodSlug;
+  }
+
+  await logSafely("news_open", payload);
+};
+
 export default {
   logLocationOptIn,
   logLocationUpdate,
   logNeighborhoodInferred,
+  logNewsOpen,
 };

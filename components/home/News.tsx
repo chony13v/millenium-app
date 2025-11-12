@@ -3,7 +3,7 @@ import {
   View,
   Text,
   Image,
-  FlatList,
+  SectionList,
   StyleSheet,
   ActivityIndicator,
   Linking,
@@ -13,8 +13,16 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Timestamp } from "firebase/firestore";
 
 import LoadingBall from "@/components/LoadingBall";
+import { logNewsOpen } from "@/src/analytics";
+import { getCitySlugById } from "@/constants/cities";
+import { useCitySelection } from "@/hooks/useCitySelection";
 import useForegroundLocation from "@/src/hooks/useForegroundLocation";
-import { loadNearbyNews } from "@/src/services/firestore/nearbyContent";
+import {
+  loadNearbyNews,
+  type RankedNewsRecord,
+  type NewsPriority,
+  type NewsAudienceScope,
+} from "@/src/services/firestore/nearbyContent";
 
 const SIX_HOURS_IN_MS = 6 * 60 * 60 * 1000;
 
@@ -27,6 +35,10 @@ interface NewsFirestore {
   tag?: string;
   url?: string;
   publishedAt?: unknown;
+  createdAt?: unknown;
+  audienceScope?: unknown;
+  citySlug?: string | null;
+  neighborhoodSlug?: string | null;
 }
 
 interface NewsItem {
@@ -39,6 +51,10 @@ interface NewsItem {
   url: string;
 
   publishedAtMs: number;
+  priority: NewsPriority;
+  scope: NewsAudienceScope;
+  citySlug: string | null;
+  neighborhoodSlug: string | null;
 }
 
 const toMillis = (value: unknown): number => {
@@ -74,88 +90,127 @@ const toMillis = (value: unknown): number => {
   return 0;
 };
 
-const mapNewsRecord = (record: NewsFirestore & { id: string }): NewsItem => {
-  const publishedAtMs = toMillis(record.publishedAt ?? record.date ?? null);
+const mapNewsRecord = (record: RankedNewsRecord<NewsFirestore>): NewsItem => {
+  const publishedAtMs = toMillis(
+    record.data.createdAt ?? record.data.publishedAt ?? record.data.date ?? null
+  );
   const displayDate =
-    typeof record.date === "string" && record.date.trim().length > 0
-      ? record.date
+    typeof record.data.date === "string" && record.data.date.trim().length > 0
+      ? record.data.date
       : publishedAtMs
       ? new Date(publishedAtMs).toLocaleDateString("es-ES")
       : "";
 
   return {
     id: record.id,
-    imageUrl: typeof record.imageUrl === "string" ? record.imageUrl : "",
-    title: typeof record.title === "string" ? record.title : "",
+    imageUrl:
+      typeof record.data.imageUrl === "string" ? record.data.imageUrl : "",
+    title: typeof record.data.title === "string" ? record.data.title : "",
+
     description:
-      typeof record.description === "string" ? record.description : "",
+      typeof record.data.description === "string"
+        ? record.data.description
+        : "",
+
     date: displayDate,
-    tag: typeof record.tag === "string" ? record.tag : "",
-    url: typeof record.url === "string" ? record.url : "",
+
+    tag: typeof record.data.tag === "string" ? record.data.tag : "",
+    url: typeof record.data.url === "string" ? record.data.url : "",
+
     publishedAtMs,
+    priority: record.priority,
+    scope: record.scope,
+    citySlug:
+      typeof record.data.citySlug === "string" ? record.data.citySlug : null,
+    neighborhoodSlug:
+      typeof record.data.neighborhoodSlug === "string"
+        ? record.data.neighborhoodSlug
+        : null,
   };
 };
+const NewsCard = React.memo(
+  ({
+    item,
+    onPress,
+  }: {
+    item: NewsItem;
+    onPress: (item: NewsItem) => void;
+  }) => {
+    const [imageLoading, setImageLoading] = useState(Boolean(item.imageUrl));
 
-const NewsCard = React.memo(({ item }: { item: NewsItem }) => {
-  const [imageLoading, setImageLoading] = useState(Boolean(item.imageUrl));
+    const handlePress = useCallback(() => {
+      onPress(item);
+    }, [item, onPress]);
 
-  const handlePress = useCallback(() => {
+    return (
+      <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
+        <View style={styles.card}>
+          <View style={styles.imageContainer}>
+            {imageLoading && (
+              <ActivityIndicator
+                size="small"
+                color="#F02B44"
+                style={styles.imageLoader}
+              />
+            )}
+            {!!item.imageUrl && (
+              <Image
+                source={{ uri: item.imageUrl }}
+                style={styles.image}
+                onLoadStart={() => setImageLoading(true)}
+                onLoadEnd={() => setImageLoading(false)}
+              />
+            )}
+          </View>
+          <View style={styles.contentContainer}>
+            {item.date ? <Text style={styles.date}>{item.date}</Text> : null}
+            {item.tag ? <Text style={styles.tag}>{item.tag}</Text> : null}
+            <Text style={styles.title}>{item.title || "Nueva noticia"}</Text>
+            {item.description ? (
+              <Text style={styles.description} numberOfLines={3}>
+                {item.description}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+);
+
+export default function News() {
+  const { ensureFreshLocation } = useForegroundLocation();
+  const { selectedCity, hasHydrated } = useCitySelection();
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [warningMessage, setWarningMessage] = useState<string | null>(null);
+
+  const citySlugPreferred = useMemo(
+    () => getCitySlugById(selectedCity),
+    [selectedCity]
+  );
+
+  const handleOpenNews = useCallback((item: NewsItem) => {
+    void logNewsOpen({
+      newsId: item.id,
+      priority: item.priority,
+      scope: item.scope,
+      citySlug: item.citySlug,
+      neighborhoodSlug: item.neighborhoodSlug,
+    });
+
     if (item.url) {
       Linking.openURL(item.url).catch((error) =>
         console.warn("No se pudo abrir la noticia", error)
       );
     }
-  }, [item.url]);
-
-  return (
-    <TouchableOpacity onPress={handlePress} activeOpacity={0.7}>
-      <View style={styles.card}>
-        <View style={styles.imageContainer}>
-          {imageLoading && (
-            <ActivityIndicator
-              size="small"
-              color="#F02B44"
-              style={styles.imageLoader}
-            />
-          )}
-          {!!item.imageUrl && (
-            <Image
-              source={{ uri: item.imageUrl }}
-              style={styles.image}
-              onLoadStart={() => setImageLoading(true)}
-              onLoadEnd={() => setImageLoading(false)}
-            />
-          )}
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            onLoadStart={() => setImageLoading(true)}
-            onLoadEnd={() => setImageLoading(false)}
-          />
-        </View>
-        <View style={styles.contentContainer}>
-          {item.date ? <Text style={styles.date}>{item.date}</Text> : null}
-          {item.tag ? <Text style={styles.tag}>{item.tag}</Text> : null}
-          <Text style={styles.title}>{item.title || "Nueva noticia"}</Text>
-          {item.description ? (
-            <Text style={styles.description} numberOfLines={3}>
-              {item.description}
-            </Text>
-          ) : null}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-});
-
-export default function News() {
-  const { ensureFreshLocation } = useForegroundLocation();
-  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [warningMessage, setWarningMessage] = useState<string | null>(null);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
+      if (!hasHydrated) {
+        return;
+      }
       let isActive = true;
 
       const refreshNews = async () => {
@@ -173,10 +228,9 @@ export default function News() {
 
           if (result.status === "success" && result.location) {
             const records = await loadNearbyNews<NewsFirestore>({
-              citySlug: result.location.citySlug,
-              neighborhoodSlug: result.location.neighborhoodSlug,
-              latBucket: result.location.latBucket,
-              lonBucket: result.location.lonBucket,
+              citySlugCurrent: result.location.citySlug,
+              neighborhoodSlugCurrent: result.location.neighborhoodSlug,
+              citySlugPreferred,
             });
 
             if (!isActive) {
@@ -184,12 +238,13 @@ export default function News() {
             }
 
             const items = records
-              .map((record) => mapNewsRecord({ id: record.id, ...record.data }))
+
+              .map((record) => mapNewsRecord(record))
+
               .filter((item) =>
                 [item.title, item.description, item.imageUrl].some(Boolean)
               );
 
-            items.sort((a, b) => b.publishedAtMs - a.publishedAtMs);
             setNewsItems(items);
           } else {
             setNewsItems([]);
@@ -232,7 +287,7 @@ export default function News() {
       return () => {
         isActive = false;
       };
-    }, [ensureFreshLocation])
+    }, [citySlugPreferred, ensureFreshLocation, hasHydrated])
   );
 
   const banner = useMemo(() => {
@@ -268,19 +323,44 @@ export default function News() {
     );
   }
 
+  const sections = useMemo(() => {
+    const nearYou = newsItems.filter(
+      (item) => item.priority !== "preferredCity"
+    );
+    const preferredCityItems = newsItems.filter(
+      (item) => item.priority === "preferredCity"
+    );
+
+    const sectionList: Array<{ title: string; data: NewsItem[] }> = [];
+
+    if (nearYou.length > 0) {
+      sectionList.push({ title: "CERCA DE TI", data: nearYou });
+    }
+
+    if (preferredCityItems.length > 0) {
+      sectionList.push({ title: "TU CIUDAD BASE", data: preferredCityItems });
+    }
+
+    return sectionList;
+  }, [newsItems]);
+
   return (
     <View style={styles.mainContainer}>
       <Text style={styles.headerTitle}>NOTICIAS</Text>
       {banner}
-      <FlatList
-        data={newsItems}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         renderItem={({ item }) => (
-          <>
-            <NewsCard item={item} />
-            <View style={styles.separator} />
-          </>
+          <NewsCard item={item} onPress={handleOpenNews} />
+        )}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        SectionSeparatorComponent={() => (
+          <View style={styles.sectionSeparator} />
+        )}
+        renderSectionHeader={({ section }) => (
+          <Text style={styles.sectionHeader}>{section.title}</Text>
         )}
       />
     </View>
@@ -360,6 +440,9 @@ const styles = StyleSheet.create({
   separator: {
     height: 16,
   },
+  sectionSeparator: {
+    height: 24,
+  },
   emptyStateContainer: {
     marginHorizontal: 20,
     paddingVertical: 32,
@@ -391,5 +474,12 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-regular",
     fontSize: 12,
     color: "#B3261E",
+  },
+  sectionHeader: {
+    fontFamily: "barlow-medium",
+    fontSize: 14,
+    color: "#0F172A",
+    marginHorizontal: 20,
+    marginBottom: 12,
   },
 });

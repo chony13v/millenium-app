@@ -1,3 +1,4 @@
+import { slugify } from "@/src/utils/geo";
 export const CITY_OPTIONS = [
   {
     id: "bgr",
@@ -40,3 +41,22 @@ export const CITY_INFO_BY_ID: Record<CityId, CityOption> = CITY_OPTIONS.reduce(
   },
   {} as Record<CityId, CityOption>
 );
+
+export const CITY_SLUG_BY_ID: Record<CityId, string> = CITY_OPTIONS.reduce(
+  (accumulator, option) => {
+    const inferredSlug = slugify(option.title) ?? option.id;
+    accumulator[option.id] = inferredSlug;
+    return accumulator;
+  },
+  {} as Record<CityId, string>
+);
+
+export const getCitySlugById = (
+  cityId: CityId | null | undefined
+): string | null => {
+  if (!cityId) {
+    return null;
+  }
+
+  return CITY_SLUG_BY_ID[cityId] ?? null;
+};
