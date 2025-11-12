@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  Switch,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -17,11 +18,19 @@ import GetHelpModal from "@/components/modals/GetHelpModal";
 import AboutModal from "@/components/modals/AboutModal";
 import { Colors } from "@/constants/Colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import useNeighborhood from "@/src/hooks/useNeighborhood";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
   const { user } = useUser();
-  const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets(); 
+  const {
+    data: neighborhood,
+    locationOptIn,
+    setLocationOptIn,
+    refresh,
+    loading: neighborhoodLoading,
+  } = useNeighborhood();
 
   const [isChangePasswordVisible, setIsChangePasswordVisible] = useState(false);
   const [isHelpSupportVisible, setIsHelpSupportVisible] = useState(false);
@@ -73,6 +82,34 @@ export default function SettingsScreen() {
     setIsAboutVisible(true);
   };
 
+  const handleToggleNeighborhood = async (value: boolean) => {
+    await setLocationOptIn(value);
+  };
+
+  const handleRefreshNeighborhood = async () => {
+    const updated = await refresh();
+    if (updated) {
+      Alert.alert(
+        "Ubicación actualizada",
+        updated.neighborhood
+          ? `Mostraremos contenido de ${updated.neighborhood}${
+              updated.city ? ` (${updated.city})` : ""
+            }.`
+          : updated.city
+              ? `Mostraremos contenido de ${updated.city}.`
+              : "No pudimos inferir tu barrio con precisión.",
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Sin cambios",
+      "Activa el contenido por barrio y otorga permisos de ubicación para actualizar.",
+    );
+  };
+
+
+
   return (
     <View style={styles.container}>
       {/* Header con alineación al safe area (igual que el Drawer) */}
@@ -94,6 +131,44 @@ export default function SettingsScreen() {
         bounces
         overScrollMode="always"
       >
+      <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <MaterialIcons name="place" size={24} color={Colors.NAVY_BLUE} />
+            <Text style={styles.sectionTitle}>Ubicación</Text>
+          </View>
+
+          <View style={styles.settingItem}>
+            <View style={styles.settingItemContent}>
+              <Text style={styles.settingItemText}>Contenido por barrio</Text>
+            </View>
+            <Switch value={locationOptIn} onValueChange={handleToggleNeighborhood} />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.settingItem, styles.settingItemButton]}
+            onPress={handleRefreshNeighborhood}
+            disabled={!locationOptIn || neighborhoodLoading}
+          >
+            <View style={styles.settingItemContent}>
+              <MaterialIcons name="my-location" size={20} color={Colors.NAVY_BLUE} />
+              <Text style={styles.settingItemText}>
+                {neighborhoodLoading ? "Actualizando..." : "Actualizar ubicación"}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.NAVY_BLUE} />
+          </TouchableOpacity>
+
+          <Text style={styles.locationLabel}>
+            {locationOptIn
+              ? neighborhood?.neighborhood || neighborhood?.city
+                ? `Barrio actual: ${
+                    neighborhood?.neighborhood ?? "Sin barrio"
+                  }${neighborhood?.city ? ` · ${neighborhood.city}` : ""}`
+                : "Aún no tenemos tu barrio."
+              : "Activa el contenido por barrio para personalizar las alertas."}
+          </Text>
+        </View>
+
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <FontAwesome name="user-circle" size={24} color={Colors.NAVY_BLUE} />
@@ -247,6 +322,12 @@ const styles = StyleSheet.create({
     color: "#333333",
     fontFamily: "barlow-regular",
     marginLeft: 12,
+  },
+    locationLabel: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#333333",
+    fontFamily: "barlow-regular",
   },
   helpSection: {
     backgroundColor: "#FFFFFF",

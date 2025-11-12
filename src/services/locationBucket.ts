@@ -14,7 +14,6 @@ import {
 import { logEvent, setUserProperties } from "firebase/analytics";
 import * as Analytics from "expo-firebase-analytics";
 
-
 import { analytics, db } from "@/config/FirebaseConfig";
 
 const DEFAULT_STEP = 0.01;
@@ -59,7 +58,7 @@ export const grid = (value: number, step: number = DEFAULT_STEP): number => {
 export const makeBucketId = (
   latitude: number,
   longitude: number,
-  step: number = DEFAULT_STEP,
+  step: number = DEFAULT_STEP
 ): string => {
   const precision = getPrecision(step);
   const latCenter = grid(latitude, step).toFixed(precision);
@@ -74,6 +73,158 @@ export interface UserLocationBucket {
   visits: number;
 }
 
+export interface ResolvedGeocodePlace {
+  neighborhood?: string | null;
+  city?: string | null;
+  region?: string | null;
+  country?: string | null;
+  isoCountryCode?: string | null;
+  formattedAddress?: string | null;
+}
+
+export interface PersistedLocationResult {
+  bucket: UserLocationBucket;
+  place: ResolvedGeocodePlace | null;
+}
+
+interface PersistBucketBasePayload {
+  uid: string;
+  coords: Location.LocationObjectCoords;
+  step: number;
+  extraData?: Record<string, unknown>;
+}
+
+const logLocationEvent = async (
+  eventName: string,
+  bucketId: string,
+  step: number,
+  params: Record<string, unknown> = {}
+) => {
+  try {
+    await Analytics.logEvent(eventName, {
+      bucket_id: bucketId,
+      grid_size_deg: step.toFixed(2),
+      ...params,
+    });
+  } catch (err) {
+    console.warn("expo-firebase-analytics tracking failed:", err);
+  }
+
+  if (!analytics) {
+    return;
+  }
+
+  try {
+    logEvent(analytics, eventName, {
+      bucket_id: bucketId,
+      grid_size_deg: step.toFixed(2),
+      ...params,
+    });
+  } catch (analyticsError) {
+    console.warn("Analytics tracking failed", analyticsError);
+  }
+};
+
+const persistBucketBase = async ({
+  uid,
+  coords,
+  step,
+  extraData = {},
+}: PersistBucketBasePayload) => {
+  const latCenter = grid(coords.latitude, step);
+  const lngCenter = grid(coords.longitude, step);
+  const bucketId = makeBucketId(coords.latitude, coords.longitude, step);
+
+  const bucketRef = doc(db, "users", uid, "locationBuckets", bucketId);
+  await setDoc(
+    bucketRef,
+    {
+      bucketId,
+      latCenter,
+      lngCenter,
+      count: increment(1),
+      updatedAt: serverTimestamp(),
+      ...extraData,
+    },
+    { merge: true }
+  );
+
+  return { bucketId, latCenter, lngCenter };
+};
+
+const normalizePlace = (
+  place: ResolvedGeocodePlace | null | undefined
+): ResolvedGeocodePlace | null => {
+  if (!place) {
+    return null;
+  }
+
+  return {
+    neighborhood: place.neighborhood ?? null,
+    city: place.city ?? null,
+    region: place.region ?? null,
+    country: place.country ?? null,
+    isoCountryCode: place.isoCountryCode ?? null,
+    formattedAddress: place.formattedAddress ?? null,
+  };
+};
+
+export const persistUserLocationBucket = async ({
+  uid,
+  coords,
+  step = DEFAULT_STEP,
+  place,
+  source = "manual_update",
+}: {
+  uid: string | null | undefined;
+  coords: Location.LocationObjectCoords;
+  step?: number;
+  place?: ResolvedGeocodePlace | null;
+  source?: string;
+}): Promise<PersistedLocationResult | null> => {
+  if (!uid) {
+    return null;
+  }
+
+  const normalizedPlace = normalizePlace(place);
+
+  const extraData: Record<string, unknown> = {
+    source,
+  };
+
+  if (normalizedPlace) {
+    extraData.lastResolvedNeighborhood = normalizedPlace.neighborhood ?? null;
+    extraData.lastResolvedCity = normalizedPlace.city ?? null;
+    extraData.lastResolvedRegion = normalizedPlace.region ?? null;
+    extraData.lastResolvedCountry = normalizedPlace.country ?? null;
+    extraData.lastResolvedIsoCountry = normalizedPlace.isoCountryCode ?? null;
+    extraData.lastResolvedFormatted = normalizedPlace.formattedAddress ?? null;
+  }
+
+  const { bucketId, latCenter, lngCenter } = await persistBucketBase({
+    uid,
+    coords,
+    step,
+    extraData,
+  });
+
+  await logLocationEvent("location_bucket_manual_update", bucketId, step, {
+    source,
+  });
+
+  const bucket = (await getUserTopBucket(uid, step)) ?? {
+    bucketId,
+    latCenter,
+    lngCenter,
+    visits: 1,
+  };
+
+  return {
+    bucket,
+    place: normalizedPlace,
+  };
+};
+
 /**
  * Registra la apertura de la pestaña Field incrementando el contador del bucket
  * geográfico aproximado (~1 km). No interrumpe el flujo si falla la ubicación
@@ -81,14 +232,20 @@ export interface UserLocationBucket {
  */
 export const trackLocationBucketOnFieldOpen = async (
   uid: string | null | undefined,
-  step: number = DEFAULT_STEP,
+  step: number = DEFAULT_STEP
 ): Promise<UserLocationBucket | null> => {
   if (!uid) {
     return null;
   }
 
   try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    let permission = await Location.getForegroundPermissionsAsync();
+    let status = permission.status;
+
+    if (status !== "granted") {
+      permission = await Location.requestForegroundPermissionsAsync();
+      status = permission.status;
+    }
     if (status !== "granted") {
       return null;
     }
@@ -97,32 +254,16 @@ export const trackLocationBucketOnFieldOpen = async (
       accuracy: Location.Accuracy.Balanced,
     });
 
-    const latCenter = grid(location.coords.latitude, step);
-    const lngCenter = grid(location.coords.longitude, step);
-    const bucketId = makeBucketId(location.coords.latitude, location.coords.longitude, step);
+    const { bucketId, latCenter, lngCenter } = await persistBucketBase({
+      uid,
+      coords: location.coords,
+      step,
+      extraData: { source: "field_open" },
+    });
 
-    const bucketRef = doc(db, "users", uid, "locationBuckets", bucketId);
-    await setDoc(
-      bucketRef,
-      {
-        bucketId,
-        latCenter,
-        lngCenter,
-        count: increment(1),
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true },
-    );
-
-    // ✅ Tracking con expo-firebase-analytics (funciona en Expo Go)
-try {
-  await Analytics.logEvent("field_tab_opened", {
-    bucket_id: bucketId,
-    grid_size_deg: step.toFixed(2),
-  });
-} catch (err) {
-  console.warn("expo-firebase-analytics tracking failed:", err);
-}
+    await logLocationEvent("field_tab_opened", bucketId, step, {
+      source: "field_open",
+    });
 
     let topBucket: UserLocationBucket | null = null;
     let secondCount = 0;
@@ -132,8 +273,8 @@ try {
         query(
           collection(db, "users", uid, "locationBuckets"),
           orderBy("count", "desc"),
-          limit(2),
-        ),
+          limit(2)
+        )
       );
 
       if (!bucketsSnapshot.empty) {
@@ -152,23 +293,21 @@ try {
       }
 
       if (analytics && topBucket) {
-        try {
-          logEvent(analytics, "field_tab_opened", {
-            bucket_id: bucketId,
-            grid_size_deg: step.toFixed(2),
-          });
-
-          if (topBucket.visits >= 10 && topBucket.visits >= secondCount * 2) {
+        if (topBucket.visits >= 10 && topBucket.visits >= secondCount * 2) {
+          try {
             setUserProperties(analytics, {
               home_bucket: topBucket.bucketId,
             });
+          } catch (analyticsError) {
+            console.warn("Analytics tracking failed", analyticsError);
           }
-        } catch (analyticsError) {
-          console.warn("Analytics tracking failed", analyticsError);
         }
       }
     } catch (queryError) {
-      console.warn("Failed to load location buckets after tracking", queryError);
+      console.warn(
+        "Failed to load location buckets after tracking",
+        queryError
+      );
     }
 
     return topBucket;
@@ -184,7 +323,7 @@ try {
  */
 export const getUserTopBucket = async (
   uid: string | null | undefined,
-  step: number = DEFAULT_STEP,
+  step: number = DEFAULT_STEP
 ): Promise<UserLocationBucket | null> => {
   if (!uid) {
     return null;
@@ -193,7 +332,7 @@ export const getUserTopBucket = async (
   try {
     const bucketsRef = collection(db, "users", uid, "locationBuckets");
     const bucketsSnapshot = await getDocs(
-      query(bucketsRef, orderBy("count", "desc"), limit(1)),
+      query(bucketsRef, orderBy("count", "desc"), limit(1))
     );
 
     if (bucketsSnapshot.empty) {
