@@ -3,7 +3,7 @@ import { useUser } from "@clerk/clerk-expo";
 import * as Location from "expo-location";
 import { Timestamp } from "firebase/firestore";
 
-import { logLocationUpdate } from "@/src/analytics";
+import { logLocationDenied, logLocationUpdate } from "@/src/analytics";
 import {
   getUserLocation,
   upsertUserLocation,
@@ -98,6 +98,7 @@ export const ensureFreshLocationForUser = async ({
     permissionStatus = permission.status;
 
     if (!servicesEnabled) {
+      await logLocationDenied();
       return {
         status: "services-disabled",
         permissionStatus,
@@ -115,6 +116,7 @@ export const ensureFreshLocationForUser = async ({
     }
 
     if (permissionStatus !== Location.PermissionStatus.GRANTED) {
+      await logLocationDenied();
       return {
         status: "permission-denied",
         permissionStatus,
@@ -185,7 +187,11 @@ export const ensureFreshLocationForUser = async ({
         accuracy,
       });
 
-      await logLocationUpdate(inference.city, inference.neighborhood, accuracy);
+      await logLocationUpdate({
+        city: inference.city,
+        neighborhood: inference.neighborhood,
+        accuracy,
+      });
     }
 
     const snapshot: ForegroundLocationSnapshot = {
@@ -211,6 +217,7 @@ export const ensureFreshLocationForUser = async ({
   } catch (rawError) {
     const error =
       rawError instanceof Error ? rawError : new Error(String(rawError));
+    await logLocationDenied();
     return {
       status: "error",
       permissionStatus,

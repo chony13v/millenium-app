@@ -1,8 +1,43 @@
 import * as Analytics from "expo-firebase-analytics";
 
+type AnalyticsParams = Record<string, string | number>;
+
+const sanitizeParams = (
+  params?: Record<string, unknown>
+): AnalyticsParams | undefined => {
+  if (!params) {
+    return undefined;
+  }
+
+  const sanitizedEntries = Object.entries(params).reduce<
+    Array<[string, string | number]>
+  >((entries, [key, value]) => {
+    if (value === undefined || value === null) {
+      return entries;
+    }
+
+    if (typeof value === "number") {
+      if (Number.isFinite(value)) {
+        entries.push([key, value]);
+      }
+      return entries;
+    }
+
+    entries.push([key, String(value)]);
+    return entries;
+  }, []);
+
+  if (sanitizedEntries.length === 0) {
+    return undefined;
+  }
+
+  return Object.fromEntries(sanitizedEntries);
+};
+
 const logSafely = async (eventName: string, params?: Record<string, unknown>) => {
   try {
-    await Analytics.logEvent(eventName, params ?? {});
+    const sanitized = sanitizeParams(params);
+    await Analytics.logEvent(eventName, sanitized);
   } catch (error) {
     console.warn(`Failed to log analytics event ${eventName}`, error);
   }

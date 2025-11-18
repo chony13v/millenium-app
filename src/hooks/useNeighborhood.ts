@@ -182,11 +182,12 @@ export const useNeighborhood = (): UseNeighborhoodState => {
         };
 
         setData(snapshot);
-        await logLocationUpdate(
-          locationSnapshot.city,
-          locationSnapshot.neighborhood,
-          locationSnapshot.accuracy
-        );
+
+        await logLocationUpdate({
+          city: locationSnapshot.city,
+          neighborhood: locationSnapshot.neighborhood,
+          accuracy: locationSnapshot.accuracy,
+        });
         return snapshot;
       } catch (error) {
         console.warn("Failed to refresh neighborhood", error);

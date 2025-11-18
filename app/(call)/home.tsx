@@ -39,9 +39,7 @@ const formatLocationLabel = (
   }
 
   const pieces = [location.neighborhood, location.city]
-    .filter((value): value is string =>
-      Boolean(value && value.trim().length > 0)
-    )
+    .filter((value): value is string => Boolean(value && value.trim().length > 0))
     .map((value) => value.trim());
 
   if (pieces.length > 0) {
@@ -109,62 +107,61 @@ export default function HomeScreen() {
 
       setIsUpdatingLocation(true);
       try {
-        const result = await ensureFreshLocation({ maxAgeMs: 0 });
+      const result = await ensureFreshLocation({ maxAgeMs: 0 });
 
-        if (result.status === "success" && result.location) {
-          setLastManualLocation(result.location);
-          const label = formatLocationLabel(result.location);
 
-          if (label) {
-            setLastPlaceLabel(label);
-          }
+      if (result.status === "success" && result.location) {
+        setLastManualLocation(result.location);
+        const label = formatLocationLabel(result.location);
 
-          Alert.alert(
-            "Ubicación actualizada",
-            label
-              ? `Ahora te mostraremos noticias y canchas cercanas a ${label}.`
-              : "Guardamos tu ubicación para personalizar el contenido."
-          );
-          return;
+        if (label) {
+          setLastPlaceLabel(label);
         }
 
-        let message =
-          "Ocurrió un error al obtener tu ubicación. Inténtalo nuevamente más tarde.";
-
-        switch (result.status) {
-          case "services-disabled":
-            message =
-              "Activa los servicios de ubicación en tu dispositivo para poder mostrarte contenido cercano.";
-            break;
-          case "permission-denied":
-            message =
-              'Necesitamos tu permiso para acceder a la ubicación. Puedes activarlo cuando quieras desde el botón de "Actualizar ubicación".';
-            break;
-          case "opted-out":
-            message =
-              "Activa el contenido por barrio desde la configuración para personalizar tus recomendaciones.";
-            break;
-          case "missing-user":
-            message =
-              "Inicia sesión para actualizar tu ubicación y ver contenido personalizado.";
-            break;
-          default:
-            break;
-        }
-
-        Alert.alert("No pudimos actualizar tu ubicación", message);
-      } catch (error) {
-        console.warn("handleLocationUpdate failed", error);
         Alert.alert(
-          "No pudimos actualizar tu ubicación",
-          "Ocurrió un error inesperado. Inténtalo nuevamente más tarde."
+          "Ubicación actualizada",
+          label
+            ? `Ahora te mostraremos noticias y canchas cercanas a ${label}.`
+            : "Guardamos tu ubicación para personalizar el contenido."
         );
-      } finally {
-        setIsUpdatingLocation(false);
+        return;
       }
-    },
-    [ensureFreshLocation, isUpdatingLocation]
-  );
+
+      let message =
+        "Ocurrió un error al obtener tu ubicación. Inténtalo nuevamente más tarde.";
+
+      switch (result.status) {
+        case "services-disabled":
+          message =
+            "Activa los servicios de ubicación en tu dispositivo para poder mostrarte contenido cercano.";
+          break;
+        case "permission-denied":
+          message =
+            'Necesitamos tu permiso para acceder a la ubicación. Puedes activarlo cuando quieras desde el botón de "Actualizar ubicación".';
+          break;
+        case "opted-out":
+          message =
+            "Activa el contenido por barrio desde la configuración para personalizar tus recomendaciones.";
+          break;
+        case "missing-user":
+          message =
+            "Inicia sesión para actualizar tu ubicación y ver contenido personalizado.";
+          break;
+        default:
+          break;
+      }
+ 
+      Alert.alert("No pudimos actualizar tu ubicación", message);
+    } catch (error) {
+      console.warn("handleLocationUpdate failed", error);
+      Alert.alert(
+        "No pudimos actualizar tu ubicación",
+        "Ocurrió un error inesperado. Inténtalo nuevamente más tarde."
+      );
+    } finally {
+      setIsUpdatingLocation(false);
+    }
+  }, [ensureFreshLocation, isUpdatingLocation]);
 
   useEffect(() => {
     const LOCATION_OPT_IN_KEY = "@millenium:location-opt-in";
