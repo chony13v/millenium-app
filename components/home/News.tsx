@@ -181,7 +181,9 @@ const NewsCard = React.memo(
 export default function News() {
   const { ensureFreshLocation } = useForegroundLocation();
   const { selectedCity, hasHydrated } = useCitySelection();
-  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+
+  const [nearbyItems, setNearbyItems] = useState<NewsItem[]>([]);
+  const [preferredItems, setPreferredItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
@@ -189,7 +191,7 @@ export default function News() {
     () => getCitySlugById(selectedCity),
     [selectedCity]
   );
-  
+  const cityIdPreferred = useMemo(() => selectedCity ?? null, [selectedCity]);
 
   const mapRecordsToNewsItems = useCallback(
     (records: Array<RankedNewsRecord<NewsFirestore>>) =>
@@ -217,6 +219,24 @@ export default function News() {
     }
   }, []);
 
+  const loadPreferredNews = useCallback(async (): Promise<NewsItem[]> => {
+    if (!citySlugPreferred && !cityIdPreferred) {
+      return [];
+    }
+
+    try {
+      const preferredRecords = await loadNearbyNews<NewsFirestore>({
+        citySlugPreferred,
+        cityIdPreferred,
+      });
+
+      return mapRecordsToNewsItems(preferredRecords);
+    } catch (error) {
+      console.error("Error fetching preferred city news:", error);
+      return [];
+    }
+  }, [cityIdPreferred, citySlugPreferred, mapRecordsToNewsItems]);
+
   useFocusEffect(
     useCallback(() => {
       if (!hasHydrated) {
@@ -240,39 +260,31 @@ export default function News() {
           if (result.status === "success" && result.location) {
             const records = await loadNearbyNews<NewsFirestore>({
               citySlugCurrent: result.location.citySlug,
+              cityIdCurrent: getCityIdBySlug(result.location.citySlug),
               neighborhoodSlugCurrent: result.location.neighborhoodSlug,
-              citySlugPreferred,
             });
 
             if (!isActive) {
               return;
             }
 
-            const items = mapRecordsToNewsItems(records);
-            setNewsItems(items);
-          } else {
-            let handledByPreferredCity = false;
+            const nearby = mapRecordsToNewsItems(records);
+            setNearbyItems(nearby);
 
-            if (citySlugPreferred) {
-              const preferredRecords = await loadNearbyNews<NewsFirestore>({
-                citySlugPreferred,
-              });
-
-              if (!isActive) {
-                return;
-              }
-
-              const preferredItems = mapRecordsToNewsItems(preferredRecords);
-              if (preferredItems.length > 0) {
-                handledByPreferredCity = true;
-                setNewsItems(preferredItems);
-                setWarningMessage(null);
-              }
+            const preferred = await loadPreferredNews();
+            if (!isActive) {
+              return;
             }
+            setPreferredItems(preferred);
+          } else {
+            setNearbyItems([]);
+            const preferred = await loadPreferredNews();
+            if (!isActive) {
+              return;
+            }
+            setPreferredItems(preferred);
 
-            if (!handledByPreferredCity) {
-              setNewsItems([]);
-
+            if (preferred.length === 0) {
               if (result.status === "permission-denied") {
                 setWarningMessage(
                   "Activa los permisos de ubicación desde la configuración para ver noticias cercanas."
@@ -291,14 +303,23 @@ export default function News() {
                 );
               }
             }
+
+            return;
           }
         } catch (error) {
           console.error("Error fetching nearby news:", error);
           if (isActive) {
-            setNewsItems([]);
-            setWarningMessage(
-              "No pudimos cargar noticias cercanas. Inténtalo nuevamente más tarde."
-            );
+            setNearbyItems([]);
+            const preferred = await loadPreferredNews();
+            if (!isActive) {
+              return;
+            }
+            setPreferredItems(preferred);
+            if (preferred.length === 0) {
+              setWarningMessage(
+                "No pudimos cargar noticias cercanas. Inténtalo nuevamente más tarde."
+              );
+            }
           }
         } finally {
           if (isActive) {
@@ -313,11 +334,10 @@ export default function News() {
         isActive = false;
       };
     }, [
-      citySlugPreferred,
       ensureFreshLocation,
       hasHydrated,
+      loadPreferredNews,
       mapRecordsToNewsItems,
-      selectedCity,
     ])
   );
 
@@ -333,11 +353,33 @@ export default function News() {
     );
   }, [warningMessage]);
 
+  const dedupedPreferredItems = useMemo(() => {
+    const nearbyIds = new Set(nearbyItems.map((item) => item.id));
+    return preferredItems.filter((item) => !nearbyIds.has(item.id));
+  }, [nearbyItems, preferredItems]);
+
+  const sections = useMemo(() => {
+    const sectionList: Array<{ title: string; data: NewsItem[] }> = [];
+
+    if (nearbyItems.length > 0) {
+      sectionList.push({ title: "CERCA DE TI", data: nearbyItems });
+    }
+
+    if (dedupedPreferredItems.length > 0) {
+      sectionList.push({
+        title: "TU CIUDAD BASE",
+        data: dedupedPreferredItems,
+      });
+    }
+
+    return sectionList;
+  }, [dedupedPreferredItems, nearbyItems]);
+
   if (loading) {
     return <LoadingBall text="Cargando noticias cercanas..." />;
   }
 
-  if (newsItems.length === 0) {
+  if (sections.length === 0) {
     return (
       <View style={styles.mainContainer}>
         <Text style={styles.headerTitle}>NOTICIAS</Text>
@@ -353,27 +395,6 @@ export default function News() {
       </View>
     );
   }
-
-  const sections = useMemo(() => {
-    const nearYou = newsItems.filter(
-      (item) => item.priority !== "preferredCity"
-    );
-    const preferredCityItems = newsItems.filter(
-      (item) => item.priority === "preferredCity"
-    );
-
-    const sectionList: Array<{ title: string; data: NewsItem[] }> = [];
-
-    if (nearYou.length > 0) {
-      sectionList.push({ title: "CERCA DE TI", data: nearYou });
-    }
-
-    if (preferredCityItems.length > 0) {
-      sectionList.push({ title: "TU CIUDAD BASE", data: preferredCityItems });
-    }
-
-    return sectionList;
-  }, [newsItems]);
 
   return (
     <View style={styles.mainContainer}>

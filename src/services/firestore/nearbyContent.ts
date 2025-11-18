@@ -1,3 +1,4 @@
+import { FirebaseError } from "firebase/app";
 import {
   Timestamp,
   collection,
@@ -20,6 +21,16 @@ const NEWS_COLLECTION = "News";
 const FIELD_COLLECTION = "Field";
 const DEFAULT_NEWS_LIMIT = 20;
 const DEFAULT_FIELD_LIMIT = 20;
+const CITY_INDEX_FALLBACK_LIMIT = 50;
+
+const isMissingIndexError = (error: unknown): error is FirebaseError => {
+  return (
+    error instanceof FirebaseError &&
+    error.code === "failed-precondition" &&
+    typeof error.message === "string" &&
+    error.message.includes("index")
+  );
+};
 
 const mapSnapshot = <T extends Record<string, unknown>>(
   snapshot: T,
@@ -29,20 +40,29 @@ const mapSnapshot = <T extends Record<string, unknown>>(
   data: snapshot,
 });
 
+interface FetchDocumentsOptions {
+  suppressErrors?: boolean;
+}
+
 const fetchDocuments = async <T extends Record<string, unknown>>(
   collectionName: string,
-  constraints: QueryConstraint[]
+  constraints: QueryConstraint[],
+  { suppressErrors = true }: FetchDocumentsOptions = {}
 ): Promise<Array<FirestoreRecord<T>>> => {
   try {
     const baseQuery = query(collection(db, collectionName), ...constraints);
     const snap = await getDocs(baseQuery);
     return snap.docs.map((doc) => mapSnapshot(doc.data() as T, doc.id));
   } catch (error) {
-    console.warn(
-      `Failed to fetch documents from ${collectionName} with constraints`,
-      error
-    );
-    return [];
+    if (suppressErrors) {
+      console.warn(
+        `Failed to fetch documents from ${collectionName} with constraints`,
+        error
+      );
+      return [];
+    }
+
+    throw error;
   }
 };
 
@@ -167,6 +187,8 @@ interface FetchCityScopedNewsParams {
   maxResults: number;
 }
 
+const loggedMissingIndexKeys = new Set<string>();
+
 const fetchCityScopedNews = async <T extends Record<string, unknown>>({
   citySlug,
   cityId,
@@ -187,6 +209,25 @@ const fetchCityScopedNews = async <T extends Record<string, unknown>>({
     limit(maxResults),
   ];
 
+  const buildFallbackConstraints = (
+    field: string,
+    value: string
+  ): QueryConstraint[] => {
+    const fallbackLimit = Math.min(
+      Math.max(maxResults, 1) * 3,
+      CITY_INDEX_FALLBACK_LIMIT
+    );
+
+    return [
+      where(field, "==", value),
+      where(AUDIENCE_SCOPE_FIELD, "==", scope),
+      ...(scope === "neighborhood"
+        ? [where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug as string)]
+        : []),
+      limit(fallbackLimit),
+    ];
+  };
+
   for (const candidate of buildCityFieldCandidates(citySlug, cityId)) {
     const constraints: QueryConstraint[] = [
       where(candidate.field, "==", candidate.value),
@@ -194,15 +235,34 @@ const fetchCityScopedNews = async <T extends Record<string, unknown>>({
     ];
 
     try {
-      const docs = await fetchDocuments<T>(NEWS_COLLECTION, constraints);
+      const docs = await fetchDocuments<T>(NEWS_COLLECTION, constraints, {
+        suppressErrors: false,
+      });
       if (docs.length > 0) {
         return docs;
       }
     } catch (error) {
-      console.warn(
-        `loadNearbyNews: consulta fallida (${candidate.field}=${candidate.value})`,
-        error
-      );
+      if (isMissingIndexError(error)) {
+        const warningKey = `${candidate.field}:${candidate.value}`;
+        if (!loggedMissingIndexKeys.has(warningKey)) {
+          loggedMissingIndexKeys.add(warningKey);
+          console.warn(
+            `loadNearbyNews: falta índice para (${candidate.field}=${candidate.value}), usando fallback sin ordenar`
+          );
+        }
+        const fallbackDocs = await fetchDocuments<T>(
+          NEWS_COLLECTION,
+          buildFallbackConstraints(candidate.field, candidate.value)
+        );
+        if (fallbackDocs.length > 0) {
+          return fallbackDocs;
+        }
+      } else {
+        console.warn(
+          `loadNearbyNews: consulta fallida (${candidate.field}=${candidate.value})`,
+          error
+        );
+      }
     }
   }
 
