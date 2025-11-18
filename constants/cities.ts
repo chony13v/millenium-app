@@ -50,6 +50,17 @@ export const CITY_SLUG_BY_ID: Record<CityId, string> = CITY_OPTIONS.reduce(
   },
   {} as Record<CityId, string>
 );
+export const CITY_ID_BY_SLUG: Record<string, CityId> = CITY_OPTIONS.reduce(
+  (accumulator, option) => {
+    const normalizedSlug = slugify(option.title);
+    if (normalizedSlug) {
+      accumulator[normalizedSlug] = option.id;
+    }
+    accumulator[option.id] = option.id;
+    return accumulator;
+  },
+  {} as Record<string, CityId>
+);
 
 export const getCitySlugById = (
   cityId: CityId | null | undefined
@@ -59,4 +70,19 @@ export const getCitySlugById = (
   }
 
   return CITY_SLUG_BY_ID[cityId] ?? null;
+};
+
+export const getCityIdBySlug = (
+  slug: string | null | undefined
+): CityId | null => {
+  if (!slug) {
+    return null;
+  }
+
+  const normalized = slugify(slug);
+  if (!normalized) {
+    return null;
+  }
+
+  return CITY_ID_BY_SLUG[normalized] ?? null;
 };

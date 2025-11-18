@@ -33,14 +33,24 @@ const fetchDocuments = async <T extends Record<string, unknown>>(
   collectionName: string,
   constraints: QueryConstraint[]
 ): Promise<Array<FirestoreRecord<T>>> => {
-  const baseQuery = query(collection(db, collectionName), ...constraints);
-  const snap = await getDocs(baseQuery);
-  return snap.docs.map((doc) => mapSnapshot(doc.data() as T, doc.id));
+  try {
+    const baseQuery = query(collection(db, collectionName), ...constraints);
+    const snap = await getDocs(baseQuery);
+    return snap.docs.map((doc) => mapSnapshot(doc.data() as T, doc.id));
+  } catch (error) {
+    console.warn(
+      `Failed to fetch documents from ${collectionName} with constraints`,
+      error
+    );
+    return [];
+  }
 };
 
 export interface LoadNearbyNewsParams {
   citySlugCurrent?: string | null;
+  cityIdCurrent?: string | null;
   neighborhoodSlugCurrent?: string | null;
+  cityIdPreferred?: string | null;
   citySlugPreferred?: string | null;
   maxResults?: number;
 }
@@ -60,6 +70,8 @@ export interface RankedNewsRecord<T extends Record<string, unknown>>
 export const NEWS_REQUIRED_INDEXES = [
   "News(citySlug ASC, createdAt DESC)",
   "News(citySlug ASC, audienceScope ASC, neighborhoodSlug ASC, createdAt DESC)",
+  "News(cityId ASC, createdAt DESC)",
+  "News(cityId ASC, audienceScope ASC, neighborhoodSlug ASC, createdAt DESC)",
 ] as const;
 
 const CREATED_AT_FIELD = "createdAt";
@@ -67,6 +79,7 @@ const PUBLISHED_AT_FIELD = "publishedAt";
 const AUDIENCE_SCOPE_FIELD = "audienceScope";
 const NEIGHBORHOOD_SLUG_FIELD = "neighborhoodSlug";
 const CITY_SLUG_FIELD = "citySlug";
+const CITY_ID_FIELD = "cityId";
 
 const toMillis = (value: unknown): number => {
   if (value instanceof Date) {
@@ -120,14 +133,92 @@ const sortByRecency = <T extends Record<string, unknown>>(
   });
 };
 
+const buildCityFieldCandidates = (
+  citySlug?: string | null,
+  cityId?: string | null
+): Array<{ field: string; value: string }> => {
+  const candidates: Array<{ field: string; value: string }> = [];
+  const seen = new Set<string>();
+
+  const pushCandidate = (field: string, value?: string | null) => {
+    if (!value) {
+      return;
+    }
+    const key = `${field}:${value}`;
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    candidates.push({ field, value });
+  };
+
+  pushCandidate(CITY_SLUG_FIELD, citySlug);
+  pushCandidate(CITY_ID_FIELD, cityId);
+
+  return candidates;
+};
+
+interface FetchCityScopedNewsParams {
+  citySlug?: string | null;
+  cityId?: string | null;
+  neighborhoodSlug?: string | null;
+  scope: NewsAudienceScope;
+  maxResults: number;
+}
+
+const fetchCityScopedNews = async <T extends Record<string, unknown>>({
+  citySlug,
+  cityId,
+  neighborhoodSlug,
+  scope,
+  maxResults,
+}: FetchCityScopedNewsParams): Promise<Array<FirestoreRecord<T>>> => {
+  if (scope === "neighborhood" && !neighborhoodSlug) {
+    return [];
+  }
+
+  const baseConstraints: QueryConstraint[] = [
+    where(AUDIENCE_SCOPE_FIELD, "==", scope),
+    ...(scope === "neighborhood"
+      ? [where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug as string)]
+      : []),
+    orderBy(CREATED_AT_FIELD, "desc"),
+    limit(maxResults),
+  ];
+
+  for (const candidate of buildCityFieldCandidates(citySlug, cityId)) {
+    const constraints: QueryConstraint[] = [
+      where(candidate.field, "==", candidate.value),
+      ...baseConstraints,
+    ];
+
+    try {
+      const docs = await fetchDocuments<T>(NEWS_COLLECTION, constraints);
+      if (docs.length > 0) {
+        return docs;
+      }
+    } catch (error) {
+      console.warn(
+        `loadNearbyNews: consulta fallida (${candidate.field}=${candidate.value})`,
+        error
+      );
+    }
+  }
+
+  return [];
+};
+
 /**
  * Recupera noticias priorizando barrio actual → ciudad actual → ciudad preferida.
  * Las consultas requieren índices Firestore declarados en `NEWS_REQUIRED_INDEXES`.
  */
 export const loadNearbyNews = async <T extends Record<string, unknown>>({
   citySlugCurrent,
+  cityIdCurrent,
   neighborhoodSlugCurrent,
   citySlugPreferred,
+  cityIdPreferred,
   maxResults = DEFAULT_NEWS_LIMIT,
 }: LoadNearbyNewsParams): Promise<Array<RankedNewsRecord<T>>> => {
   const collectedIds = new Set<string>();
@@ -152,21 +243,17 @@ export const loadNearbyNews = async <T extends Record<string, unknown>>({
   };
 
   const neighborhoodEligible =
-    Boolean(citySlugCurrent) && Boolean(neighborhoodSlugCurrent);
+    Boolean(neighborhoodSlugCurrent) &&
+    (Boolean(citySlugCurrent) || Boolean(cityIdCurrent));
 
   if (neighborhoodEligible && orderedResults.length < maxResults) {
-    const constraints: QueryConstraint[] = [
-      where(CITY_SLUG_FIELD, "==", citySlugCurrent),
-      where(AUDIENCE_SCOPE_FIELD, "==", "neighborhood"),
-      where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlugCurrent),
-      orderBy(CREATED_AT_FIELD, "desc"),
-      limit(maxResults),
-    ];
-
-    const neighborhoodItems = await fetchDocuments<T>(
-      NEWS_COLLECTION,
-      constraints
-    );
+    const neighborhoodItems = await fetchCityScopedNews<T>({
+      citySlug: citySlugCurrent,
+      cityId: cityIdCurrent,
+      neighborhoodSlug: neighborhoodSlugCurrent ?? null,
+      scope: "neighborhood",
+      maxResults,
+    });
     collect(
       sortByRecency(neighborhoodItems),
       "currentNeighborhood",
@@ -174,32 +261,33 @@ export const loadNearbyNews = async <T extends Record<string, unknown>>({
     );
   }
 
-  if (citySlugCurrent && orderedResults.length < maxResults) {
-    const constraints: QueryConstraint[] = [
-      where(CITY_SLUG_FIELD, "==", citySlugCurrent),
-      where(AUDIENCE_SCOPE_FIELD, "==", "city"),
-      orderBy(CREATED_AT_FIELD, "desc"),
-      limit(maxResults),
-    ];
-    const cityItems = await fetchDocuments<T>(NEWS_COLLECTION, constraints);
+  if (
+    (citySlugCurrent || cityIdCurrent) &&
+    orderedResults.length < maxResults
+  ) {
+    const cityItems = await fetchCityScopedNews<T>({
+      citySlug: citySlugCurrent,
+      cityId: cityIdCurrent,
+      scope: "city",
+      maxResults,
+    });
     collect(sortByRecency(cityItems), "currentCity", "city");
   }
 
   const shouldQueryPreferred =
-    Boolean(citySlugPreferred) && citySlugPreferred !== citySlugCurrent;
+    (Boolean(citySlugPreferred) || Boolean(cityIdPreferred)) &&
+    !(
+      (citySlugPreferred && citySlugPreferred === citySlugCurrent) ||
+      (cityIdPreferred && cityIdPreferred === cityIdCurrent)
+    );
 
   if (shouldQueryPreferred && orderedResults.length < maxResults) {
-    const constraints: QueryConstraint[] = [
-      where(CITY_SLUG_FIELD, "==", citySlugPreferred),
-      where(AUDIENCE_SCOPE_FIELD, "==", "city"),
-      orderBy(CREATED_AT_FIELD, "desc"),
-      limit(maxResults),
-    ];
-
-    const preferredItems = await fetchDocuments<T>(
-      NEWS_COLLECTION,
-      constraints
-    );
+    const preferredItems = await fetchCityScopedNews<T>({
+      citySlug: citySlugPreferred,
+      cityId: cityIdPreferred,
+      scope: "city",
+      maxResults,
+    });
     collect(sortByRecency(preferredItems), "preferredCity", "city");
   }
 
@@ -219,12 +307,22 @@ const buildBucketGrid = (
   lonBucket: number,
   radius: number
 ): Array<{ lat: number; lon: number }> => {
+  const normalizedRadius = Math.max(0, Math.floor(radius));
   const neighbors: Array<{ lat: number; lon: number }> = [];
-  for (let latStep = -radius; latStep <= radius; latStep += 1) {
-    for (let lonStep = -radius; lonStep <= radius; lonStep += 1) {
+
+  for (
+    let latStep = -normalizedRadius;
+    latStep <= normalizedRadius;
+    latStep += 1
+  ) {
+    for (
+      let lonStep = -normalizedRadius;
+      lonStep <= normalizedRadius;
+      lonStep += 1
+    ) {
       neighbors.push({
-        lat: latBucket + latStep * 0.005,
-        lon: lonBucket + lonStep * 0.005,
+        lat: Number((latBucket + latStep * 0.005).toFixed(6)),
+        lon: Number((lonBucket + lonStep * 0.005).toFixed(6)),
       });
     }
   }
@@ -243,10 +341,12 @@ export const loadNearbyFields = async <T extends Record<string, unknown>>({
   citySlug,
   maxResults = DEFAULT_FIELD_LIMIT,
 }: LoadNearbyFieldsParams): Promise<Array<FirestoreRecord<T>>> => {
+  const normalizedLimit = Math.max(0, Math.floor(maxResults));
+  const limitOrInfinity = normalizedLimit > 0 ? normalizedLimit : Infinity;
   const results = new Map<string, FirestoreRecord<T>>();
   const collect = (items: Array<FirestoreRecord<T>>) => {
     for (const item of items) {
-      if (results.size >= maxResults) {
+      if (results.size >= limitOrInfinity) {
         break;
       }
       if (!results.has(item.id)) {
@@ -255,32 +355,41 @@ export const loadNearbyFields = async <T extends Record<string, unknown>>({
     }
   };
 
-  if (typeof latBucket === "number" && typeof lonBucket === "number") {
+  const bucketsAreValid =
+    Number.isFinite(latBucket) && Number.isFinite(lonBucket);
+
+  if (bucketsAreValid && limitOrInfinity !== 0) {
     const neighbors = buildBucketGrid(
-      latBucket,
-      lonBucket,
+      latBucket as number,
+      lonBucket as number,
       Math.max(bucketRadius, 0)
     );
-    for (const neighbor of neighbors) {
-      if (results.size >= maxResults) {
+    const neighborQueries = await Promise.all(
+      neighbors.map((neighbor) =>
+        fetchDocuments<T>(FIELD_COLLECTION, [
+          where("latBucket", "==", neighbor.lat),
+          where("lonBucket", "==", neighbor.lon),
+        ])
+      )
+    );
+
+    for (const items of neighborQueries) {
+      collect(items);
+      if (results.size >= limitOrInfinity) {
         break;
       }
-
-      const constraints: QueryConstraint[] = [
-        where("latBucket", "==", neighbor.lat),
-        where("lonBucket", "==", neighbor.lon),
-      ];
-
-      const items = await fetchDocuments<T>(FIELD_COLLECTION, constraints);
       collect(items);
     }
   }
 
-  if (results.size < maxResults && citySlug) {
+  if (results.size < limitOrInfinity && citySlug) {
     const constraints: QueryConstraint[] = [where("citySlug", "==", citySlug)];
     const items = await fetchDocuments<T>(FIELD_COLLECTION, constraints);
     collect(items);
   }
 
-  return Array.from(results.values());
+  const finalResults = Array.from(results.values());
+  return normalizedLimit > 0
+    ? finalResults.slice(0, normalizedLimit)
+    : finalResults;
 };

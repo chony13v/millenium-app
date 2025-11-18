@@ -1,6 +1,5 @@
 import * as Analytics from "expo-firebase-analytics";
 
-
 type AnalyticsParamValue = string | number | boolean;
 type AnalyticsParams = Record<string, AnalyticsParamValue>;
 

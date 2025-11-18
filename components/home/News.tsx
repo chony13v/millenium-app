@@ -14,7 +14,7 @@ import { Timestamp } from "firebase/firestore";
 
 import LoadingBall from "@/components/LoadingBall";
 import { logNewsOpen } from "@/src/analytics";
-import { getCitySlugById } from "@/constants/cities";
+import { getCitySlugById, getCityIdBySlug } from "@/constants/cities";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import useForegroundLocation from "@/src/hooks/useForegroundLocation";
 import {
@@ -189,6 +189,17 @@ export default function News() {
     () => getCitySlugById(selectedCity),
     [selectedCity]
   );
+  
+
+  const mapRecordsToNewsItems = useCallback(
+    (records: Array<RankedNewsRecord<NewsFirestore>>) =>
+      records
+        .map((record) => mapNewsRecord(record))
+        .filter((item) =>
+          [item.title, item.description, item.imageUrl].some(Boolean)
+        ),
+    []
+  );
 
   const handleOpenNews = useCallback((item: NewsItem) => {
     void logNewsOpen({
@@ -237,34 +248,48 @@ export default function News() {
               return;
             }
 
-            const items = records
-
-              .map((record) => mapNewsRecord(record))
-
-              .filter((item) =>
-                [item.title, item.description, item.imageUrl].some(Boolean)
-              );
-
+            const items = mapRecordsToNewsItems(records);
             setNewsItems(items);
           } else {
-            setNewsItems([]);
+            let handledByPreferredCity = false;
 
-            if (result.status === "permission-denied") {
-              setWarningMessage(
-                "Activa los permisos de ubicación desde la configuración para ver noticias cercanas."
-              );
-            } else if (result.status === "services-disabled") {
-              setWarningMessage(
-                "Activa los servicios de ubicación de tu dispositivo para personalizar las noticias."
-              );
-            } else if (result.status === "opted-out") {
-              setWarningMessage(
-                "Activa el contenido por barrio desde la configuración para recibir noticias locales."
-              );
-            } else if (result.status === "missing-user") {
-              setWarningMessage(
-                "Inicia sesión para ver noticias personalizadas por ubicación."
-              );
+            if (citySlugPreferred) {
+              const preferredRecords = await loadNearbyNews<NewsFirestore>({
+                citySlugPreferred,
+              });
+
+              if (!isActive) {
+                return;
+              }
+
+              const preferredItems = mapRecordsToNewsItems(preferredRecords);
+              if (preferredItems.length > 0) {
+                handledByPreferredCity = true;
+                setNewsItems(preferredItems);
+                setWarningMessage(null);
+              }
+            }
+
+            if (!handledByPreferredCity) {
+              setNewsItems([]);
+
+              if (result.status === "permission-denied") {
+                setWarningMessage(
+                  "Activa los permisos de ubicación desde la configuración para ver noticias cercanas."
+                );
+              } else if (result.status === "services-disabled") {
+                setWarningMessage(
+                  "Activa los servicios de ubicación de tu dispositivo para personalizar las noticias."
+                );
+              } else if (result.status === "opted-out") {
+                setWarningMessage(
+                  "Activa el contenido por barrio desde la configuración para recibir noticias locales."
+                );
+              } else if (result.status === "missing-user") {
+                setWarningMessage(
+                  "Inicia sesión para ver noticias personalizadas por ubicación."
+                );
+              }
             }
           }
         } catch (error) {
@@ -287,7 +312,13 @@ export default function News() {
       return () => {
         isActive = false;
       };
-    }, [citySlugPreferred, ensureFreshLocation, hasHydrated])
+    }, [
+      citySlugPreferred,
+      ensureFreshLocation,
+      hasHydrated,
+      mapRecordsToNewsItems,
+      selectedCity,
+    ])
   );
 
   const banner = useMemo(() => {
