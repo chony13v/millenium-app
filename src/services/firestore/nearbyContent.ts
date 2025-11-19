@@ -21,6 +21,8 @@ const NEWS_COLLECTION = "News";
 const FIELD_COLLECTION = "Field";
 const DEFAULT_NEWS_LIMIT = 20;
 const DEFAULT_FIELD_LIMIT = 20;
+const SCOPE_FIELD = "scope";
+const NEIGHBORHOOD_SLUG_FIELD = "neighborhoodSlug";
 
 const isMissingIndexError = (error: unknown): error is FirebaseError => {
   return (
@@ -87,6 +89,8 @@ export interface RankedNewsRecord<T extends Record<string, unknown>>
 
 export const NEWS_REQUIRED_INDEXES = [
   "News(cityId ASC, createdAt DESC)",
+  "News(cityId ASC, scope ASC, createdAt DESC)",
+  "News(cityId ASC, scope ASC, neighborhoodSlug ASC, createdAt DESC)",
 ] as const;
 
 const CREATED_AT_FIELD = "createdAt";
@@ -144,6 +148,107 @@ const sortByRecency = <T extends Record<string, unknown>>(
     return right - left;
   });
 };
+export interface LoadNewsParams {
+  selectedCityId?: string | null;
+  locationBucket?: {
+    citySlug?: string | null;
+    neighborhoodSlug?: string | null;
+  } | null;
+  maxResults?: number;
+}
+
+/**
+ * Obtiene noticias de ciudad y de barrio para la ciudad seleccionada. Siempre
+ * devuelve las noticias con scope="city" filtradas por cityId y, si hay un
+ * bucket válido, agrega las noticias con scope="neighborhood" cuyo
+ * neighborhoodSlug coincide con el del bucket.
+ */
+export const loadNews = async <T extends Record<string, unknown>>({
+  selectedCityId,
+  locationBucket,
+  maxResults = DEFAULT_NEWS_LIMIT,
+}: LoadNewsParams): Promise<Array<FirestoreRecord<T>>> => {
+  const normalizedCityId =
+    typeof selectedCityId === "string" && selectedCityId.trim().length > 0
+      ? selectedCityId
+      : null;
+
+  if (!normalizedCityId) {
+    return [];
+  }
+
+  const normalizedLimit = Math.max(0, Math.floor(maxResults));
+  const limitConstraint =
+    normalizedLimit > 0 ? [limit(normalizedLimit)] : ([] as QueryConstraint[]);
+
+  const cityConstraints = [where(CITY_ID_FIELD, "==", normalizedCityId)];
+
+  let cityNews: Array<FirestoreRecord<T>> = [];
+
+  try {
+    cityNews = await fetchDocuments<T>(
+      NEWS_COLLECTION,
+      [...cityConstraints, orderBy(CREATED_AT_FIELD, "desc"), ...limitConstraint],
+      { suppressErrors: false }
+    );
+  } catch (error) {
+    if (isMissingIndexError(error)) {
+      cityNews = await fetchDocuments<T>(NEWS_COLLECTION, [
+        ...cityConstraints,
+        ...limitConstraint,
+      ]);
+    } else {
+      console.warn("loadNews: no se pudieron recuperar noticias de ciudad", error);
+    }
+  }
+
+  const filteredCityNews = cityNews.filter(({ data }) => {
+    const scope = (data as Record<string, unknown>)[SCOPE_FIELD];
+    return scope !== "neighborhood";
+  });
+
+  const neighborhoodSlug =
+    locationBucket?.citySlug === normalizedCityId
+      ? locationBucket?.neighborhoodSlug?.trim()
+      : null;
+
+  let neighborhoodNews: Array<FirestoreRecord<T>> = [];
+
+  if (neighborhoodSlug) {
+    const neighborhoodConstraints = [
+      where(CITY_ID_FIELD, "==", normalizedCityId),
+      where(SCOPE_FIELD, "==", "neighborhood"),
+      where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug),
+    ];
+
+    try {
+      neighborhoodNews = await fetchDocuments<T>(
+        NEWS_COLLECTION,
+        [
+          ...neighborhoodConstraints,
+          orderBy(CREATED_AT_FIELD, "desc"),
+          ...limitConstraint,
+        ],
+        { suppressErrors: false }
+      );
+    } catch (error) {
+      if (isMissingIndexError(error)) {
+        neighborhoodNews = await fetchDocuments<T>(NEWS_COLLECTION, [
+          ...neighborhoodConstraints,
+          ...limitConstraint,
+        ]);
+      } else {
+        console.warn(
+          "loadNews: no se pudieron recuperar noticias de barrio",
+          error
+        );
+      }
+    }
+  }
+
+  const combined = sortByRecency([...filteredCityNews, ...neighborhoodNews]);
+  return normalizedLimit > 0 ? combined.slice(0, normalizedLimit) : combined;
+};
 
 /**
  * Recupera noticias de una ciudad específica usando exclusivamente `cityId`.
@@ -171,36 +276,26 @@ export const loadNearbyNews = async <T extends Record<string, unknown>>({
     ? ` (barrio ${neighborhoodSlug})`
     : "";
 
-  try {
-    const newsQuery = query(
-      collection(db, NEWS_COLLECTION),
-      where(CITY_ID_FIELD, "==", normalizedCityId),
-      // Cuando activemos filtros por barrio se podrá agregar:
-      // ...(neighborhoodSlug ? [where("neighborhoodSlug", "==", neighborhoodSlug)] : [])
-      orderBy(CREATED_AT_FIELD, "desc"),
-      limit(maxResults)
-    );
+    const news = await loadNews<T>({
+    selectedCityId: normalizedCityId,
+    locationBucket: {
+      citySlug: normalizedCityId,
+      neighborhoodSlug,
+    },
+    maxResults,
+  });
 
-    const snapshot = await getDocs(newsQuery);
-    const items = sortByRecency(
-      snapshot.docs.map((doc) => mapSnapshot(doc.data() as T, doc.id))
-    );
+  return news.map((item) => {
+    const itemScope =
+      ((item.data as Record<string, unknown>)[SCOPE_FIELD] as NewsAudienceScope) ??
+      "city";
 
-    return items.map((item) => ({ ...item, priority, scope }));
-  } catch (error) {
-    if (isMissingIndexError(error)) {
-      console.warn(
-        `loadNearbyNews: crea el índice compuesto cityId+createdAt para cityId=${normalizedCityId}${neighborhoodNote}`
-      );
-      console.warn(
-        "Sigue el enlace que muestra Firestore en la consola para generar el índice y evitar este error."
-      );
-    } else {
-      console.warn("loadNearbyNews: consulta fallida", error);
-    }
-
-    return [];
-  }
+    return {
+      ...item,
+      priority,
+      scope: itemScope === "neighborhood" ? "neighborhood" : "city",
+    };
+  });
 };
 
 export interface LoadNearbyFieldsParams {
