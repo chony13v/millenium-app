@@ -14,7 +14,7 @@ import { Timestamp } from "firebase/firestore";
 
 import LoadingBall from "@/components/LoadingBall";
 import { logNewsOpen } from "@/src/analytics";
-import { getCitySlugById, getCityIdBySlug } from "@/constants/cities";
+import { getCityIdBySlug } from "@/constants/cities";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import useForegroundLocation from "@/src/hooks/useForegroundLocation";
 import {
@@ -187,10 +187,6 @@ export default function News() {
   const [loading, setLoading] = useState(false);
   const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
-  const citySlugPreferred = useMemo(
-    () => getCitySlugById(selectedCity),
-    [selectedCity]
-  );
   const cityIdPreferred = useMemo(() => selectedCity ?? null, [selectedCity]);
 
   const mapRecordsToNewsItems = useCallback(
@@ -220,14 +216,14 @@ export default function News() {
   }, []);
 
   const loadPreferredNews = useCallback(async (): Promise<NewsItem[]> => {
-    if (!citySlugPreferred && !cityIdPreferred) {
+    if (!cityIdPreferred) {
       return [];
     }
 
     try {
       const preferredRecords = await loadNearbyNews<NewsFirestore>({
-        citySlugPreferred,
-        cityIdPreferred,
+        selectedCityId: cityIdPreferred,
+        priority: "preferredCity",
       });
 
       return mapRecordsToNewsItems(preferredRecords);
@@ -235,7 +231,7 @@ export default function News() {
       console.error("Error fetching preferred city news:", error);
       return [];
     }
-  }, [cityIdPreferred, citySlugPreferred, mapRecordsToNewsItems]);
+  }, [cityIdPreferred, mapRecordsToNewsItems]);
 
   useFocusEffect(
     useCallback(() => {
@@ -259,9 +255,10 @@ export default function News() {
 
           if (result.status === "success" && result.location) {
             const records = await loadNearbyNews<NewsFirestore>({
-              citySlugCurrent: result.location.citySlug,
-              cityIdCurrent: getCityIdBySlug(result.location.citySlug),
-              neighborhoodSlugCurrent: result.location.neighborhoodSlug,
+              selectedCityId: getCityIdBySlug(result.location.citySlug),
+              neighborhoodSlug: result.location.neighborhoodSlug ?? null,
+              priority: "currentCity",
+              scope: "city",
             });
 
             if (!isActive) {

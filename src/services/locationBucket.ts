@@ -15,6 +15,7 @@ import { logEvent, setUserProperties } from "firebase/analytics";
 import * as Analytics from "expo-firebase-analytics";
 
 import { analytics, db } from "@/config/FirebaseConfig";
+import { safeAnalyticsParams } from "@/src/analytics/safeParams";
 
 const DEFAULT_STEP = 0.01;
 
@@ -101,25 +102,26 @@ const logLocationEvent = async (
   params: Record<string, unknown> = {}
 ) => {
   try {
-    await Analytics.logEvent(eventName, {
-      bucket_id: bucketId,
-      grid_size_deg: step.toFixed(2),
-      ...params,
-    });
-  } catch (err) {
-    console.warn("expo-firebase-analytics tracking failed:", err);
-  }
+    const payload = safeAnalyticsParams(
+      {
+        bucket_id: bucketId,
+        grid_size_deg: Number.isFinite(step) ? step.toFixed(2) : "unknown",
+        ...params,
+      },
+      { fallbackValue: "unknown" }
+    );
 
-  if (!analytics) {
-    return;
-  }
+    try {
+      await Analytics.logEvent(eventName, payload);
+    } catch (err) {
+      console.warn("expo-firebase-analytics tracking failed:", err);
+    }
 
-  try {
-    logEvent(analytics, eventName, {
-      bucket_id: bucketId,
-      grid_size_deg: step.toFixed(2),
-      ...params,
-    });
+    if (!analytics) {
+      return;
+    }
+
+    logEvent(analytics, eventName, payload);
   } catch (analyticsError) {
     console.warn("Analytics tracking failed", analyticsError);
   }

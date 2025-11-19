@@ -21,7 +21,6 @@ const NEWS_COLLECTION = "News";
 const FIELD_COLLECTION = "Field";
 const DEFAULT_NEWS_LIMIT = 20;
 const DEFAULT_FIELD_LIMIT = 20;
-const CITY_INDEX_FALLBACK_LIMIT = 50;
 
 const isMissingIndexError = (error: unknown): error is FirebaseError => {
   return (
@@ -67,12 +66,11 @@ const fetchDocuments = async <T extends Record<string, unknown>>(
 };
 
 export interface LoadNearbyNewsParams {
-  citySlugCurrent?: string | null;
-  cityIdCurrent?: string | null;
-  neighborhoodSlugCurrent?: string | null;
-  cityIdPreferred?: string | null;
-  citySlugPreferred?: string | null;
+  selectedCityId?: string | null;
+  neighborhoodSlug?: string | null;
   maxResults?: number;
+  priority?: NewsPriority;
+  scope?: NewsAudienceScope;
 }
 export type NewsAudienceScope = "city" | "neighborhood";
 
@@ -88,17 +86,11 @@ export interface RankedNewsRecord<T extends Record<string, unknown>>
 }
 
 export const NEWS_REQUIRED_INDEXES = [
-  "News(citySlug ASC, createdAt DESC)",
-  "News(citySlug ASC, audienceScope ASC, neighborhoodSlug ASC, createdAt DESC)",
   "News(cityId ASC, createdAt DESC)",
-  "News(cityId ASC, audienceScope ASC, neighborhoodSlug ASC, createdAt DESC)",
 ] as const;
 
 const CREATED_AT_FIELD = "createdAt";
 const PUBLISHED_AT_FIELD = "publishedAt";
-const AUDIENCE_SCOPE_FIELD = "audienceScope";
-const NEIGHBORHOOD_SLUG_FIELD = "neighborhoodSlug";
-const CITY_SLUG_FIELD = "citySlug";
 const CITY_ID_FIELD = "cityId";
 
 const toMillis = (value: unknown): number => {
@@ -153,205 +145,62 @@ const sortByRecency = <T extends Record<string, unknown>>(
   });
 };
 
-const buildCityFieldCandidates = (
-  citySlug?: string | null,
-  cityId?: string | null
-): Array<{ field: string; value: string }> => {
-  const candidates: Array<{ field: string; value: string }> = [];
-  const seen = new Set<string>();
-
-  const pushCandidate = (field: string, value?: string | null) => {
-    if (!value) {
-      return;
-    }
-    const key = `${field}:${value}`;
-    if (seen.has(key)) {
-      return;
-    }
-
-    seen.add(key);
-    candidates.push({ field, value });
-  };
-
-  pushCandidate(CITY_SLUG_FIELD, citySlug);
-  pushCandidate(CITY_ID_FIELD, cityId);
-
-  return candidates;
-};
-
-interface FetchCityScopedNewsParams {
-  citySlug?: string | null;
-  cityId?: string | null;
-  neighborhoodSlug?: string | null;
-  scope: NewsAudienceScope;
-  maxResults: number;
-}
-
-const loggedMissingIndexKeys = new Set<string>();
-
-const fetchCityScopedNews = async <T extends Record<string, unknown>>({
-  citySlug,
-  cityId,
-  neighborhoodSlug,
-  scope,
-  maxResults,
-}: FetchCityScopedNewsParams): Promise<Array<FirestoreRecord<T>>> => {
-  if (scope === "neighborhood" && !neighborhoodSlug) {
-    return [];
-  }
-
-  const baseConstraints: QueryConstraint[] = [
-    where(AUDIENCE_SCOPE_FIELD, "==", scope),
-    ...(scope === "neighborhood"
-      ? [where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug as string)]
-      : []),
-    orderBy(CREATED_AT_FIELD, "desc"),
-    limit(maxResults),
-  ];
-
-  const buildFallbackConstraints = (
-    field: string,
-    value: string
-  ): QueryConstraint[] => {
-    const fallbackLimit = Math.min(
-      Math.max(maxResults, 1) * 3,
-      CITY_INDEX_FALLBACK_LIMIT
-    );
-
-    return [
-      where(field, "==", value),
-      where(AUDIENCE_SCOPE_FIELD, "==", scope),
-      ...(scope === "neighborhood"
-        ? [where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug as string)]
-        : []),
-      limit(fallbackLimit),
-    ];
-  };
-
-  for (const candidate of buildCityFieldCandidates(citySlug, cityId)) {
-    const constraints: QueryConstraint[] = [
-      where(candidate.field, "==", candidate.value),
-      ...baseConstraints,
-    ];
-
-    try {
-      const docs = await fetchDocuments<T>(NEWS_COLLECTION, constraints, {
-        suppressErrors: false,
-      });
-      if (docs.length > 0) {
-        return docs;
-      }
-    } catch (error) {
-      if (isMissingIndexError(error)) {
-        const warningKey = `${candidate.field}:${candidate.value}`;
-        if (!loggedMissingIndexKeys.has(warningKey)) {
-          loggedMissingIndexKeys.add(warningKey);
-          console.warn(
-            `loadNearbyNews: falta índice para (${candidate.field}=${candidate.value}), usando fallback sin ordenar`
-          );
-        }
-        const fallbackDocs = await fetchDocuments<T>(
-          NEWS_COLLECTION,
-          buildFallbackConstraints(candidate.field, candidate.value)
-        );
-        if (fallbackDocs.length > 0) {
-          return fallbackDocs;
-        }
-      } else {
-        console.warn(
-          `loadNearbyNews: consulta fallida (${candidate.field}=${candidate.value})`,
-          error
-        );
-      }
-    }
-  }
-
-  return [];
-};
-
 /**
- * Recupera noticias priorizando barrio actual → ciudad actual → ciudad preferida.
- * Las consultas requieren índices Firestore declarados en `NEWS_REQUIRED_INDEXES`.
+ * Recupera noticias de una ciudad específica usando exclusivamente `cityId`.
+ * Si Firestore solicita un índice para esta consulta, crea el compuesto
+ * `News(cityId ASC, createdAt DESC)` desde la consola siguiendo el enlace
+ * automático que provee el error.
  */
 export const loadNearbyNews = async <T extends Record<string, unknown>>({
-  citySlugCurrent,
-  cityIdCurrent,
-  neighborhoodSlugCurrent,
-  citySlugPreferred,
-  cityIdPreferred,
+  selectedCityId,
+  neighborhoodSlug = null,
   maxResults = DEFAULT_NEWS_LIMIT,
+  priority = "currentCity",
+  scope = "city",
 }: LoadNearbyNewsParams): Promise<Array<RankedNewsRecord<T>>> => {
-  const collectedIds = new Set<string>();
-  const orderedResults: Array<RankedNewsRecord<T>> = [];
+  const normalizedCityId =
+    typeof selectedCityId === "string" && selectedCityId.trim().length > 0
+      ? selectedCityId
+      : null;
 
-  const collect = (
-    items: Array<FirestoreRecord<T>>,
-    priority: NewsPriority,
-    scope: NewsAudienceScope
-  ) => {
-    for (const item of items) {
-      if (collectedIds.has(item.id)) {
-        continue;
-      }
-      collectedIds.add(item.id);
-      orderedResults.push({ ...item, priority, scope });
+  if (!normalizedCityId) {
+    return [];
+  }
+  // Reservado para futuros filtros por barrio.
+  const neighborhoodNote = neighborhoodSlug
+    ? ` (barrio ${neighborhoodSlug})`
+    : "";
 
-      if (orderedResults.length >= maxResults) {
-        break;
-      }
+  try {
+    const newsQuery = query(
+      collection(db, NEWS_COLLECTION),
+      where(CITY_ID_FIELD, "==", normalizedCityId),
+      // Cuando activemos filtros por barrio se podrá agregar:
+      // ...(neighborhoodSlug ? [where("neighborhoodSlug", "==", neighborhoodSlug)] : [])
+      orderBy(CREATED_AT_FIELD, "desc"),
+      limit(maxResults)
+    );
+
+    const snapshot = await getDocs(newsQuery);
+    const items = sortByRecency(
+      snapshot.docs.map((doc) => mapSnapshot(doc.data() as T, doc.id))
+    );
+
+    return items.map((item) => ({ ...item, priority, scope }));
+  } catch (error) {
+    if (isMissingIndexError(error)) {
+      console.warn(
+        `loadNearbyNews: crea el índice compuesto cityId+createdAt para cityId=${normalizedCityId}${neighborhoodNote}`
+      );
+      console.warn(
+        "Sigue el enlace que muestra Firestore en la consola para generar el índice y evitar este error."
+      );
+    } else {
+      console.warn("loadNearbyNews: consulta fallida", error);
     }
-  };
 
-  const neighborhoodEligible =
-    Boolean(neighborhoodSlugCurrent) &&
-    (Boolean(citySlugCurrent) || Boolean(cityIdCurrent));
-
-  if (neighborhoodEligible && orderedResults.length < maxResults) {
-    const neighborhoodItems = await fetchCityScopedNews<T>({
-      citySlug: citySlugCurrent,
-      cityId: cityIdCurrent,
-      neighborhoodSlug: neighborhoodSlugCurrent ?? null,
-      scope: "neighborhood",
-      maxResults,
-    });
-    collect(
-      sortByRecency(neighborhoodItems),
-      "currentNeighborhood",
-      "neighborhood"
-    );
+    return [];
   }
-
-  if (
-    (citySlugCurrent || cityIdCurrent) &&
-    orderedResults.length < maxResults
-  ) {
-    const cityItems = await fetchCityScopedNews<T>({
-      citySlug: citySlugCurrent,
-      cityId: cityIdCurrent,
-      scope: "city",
-      maxResults,
-    });
-    collect(sortByRecency(cityItems), "currentCity", "city");
-  }
-
-  const shouldQueryPreferred =
-    (Boolean(citySlugPreferred) || Boolean(cityIdPreferred)) &&
-    !(
-      (citySlugPreferred && citySlugPreferred === citySlugCurrent) ||
-      (cityIdPreferred && cityIdPreferred === cityIdCurrent)
-    );
-
-  if (shouldQueryPreferred && orderedResults.length < maxResults) {
-    const preferredItems = await fetchCityScopedNews<T>({
-      citySlug: citySlugPreferred,
-      cityId: cityIdPreferred,
-      scope: "city",
-      maxResults,
-    });
-    collect(sortByRecency(preferredItems), "preferredCity", "city");
-  }
-
-  return orderedResults;
 };
 
 export interface LoadNearbyFieldsParams {
