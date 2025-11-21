@@ -2,11 +2,9 @@ import * as Analytics from "expo-firebase-analytics";
 
 type AnalyticsParams = Record<string, string | number>;
 
-const sanitizeParams = (
-  params?: Record<string, unknown>
-): AnalyticsParams | undefined => {
+const sanitizeParams = (params?: Record<string, unknown>): AnalyticsParams => {
   if (!params) {
-    return undefined;
+    return {};
   }
 
   const sanitizedEntries = Object.entries(params).reduce<
@@ -28,13 +26,16 @@ const sanitizeParams = (
   }, []);
 
   if (sanitizedEntries.length === 0) {
-    return undefined;
+    return {};
   }
 
   return Object.fromEntries(sanitizedEntries);
 };
 
-const logSafely = async (eventName: string, params?: Record<string, unknown>) => {
+const logSafely = async (
+  eventName: string,
+  params?: Record<string, unknown>
+) => {
   try {
     const sanitized = sanitizeParams(params);
     await Analytics.logEvent(eventName, sanitized);
@@ -50,7 +51,7 @@ export const logLocationOptIn = async (value: boolean): Promise<void> => {
 export const logLocationUpdate = async (
   city: string | null,
   neighborhood: string | null,
-  accuracy: number | null,
+  accuracy: number | null
 ): Promise<void> => {
   const payload: Record<string, unknown> = {
     city: city ?? "unknown",
@@ -65,7 +66,7 @@ export const logLocationUpdate = async (
 };
 
 export const logNeighborhoodInferred = async (
-  neighborhood: string,
+  neighborhood: string
 ): Promise<void> => {
   if (!neighborhood) {
     return;

@@ -18,6 +18,7 @@ export interface FirestoreRecord<T extends Record<string, unknown>> {
 }
 
 const NEWS_COLLECTION = "News";
+const NEIGHBORHOOD_NEWS_COLLECTION = "Neighborhoods";
 const FIELD_COLLECTION = "Field";
 const DEFAULT_NEWS_LIMIT = 20;
 const DEFAULT_FIELD_LIMIT = 20;
@@ -91,11 +92,15 @@ export const NEWS_REQUIRED_INDEXES = [
   "News(cityId ASC, createdAt DESC)",
   "News(cityId ASC, scope ASC, createdAt DESC)",
   "News(cityId ASC, scope ASC, neighborhoodSlug ASC, createdAt DESC)",
+  "News(citySlug ASC, createdAt DESC)",
+  "News(citySlug ASC, scope ASC, createdAt DESC)",
+  "News(citySlug ASC, scope ASC, neighborhoodSlug ASC, createdAt DESC)",
 ] as const;
 
 const CREATED_AT_FIELD = "createdAt";
 const PUBLISHED_AT_FIELD = "publishedAt";
 const CITY_ID_FIELD = "cityId";
+const CITY_SLUG_FIELD = "citySlug";
 
 const toMillis = (value: unknown): number => {
   if (value instanceof Date) {
@@ -170,10 +175,15 @@ export const loadNews = async <T extends Record<string, unknown>>({
 }: LoadNewsParams): Promise<Array<FirestoreRecord<T>>> => {
   const normalizedCityId =
     typeof selectedCityId === "string" && selectedCityId.trim().length > 0
-      ? selectedCityId
+      ? selectedCityId.trim()
+      : null;
+  const normalizedCitySlug =
+    typeof locationBucket?.citySlug === "string" &&
+    locationBucket.citySlug.trim().length > 0
+      ? locationBucket.citySlug.trim()
       : null;
 
-  if (!normalizedCityId) {
+  if (!normalizedCityId && !normalizedCitySlug) {
     return [];
   }
 
@@ -181,24 +191,46 @@ export const loadNews = async <T extends Record<string, unknown>>({
   const limitConstraint =
     normalizedLimit > 0 ? [limit(normalizedLimit)] : ([] as QueryConstraint[]);
 
-  const cityConstraints = [where(CITY_ID_FIELD, "==", normalizedCityId)];
+  const cityFilters: Array<{ field: string; value: string }> = [];
+  if (normalizedCityId) {
+    cityFilters.push({ field: CITY_ID_FIELD, value: normalizedCityId });
+    cityFilters.push({ field: CITY_SLUG_FIELD, value: normalizedCityId });
+  }
+  if (normalizedCitySlug) {
+    cityFilters.push({ field: CITY_SLUG_FIELD, value: normalizedCitySlug });
+    cityFilters.push({ field: CITY_ID_FIELD, value: normalizedCitySlug });
+  }
 
   let cityNews: Array<FirestoreRecord<T>> = [];
+  for (const { field, value } of cityFilters) {
+    const cityConstraints = [where(field, "==", value)];
 
-  try {
-    cityNews = await fetchDocuments<T>(
-      NEWS_COLLECTION,
-      [...cityConstraints, orderBy(CREATED_AT_FIELD, "desc"), ...limitConstraint],
-      { suppressErrors: false }
-    );
-  } catch (error) {
-    if (isMissingIndexError(error)) {
-      cityNews = await fetchDocuments<T>(NEWS_COLLECTION, [
-        ...cityConstraints,
-        ...limitConstraint,
-      ]);
-    } else {
-      console.warn("loadNews: no se pudieron recuperar noticias de ciudad", error);
+    try {
+      cityNews = await fetchDocuments<T>(
+        NEWS_COLLECTION,
+        [
+          ...cityConstraints,
+          orderBy(CREATED_AT_FIELD, "desc"),
+          ...limitConstraint,
+        ],
+        { suppressErrors: false }
+      );
+    } catch (error) {
+      if (isMissingIndexError(error)) {
+        cityNews = await fetchDocuments<T>(NEWS_COLLECTION, [
+          ...cityConstraints,
+          ...limitConstraint,
+        ]);
+      } else {
+        console.warn(
+          "loadNews: no se pudieron recuperar noticias de ciudad",
+          error
+        );
+      }
+    }
+
+    if (cityNews.length > 0) {
+      break;
     }
   }
 
@@ -208,40 +240,77 @@ export const loadNews = async <T extends Record<string, unknown>>({
   });
 
   const neighborhoodSlug =
-    locationBucket?.citySlug === normalizedCityId
+    normalizedCitySlug || normalizedCityId
       ? locationBucket?.neighborhoodSlug?.trim()
       : null;
 
   let neighborhoodNews: Array<FirestoreRecord<T>> = [];
+  let neighborhoodConstraints: QueryConstraint[] = [];
+  let newsFallbackConstraints: QueryConstraint[] = [];
 
   if (neighborhoodSlug) {
-    const neighborhoodConstraints = [
-      where(CITY_ID_FIELD, "==", normalizedCityId),
-      where(SCOPE_FIELD, "==", "neighborhood"),
-      where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug),
-    ];
+    const neighborhoodFilters = cityFilters.length
+      ? cityFilters
+      : [{ field: CITY_ID_FIELD, value: normalizedCityId as string }];
 
+    for (const { field, value } of neighborhoodFilters) {
+      neighborhoodConstraints = [
+        where(field, "==", value),
+        where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug),
+      ];
+
+      newsFallbackConstraints = [
+        ...neighborhoodConstraints,
+        where(SCOPE_FIELD, "==", "neighborhood"),
+      ];
+
+      try {
+        neighborhoodNews = await fetchDocuments<T>(
+          NEIGHBORHOOD_NEWS_COLLECTION,
+          [
+            ...neighborhoodConstraints,
+            orderBy(CREATED_AT_FIELD, "desc"),
+            ...limitConstraint,
+          ],
+          { suppressErrors: false }
+        );
+      } catch (error) {
+        if (isMissingIndexError(error)) {
+          neighborhoodNews = await fetchDocuments<T>(
+            NEIGHBORHOOD_NEWS_COLLECTION,
+            [...neighborhoodConstraints, ...limitConstraint]
+          );
+        } else {
+          console.warn(
+            "loadNews: no se pudieron recuperar noticias de barrio",
+            error
+          );
+        }
+      }
+
+      if (neighborhoodNews.length > 0) {
+        break;
+      }
+    }
+  }
+
+  if (neighborhoodNews.length === 0 && neighborhoodSlug) {
+    // Compatibilidad: si la colección específica del barrio aún no está
+    // disponible, consultamos la colección general de noticias con scope.
     try {
-      neighborhoodNews = await fetchDocuments<T>(
-        NEWS_COLLECTION,
-        [
-          ...neighborhoodConstraints,
-          orderBy(CREATED_AT_FIELD, "desc"),
-          ...limitConstraint,
-        ],
-        { suppressErrors: false }
-      );
+      neighborhoodNews = await fetchDocuments<T>(NEWS_COLLECTION, [
+        ...newsFallbackConstraints,
+        orderBy(CREATED_AT_FIELD, "desc"),
+        ...limitConstraint,
+      ]);
     } catch (error) {
       if (isMissingIndexError(error)) {
         neighborhoodNews = await fetchDocuments<T>(NEWS_COLLECTION, [
-          ...neighborhoodConstraints,
+          ...newsFallbackConstraints,
           ...limitConstraint,
         ]);
       } else {
-        console.warn(
-          "loadNews: no se pudieron recuperar noticias de barrio",
-          error
-        );
+        console.warn("loadNews: fallback a News para barrio fallido", error);
       }
     }
   }
@@ -276,7 +345,7 @@ export const loadNearbyNews = async <T extends Record<string, unknown>>({
     ? ` (barrio ${neighborhoodSlug})`
     : "";
 
-    const news = await loadNews<T>({
+  const news = await loadNews<T>({
     selectedCityId: normalizedCityId,
     locationBucket: {
       citySlug: normalizedCityId,
@@ -287,8 +356,9 @@ export const loadNearbyNews = async <T extends Record<string, unknown>>({
 
   return news.map((item) => {
     const itemScope =
-      ((item.data as Record<string, unknown>)[SCOPE_FIELD] as NewsAudienceScope) ??
-      "city";
+      ((item.data as Record<string, unknown>)[
+        SCOPE_FIELD
+      ] as NewsAudienceScope) ?? "city";
 
     return {
       ...item,
@@ -297,7 +367,6 @@ export const loadNearbyNews = async <T extends Record<string, unknown>>({
     };
   });
 };
-
 export interface LoadNearbyFieldsParams {
   latBucket?: number | null;
   lonBucket?: number | null;

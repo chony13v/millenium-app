@@ -49,16 +49,21 @@ const sanitizeAnalyticsParams = (
 
 const toAnalyticsPayload = (
   params: AnalyticsParams | null | undefined
-): AnalyticsParams => {
+): AnalyticsParams | null => {
   if (!isPlainObject(params)) {
-    return {};
+    return null;
+
   }
 
-  if (Object.keys(params).length === 0) {
-    return {};
+  const safeEntries = Object.entries(params).filter(([, value]) =>
+    value !== undefined && value !== null
+  );
+
+  if (safeEntries.length === 0) {
+    return null;
   }
 
-  return { ...params };
+  return Object.fromEntries(safeEntries) as AnalyticsParams;
 };
 
 const logSafely = async (
@@ -66,8 +71,13 @@ const logSafely = async (
   params?: AnalyticsParams | null
 ) => {
   try {
-    const payload = toAnalyticsPayload(params ?? {});
-    await Analytics.logEvent(eventName, payload);
+const payload = { ...toAnalyticsPayload(params ?? {}) };
+
+    if (payload) {
+      await Analytics.logEvent(eventName, payload);
+    } else {
+      await Analytics.logEvent(eventName);
+    }
   } catch (error) {
     console.warn(`Failed to log analytics event ${eventName}`, error);
   }
