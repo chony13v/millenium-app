@@ -22,6 +22,7 @@ import {
 } from "@/src/hooks/useForegroundLocation";
 
 export interface NeighborhoodSnapshot {
+  cityId: string | null;
   city: string | null;
   citySlug: string | null;
   neighborhood: string | null;
@@ -40,6 +41,7 @@ interface UseNeighborhoodState {
 }
 
 const toSnapshot = (doc: LocationBucketDocument): NeighborhoodSnapshot => ({
+  cityId: doc.cityId,
   city: doc.city,
   citySlug: doc.citySlug,
   neighborhood: doc.neighborhood,
@@ -99,6 +101,7 @@ export const useNeighborhood = (): UseNeighborhoodState => {
       try {
         await upsertUserLocation(userId, {
           locationOptIn: value,
+          cityId: value ? undefined : null,
           city: value ? undefined : null,
           citySlug: value ? undefined : null,
           neighborhood: value ? undefined : null,
@@ -135,6 +138,7 @@ export const useNeighborhood = (): UseNeighborhoodState => {
           await logLocationOptIn(false);
           await upsertUserLocation(userId, {
             locationOptIn: false,
+            cityId: null,
             city: null,
             citySlug: null,
             neighborhood: null,
@@ -172,6 +176,7 @@ export const useNeighborhood = (): UseNeighborhoodState => {
         }
 
         const snapshot: NeighborhoodSnapshot = {
+          cityId: locationSnapshot.cityId,
           city: locationSnapshot.city,
           citySlug: locationSnapshot.citySlug,
           neighborhood: locationSnapshot.neighborhood,

@@ -42,6 +42,7 @@ service cloud.firestore {
     match /News/{doc}      { allow read: if true; }
     match /videoData/{doc} { allow read: if true; }
     match /Academy/{doc}   { allow read: if true; }
+    match /Neighborhoods/{doc} { allow read: if true; }
 
     /* ─────────── Location buckets por usuario ─────────── */
     match /users/{userId}/locationBuckets/{bucketId} {

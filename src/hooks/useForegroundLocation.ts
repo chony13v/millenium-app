@@ -33,6 +33,7 @@ const toDate = (value?: LocationBucketDocument["updatedAt"]): Date | null => {
 export interface ForegroundLocationSnapshot {
   userId: string;
   coords: Location.LocationObjectCoords;
+  cityId: string | null;
   city: string | null;
   citySlug: string | null;
   neighborhood: string | null;
@@ -178,6 +179,7 @@ export const ensureFreshLocationForUser = async ({
     if (shouldPersist) {
       await upsertUserLocation(userId, {
         locationOptIn: true,
+        cityId: inference.cityId,
         city: inference.city,
         citySlug: inference.citySlug,
         neighborhood: inference.neighborhood,
@@ -197,6 +199,7 @@ export const ensureFreshLocationForUser = async ({
     const snapshot: ForegroundLocationSnapshot = {
       userId,
       coords: coordsSnapshot,
+      cityId: inference.cityId,
       city: inference.city,
       citySlug: inference.citySlug,
       neighborhood: inference.neighborhood,

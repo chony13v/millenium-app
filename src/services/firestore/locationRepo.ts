@@ -12,6 +12,7 @@ const COLLECTION = "locationBuckets";
 
 export interface LocationBucketDocument {
   userId: string;
+  cityId: string | null;
   city: string | null;
   citySlug: string | null;
   neighborhood: string | null;
@@ -25,6 +26,7 @@ export interface LocationBucketDocument {
 }
 
 export type LocationBucketUpdate = {
+  cityId?: string | null;
   city?: string | null;
   citySlug?: string | null;
   neighborhood?: string | null;
@@ -49,6 +51,9 @@ export const upsertUserLocation = async (
 
   if ("city" in update) {
     payload.city = update.city ?? null;
+  }
+  if ("cityId" in update) {
+    payload.cityId = update.cityId ?? null;
   }
   if ("citySlug" in update) {
     payload.citySlug = update.citySlug ?? null;
@@ -89,6 +94,7 @@ export const getUserLocation = async (
 
   return {
     userId: data.userId ?? userId,
+    cityId: (data.cityId ?? null) as string | null,
     city: (data.city ?? null) as string | null,
     citySlug: (data.citySlug ?? null) as string | null,
     neighborhood: (data.neighborhood ?? null) as string | null,

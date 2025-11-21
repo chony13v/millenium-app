@@ -1,7 +1,8 @@
 import * as Location from "expo-location";
 import { getDistance } from "geolib";
 
-import { fetchNeighborhoodsByCitySlug } from "@/src/services/firestore/neighborhoods";
+import { getCityIdBySlug } from "@/constants/cities";
+import { fetchNeighborhoods } from "@/src/services/firestore/neighborhoods";
 
 export const toBucket = (value: number, step: number = 0.005): number => {
   if (!Number.isFinite(value) || !Number.isFinite(step) || step <= 0) {
@@ -31,6 +32,7 @@ export const slugify = (value: string | null | undefined): string | null => {
 };
 
 export interface InferredNeighborhood {
+  cityId: string | null;
   city: string | null;
   citySlug: string | null;
   neighborhood: string | null;
@@ -48,6 +50,7 @@ export const inferNeighborhoodFromCoords = async (
 
     if (!result) {
       return {
+        cityId: null,
         city: null,
         citySlug: null,
         neighborhood: null,
@@ -64,9 +67,10 @@ export const inferNeighborhoodFromCoords = async (
     const fallbackNeighborhood =
       result.district?.trim() || result.name?.trim() || null;
     const citySlug = slugify(city);
+    const cityId = getCityIdBySlug(citySlug);
 
     if (citySlug) {
-      const neighborhoods = await fetchNeighborhoodsByCitySlug(citySlug);
+      const neighborhoods = await fetchNeighborhoods({ cityId, citySlug });
       const match = neighborhoods
         .map((neighborhood) => {
           const latCenter =
@@ -128,6 +132,7 @@ export const inferNeighborhoodFromCoords = async (
           fallbackNeighborhood;
 
         return {
+          cityId,
           city,
           citySlug,
           neighborhood: name,
@@ -138,6 +143,7 @@ export const inferNeighborhoodFromCoords = async (
     }
 
     return {
+      cityId,
       city,
       citySlug,
       neighborhood: fallbackNeighborhood,
@@ -146,6 +152,7 @@ export const inferNeighborhoodFromCoords = async (
   } catch (error) {
     console.warn("inferNeighborhoodFromCoords failed", error);
     return {
+      cityId: null,
       city: null,
       citySlug: null,
       neighborhood: null,
