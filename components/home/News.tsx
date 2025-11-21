@@ -254,8 +254,20 @@ export default function News() {
           }
 
           if (result.status === "success" && result.location) {
+                        const inferredCityId = getCityIdBySlug(result.location.citySlug);
+            const nearbyCityId = inferredCityId ?? cityIdPreferred;
+
+            if (!nearbyCityId) {
+              setNearbyItems([]);
+              const preferred = await loadPreferredNews();
+              if (isActive) {
+                setPreferredItems(preferred);
+              }
+              return;
+            }
             const records = await loadNearbyNews<NewsFirestore>({
-              selectedCityId: getCityIdBySlug(result.location.citySlug),
+    
+                 selectedCityId: nearbyCityId,
               neighborhoodSlug: result.location.neighborhoodSlug ?? null,
               priority: "currentCity",
               scope: "city",
