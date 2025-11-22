@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   View,
   Text,
@@ -178,7 +184,11 @@ const NewsCard = React.memo(
   }
 );
 
-export default function News() {
+interface NewsProps {
+  refreshToken?: number;
+}
+
+export default function News({ refreshToken }: NewsProps) {
   const { ensureFreshLocation } = useForegroundLocation();
   const { selectedCity, hasHydrated } = useCitySelection();
 
@@ -233,122 +243,152 @@ export default function News() {
     }
   }, [cityIdPreferred, mapRecordsToNewsItems]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasHydrated) {
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const refreshNews = useCallback(
+    async ({ forceFresh = false }: { forceFresh?: boolean } = {}) => {
+      if (!hasHydrated || !isMountedRef.current) {
         return;
       }
-      let isActive = true;
 
-      const refreshNews = async () => {
-        setLoading(true);
-        setWarningMessage(null);
+      setLoading(true);
+      setWarningMessage(null);
 
-        try {
-          const result = await ensureFreshLocation({
-            maxAgeMs: SIX_HOURS_IN_MS,
+      try {
+        const result = await ensureFreshLocation({
+          maxAgeMs: forceFresh ? 0 : SIX_HOURS_IN_MS,
+        });
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        if (result.status === "success" && result.location) {
+          const inferredCityId = getCityIdBySlug(result.location.citySlug);
+          const nearbyCityId = inferredCityId ?? cityIdPreferred;
+
+          if (!nearbyCityId) {
+            setNearbyItems([]);
+            const preferred = await loadPreferredNews();
+            if (isMountedRef.current) {
+              setPreferredItems(preferred);
+            }
+            return;
+          }
+          const records = await loadNearbyNews<NewsFirestore>({
+            selectedCityId: nearbyCityId,
+            neighborhoodSlug: result.location.neighborhoodSlug ?? null,
+            priority: "currentCity",
+            scope: "city",
+            locationBucket: {
+              citySlug: result.location.citySlug,
+              neighborhoodSlug: result.location.neighborhoodSlug,
+            },
           });
 
-          if (!isActive) {
+          if (!isMountedRef.current) {
             return;
           }
 
-          if (result.status === "success" && result.location) {
-                        const inferredCityId = getCityIdBySlug(result.location.citySlug);
-            const nearbyCityId = inferredCityId ?? cityIdPreferred;
+          const nearby = mapRecordsToNewsItems(records);
+          setNearbyItems(nearby);
 
-            if (!nearbyCityId) {
-              setNearbyItems([]);
-              const preferred = await loadPreferredNews();
-              if (isActive) {
-                setPreferredItems(preferred);
-              }
-              return;
-            }
-            const records = await loadNearbyNews<NewsFirestore>({
-    
-                 selectedCityId: nearbyCityId,
-              neighborhoodSlug: result.location.neighborhoodSlug ?? null,
-              priority: "currentCity",
-              scope: "city",
-            });
-
-            if (!isActive) {
-              return;
-            }
-
-            const nearby = mapRecordsToNewsItems(records);
-            setNearbyItems(nearby);
-
-            const preferred = await loadPreferredNews();
-            if (!isActive) {
-              return;
-            }
-            setPreferredItems(preferred);
-          } else {
-            setNearbyItems([]);
-            const preferred = await loadPreferredNews();
-            if (!isActive) {
-              return;
-            }
-            setPreferredItems(preferred);
-
-            if (preferred.length === 0) {
-              if (result.status === "permission-denied") {
-                setWarningMessage(
-                  "Activa los permisos de ubicación desde la configuración para ver noticias cercanas."
-                );
-              } else if (result.status === "services-disabled") {
-                setWarningMessage(
-                  "Activa los servicios de ubicación de tu dispositivo para personalizar las noticias."
-                );
-              } else if (result.status === "opted-out") {
-                setWarningMessage(
-                  "Activa el contenido por barrio desde la configuración para recibir noticias locales."
-                );
-              } else if (result.status === "missing-user") {
-                setWarningMessage(
-                  "Inicia sesión para ver noticias personalizadas por ubicación."
-                );
-              }
-            }
-
+          const preferred = await loadPreferredNews();
+          if (!isMountedRef.current) {
             return;
           }
-        } catch (error) {
-          console.error("Error fetching nearby news:", error);
-          if (isActive) {
-            setNearbyItems([]);
-            const preferred = await loadPreferredNews();
-            if (!isActive) {
-              return;
-            }
-            setPreferredItems(preferred);
-            if (preferred.length === 0) {
+          setPreferredItems(preferred);
+        } else {
+          setNearbyItems([]);
+          const preferred = await loadPreferredNews();
+          if (!isMountedRef.current) {
+            return;
+          }
+          setPreferredItems(preferred);
+
+          if (preferred.length === 0) {
+            if (result.status === "permission-denied") {
               setWarningMessage(
-                "No pudimos cargar noticias cercanas. Inténtalo nuevamente más tarde."
+                "Activa los permisos de ubicación desde la configuración para ver noticias cercanas."
+              );
+            } else if (result.status === "services-disabled") {
+              setWarningMessage(
+                "Activa los servicios de ubicación de tu dispositivo para personalizar las noticias."
+              );
+            } else if (result.status === "opted-out") {
+              setWarningMessage(
+                "Activa el contenido por barrio desde la configuración para recibir noticias locales."
+              );
+            } else if (result.status === "missing-user") {
+              setWarningMessage(
+                "Inicia sesión para ver noticias personalizadas por ubicación."
               );
             }
           }
-        } finally {
-          if (isActive) {
-            setLoading(false);
+
+          return;
+        }
+      } catch (error) {
+        console.error("Error fetching nearby news:", error);
+        if (isMountedRef.current) {
+          setNearbyItems([]);
+          const preferred = await loadPreferredNews();
+          if (!isMountedRef.current) {
+            return;
+          }
+          setPreferredItems(preferred);
+          if (preferred.length === 0) {
+            setWarningMessage(
+              "No pudimos cargar noticias cercanas. Inténtalo nuevamente más tarde."
+            );
           }
         }
-      };
-
-      refreshNews();
-
-      return () => {
-        isActive = false;
-      };
-    }, [
+      } finally {
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [
       ensureFreshLocation,
       hasHydrated,
       loadPreferredNews,
       mapRecordsToNewsItems,
-    ])
+      cityIdPreferred,
+    ]
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      isMountedRef.current = true;
+      void refreshNews();
+
+      return () => {
+        isMountedRef.current = false;
+      };
+    }, [refreshNews])
+  );
+
+  const lastRefreshTokenRef = useRef<number | undefined>(refreshToken);
+
+  useEffect(() => {
+    if (refreshToken === undefined) {
+      return;
+    }
+
+    if (lastRefreshTokenRef.current === refreshToken) {
+      return;
+    }
+
+    lastRefreshTokenRef.current = refreshToken;
+    void refreshNews({ forceFresh: true });
+  }, [refreshNews, refreshToken]);
 
   const banner = useMemo(() => {
     if (!warningMessage) {

@@ -70,7 +70,9 @@ const fetchDocuments = async <T extends Record<string, unknown>>(
 
 export interface LoadNearbyNewsParams {
   selectedCityId?: string | null;
+  citySlug?: string | null;
   neighborhoodSlug?: string | null;
+  locationBucket?: LoadNewsParams["locationBucket"];
   maxResults?: number;
   priority?: NewsPriority;
   scope?: NewsAudienceScope;
@@ -187,6 +189,9 @@ export const loadNews = async <T extends Record<string, unknown>>({
     return [];
   }
 
+  console.log("[loadNews] selectedCityId:", normalizedCityId);
+  console.log("[loadNews] locationBucket:", locationBucket);
+
   const normalizedLimit = Math.max(0, Math.floor(maxResults));
   const limitConstraint =
     normalizedLimit > 0 ? [limit(normalizedLimit)] : ([] as QueryConstraint[]);
@@ -238,6 +243,10 @@ export const loadNews = async <T extends Record<string, unknown>>({
     const scope = (data as Record<string, unknown>)[SCOPE_FIELD];
     return scope !== "neighborhood";
   });
+  const normalizedNeighborhoodSlug =
+    normalizedCitySlug || normalizedCityId
+      ? locationBucket?.neighborhoodSlug?.trim() ?? null
+      : null;
 
   const neighborhoodSlug =
     normalizedCitySlug || normalizedCityId
@@ -248,7 +257,7 @@ export const loadNews = async <T extends Record<string, unknown>>({
   let neighborhoodConstraints: QueryConstraint[] = [];
   let newsFallbackConstraints: QueryConstraint[] = [];
 
-  if (neighborhoodSlug) {
+  if (normalizedNeighborhoodSlug) {
     const neighborhoodFilters = cityFilters.length
       ? cityFilters
       : [{ field: CITY_ID_FIELD, value: normalizedCityId as string }];
@@ -256,7 +265,7 @@ export const loadNews = async <T extends Record<string, unknown>>({
     for (const { field, value } of neighborhoodFilters) {
       neighborhoodConstraints = [
         where(field, "==", value),
-        where(NEIGHBORHOOD_SLUG_FIELD, "==", neighborhoodSlug),
+        where(NEIGHBORHOOD_SLUG_FIELD, "==", normalizedNeighborhoodSlug),
       ];
 
       newsFallbackConstraints = [
@@ -294,7 +303,7 @@ export const loadNews = async <T extends Record<string, unknown>>({
     }
   }
 
-  if (neighborhoodNews.length === 0 && neighborhoodSlug) {
+  if (neighborhoodNews.length === 0 && normalizedNeighborhoodSlug) {
     // Compatibilidad: si la colección específica del barrio aún no está
     // disponible, consultamos la colección general de noticias con scope.
     try {
@@ -315,7 +324,47 @@ export const loadNews = async <T extends Record<string, unknown>>({
     }
   }
 
-  const combined = sortByRecency([...filteredCityNews, ...neighborhoodNews]);
+  const orderedNeighborhoodNews = sortByRecency(neighborhoodNews);
+  const orderedCityNews = sortByRecency(filteredCityNews);
+
+  const allNews = [...filteredCityNews, ...neighborhoodNews];
+
+  console.log("[loadNews] total fetched News:", allNews.length);
+
+  const bucketNeighborhoodSlug =
+    typeof locationBucket?.neighborhoodSlug === "string"
+      ? locationBucket.neighborhoodSlug.trim()
+      : null;
+
+  const filteredNews = allNews.filter(({ data }) => {
+    const record = data as Record<string, unknown>;
+    const scope = record[SCOPE_FIELD];
+    const cityId =
+      typeof record[CITY_ID_FIELD] === "string"
+        ? (record[CITY_ID_FIELD] as string)
+        : null;
+    const neighborhoodSlug =
+      typeof record[NEIGHBORHOOD_SLUG_FIELD] === "string"
+        ? (record[NEIGHBORHOOD_SLUG_FIELD] as string)
+        : null;
+
+    if (scope === "city" || scope === undefined || scope === null) {
+      return cityId === normalizedCityId;
+    }
+
+    if (scope === "neighborhood") {
+      return (
+        cityId === normalizedCityId &&
+        !!bucketNeighborhoodSlug &&
+        neighborhoodSlug === bucketNeighborhoodSlug
+      );
+    }
+
+    return false;
+  });
+
+  const combined = sortByRecency(filteredNews);
+
   return normalizedLimit > 0 ? combined.slice(0, normalizedLimit) : combined;
 };
 
@@ -328,6 +377,7 @@ export const loadNews = async <T extends Record<string, unknown>>({
 export const loadNearbyNews = async <T extends Record<string, unknown>>({
   selectedCityId,
   neighborhoodSlug = null,
+  locationBucket,
   maxResults = DEFAULT_NEWS_LIMIT,
   priority = "currentCity",
   scope = "city",
@@ -348,8 +398,8 @@ export const loadNearbyNews = async <T extends Record<string, unknown>>({
   const news = await loadNews<T>({
     selectedCityId: normalizedCityId,
     locationBucket: {
-      citySlug: normalizedCityId,
-      neighborhoodSlug,
+      citySlug: locationBucket?.citySlug ?? normalizedCityId,
+      neighborhoodSlug: locationBucket?.neighborhoodSlug ?? neighborhoodSlug,
     },
     maxResults,
   });

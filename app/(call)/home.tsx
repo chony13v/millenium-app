@@ -39,7 +39,9 @@ const formatLocationLabel = (
   }
 
   const pieces = [location.neighborhood, location.city]
-    .filter((value): value is string => Boolean(value && value.trim().length > 0))
+    .filter((value): value is string =>
+      Boolean(value && value.trim().length > 0)
+    )
     .map((value) => value.trim());
 
   if (pieces.length > 0) {
@@ -64,6 +66,7 @@ export default function HomeScreen() {
   const { ensureFreshLocation, lastKnownLocation } = useForegroundLocation();
   const [lastManualLocation, setLastManualLocation] =
     useState<ForegroundLocationSnapshot | null>(null);
+  const [newsRefreshToken, setNewsRefreshToken] = useState(0);
 
   useEffect(() => {
     void ensureFreshLocation({ maxAgeMs: SIX_HOURS_IN_MS });
@@ -99,6 +102,10 @@ export default function HomeScreen() {
     return formatLocationLabel(lastManualLocation ?? lastKnownLocation ?? null);
   }, [lastKnownLocation, lastManualLocation, lastPlaceLabel]);
 
+  const activeLocation = useMemo(
+    () => lastManualLocation ?? lastKnownLocation ?? null,
+    [lastKnownLocation, lastManualLocation]
+  );
   const handleLocationUpdate = useCallback(
     async (source?: string) => {
       if (isUpdatingLocation) {
@@ -107,61 +114,63 @@ export default function HomeScreen() {
 
       setIsUpdatingLocation(true);
       try {
-      const result = await ensureFreshLocation({ maxAgeMs: 0 });
+        const result = await ensureFreshLocation({ maxAgeMs: 0 });
 
+        if (result.status === "success" && result.location) {
+          setLastManualLocation(result.location);
+          const label = formatLocationLabel(result.location);
 
-      if (result.status === "success" && result.location) {
-        setLastManualLocation(result.location);
-        const label = formatLocationLabel(result.location);
+          if (label) {
+            setLastPlaceLabel(label);
+          }
+          setNewsRefreshToken((token) => token + 1);
 
-        if (label) {
-          setLastPlaceLabel(label);
+          Alert.alert(
+            "Ubicación actualizada",
+            label
+              ? `Ahora te mostraremos noticias y canchas cercanas a ${label}.`
+              : "Guardamos tu ubicación para personalizar el contenido."
+          );
+          return;
         }
 
+        let message =
+          "Ocurrió un error al obtener tu ubicación. Inténtalo nuevamente más tarde.";
+
+        switch (result.status) {
+          case "services-disabled":
+            message =
+              "Activa los servicios de ubicación en tu dispositivo para poder mostrarte contenido cercano.";
+            break;
+          case "permission-denied":
+            message =
+              'Necesitamos tu permiso para acceder a la ubicación. Puedes activarlo cuando quieras desde el botón de "Actualizar ubicación".';
+            break;
+          case "opted-out":
+            message =
+              "Activa el contenido por barrio desde la configuración para personalizar tus recomendaciones.";
+            break;
+          case "missing-user":
+            message =
+              "Inicia sesión para actualizar tu ubicación y ver contenido personalizado.";
+            break;
+          default:
+            break;
+        }
+
+        Alert.alert("No pudimos actualizar tu ubicación", message);
+      } catch (error) {
+        console.warn("handleLocationUpdate failed", error);
         Alert.alert(
-          "Ubicación actualizada",
-          label
-            ? `Ahora te mostraremos noticias y canchas cercanas a ${label}.`
-            : "Guardamos tu ubicación para personalizar el contenido."
+          "No pudimos actualizar tu ubicación",
+          "Ocurrió un error inesperado. Inténtalo nuevamente más tarde."
         );
-        return;
+      } finally {
+        setIsUpdatingLocation(false);
       }
-
-      let message =
-        "Ocurrió un error al obtener tu ubicación. Inténtalo nuevamente más tarde.";
-
-      switch (result.status) {
-        case "services-disabled":
-          message =
-            "Activa los servicios de ubicación en tu dispositivo para poder mostrarte contenido cercano.";
-          break;
-        case "permission-denied":
-          message =
-            'Necesitamos tu permiso para acceder a la ubicación. Puedes activarlo cuando quieras desde el botón de "Actualizar ubicación".';
-          break;
-        case "opted-out":
-          message =
-            "Activa el contenido por barrio desde la configuración para personalizar tus recomendaciones.";
-          break;
-        case "missing-user":
-          message =
-            "Inicia sesión para actualizar tu ubicación y ver contenido personalizado.";
-          break;
-        default:
-          break;
-      }
- 
-      Alert.alert("No pudimos actualizar tu ubicación", message);
-    } catch (error) {
-      console.warn("handleLocationUpdate failed", error);
-      Alert.alert(
-        "No pudimos actualizar tu ubicación",
-        "Ocurrió un error inesperado. Inténtalo nuevamente más tarde."
-      );
-    } finally {
-      setIsUpdatingLocation(false);
-    }
-  }, [ensureFreshLocation, isUpdatingLocation]);
+    },
+    [ensureFreshLocation, isUpdatingLocation]
+  );
 
   useEffect(() => {
     const LOCATION_OPT_IN_KEY = "@millenium:location-opt-in";
@@ -235,6 +244,12 @@ export default function HomeScreen() {
                     Activa la ubicación para ver noticias locales y canchas
                     cercanas.
                   </Text>
+                 {activeLocation?.isWithinNeighborhoodRadius &&
+                    activeLocation.neighborhoodDescription && (
+                      <Text style={styles.locationNeighborhoodDescription}>
+                        {activeLocation.neighborhoodDescription}
+                      </Text>
+                    )}
                   {savedLocationLabel && (
                     <Text style={styles.locationStatus}>
                       Última ubicación guardada: {savedLocationLabel}
@@ -260,7 +275,7 @@ export default function HomeScreen() {
                 </View>
                 <CategoryIcons />
                 <Academy />
-                <News />
+                <News refreshToken={newsRefreshToken} />
               </>
             )}
             keyExtractor={(item) => item.key}
@@ -297,6 +312,12 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-regular",
     fontSize: 14,
     lineHeight: 20,
+  },
+  locationNeighborhoodDescription: {
+    color: "#FFFFFF",
+    fontFamily: "barlow-medium",
+    fontSize: 14,
+    marginTop: 8,
   },
   locationStatus: {
     color: "#A5B4FC",

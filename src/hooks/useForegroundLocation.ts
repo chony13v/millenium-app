@@ -38,6 +38,8 @@ export interface ForegroundLocationSnapshot {
   citySlug: string | null;
   neighborhood: string | null;
   neighborhoodSlug: string | null;
+  neighborhoodDescription: string | null;
+  isWithinNeighborhoodRadius: boolean;
   latBucket: number;
   lonBucket: number;
   accuracy: number | null;
@@ -204,6 +206,8 @@ export const ensureFreshLocationForUser = async ({
       citySlug: inference.citySlug,
       neighborhood: inference.neighborhood,
       neighborhoodSlug: inference.neighborhoodSlug,
+      neighborhoodDescription: inference.neighborhoodDescription,
+      isWithinNeighborhoodRadius: inference.isWithinNeighborhoodRadius,
       latBucket,
       lonBucket,
       accuracy,

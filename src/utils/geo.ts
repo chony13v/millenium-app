@@ -37,7 +37,24 @@ export interface InferredNeighborhood {
   citySlug: string | null;
   neighborhood: string | null;
   neighborhoodSlug: string | null;
+  neighborhoodDescription: string | null;
+  isWithinNeighborhoodRadius: boolean;
 }
+const getRadiusKm = (
+  neighborhood: Awaited<ReturnType<typeof fetchNeighborhoods>>[number]
+): number | null => {
+  if (typeof neighborhood.radiusKm2 === "number") {
+    return neighborhood.radiusKm2;
+  }
+
+  if (typeof (neighborhood as unknown as Record<string, unknown>).radiusKm === "number") {
+    return (neighborhood as unknown as Record<string, number>).radiusKm;
+  }
+
+  return null;
+};
+
+const DEFAULT_RADIUS_KM = 2;
 
 export const inferNeighborhoodFromCoords = async (
   coords: Location.LocationObjectCoords
@@ -55,6 +72,8 @@ export const inferNeighborhoodFromCoords = async (
         citySlug: null,
         neighborhood: null,
         neighborhoodSlug: null,
+        neighborhoodDescription: null,
+        isWithinNeighborhoodRadius: false,
       };
     }
 
@@ -81,16 +100,12 @@ export const inferNeighborhoodFromCoords = async (
             typeof neighborhood.lngCenter === "number"
               ? neighborhood.lngCenter
               : null;
-          const radiusKm =
-            typeof neighborhood.radiusKm2 === "number"
-              ? neighborhood.radiusKm2
-              : null;
+               const radiusKm = getRadiusKm(neighborhood);
 
           if (
             latCenter === null ||
             lngCenter === null ||
-            radiusKm === null ||
-            radiusKm <= 0
+     (radiusKm !== null && radiusKm <= 0)
           ) {
             return null;
           }
@@ -117,10 +132,7 @@ export const inferNeighborhoodFromCoords = async (
           } => Boolean(item)
         )
         .filter(({ neighborhood, distanceMeters }) => {
-          const radiusKm =
-            typeof neighborhood.radiusKm2 === "number"
-              ? neighborhood.radiusKm2
-              : 0;
+           const radiusKm = getRadiusKm(neighborhood) ?? DEFAULT_RADIUS_KM;
           return distanceMeters <= radiusKm * 1000;
         })
         .sort((a, b) => a.distanceMeters - b.distanceMeters)[0];
@@ -138,6 +150,12 @@ export const inferNeighborhoodFromCoords = async (
           neighborhood: name,
           neighborhoodSlug:
             match.neighborhood.neighborhoodSlug ?? slugify(name),
+            
+           neighborhoodDescription:
+            typeof match.neighborhood.description === "string"
+              ? match.neighborhood.description
+              : null,
+          isWithinNeighborhoodRadius: true,
         };
       }
     }
@@ -148,6 +166,8 @@ export const inferNeighborhoodFromCoords = async (
       citySlug,
       neighborhood: fallbackNeighborhood,
       neighborhoodSlug: slugify(fallbackNeighborhood),
+ neighborhoodDescription: null,
+      isWithinNeighborhoodRadius: false,
     };
   } catch (error) {
     console.warn("inferNeighborhoodFromCoords failed", error);
@@ -157,6 +177,8 @@ export const inferNeighborhoodFromCoords = async (
       citySlug: null,
       neighborhood: null,
       neighborhoodSlug: null,
+     neighborhoodDescription: null,
+      isWithinNeighborhoodRadius: false,
     };
   }
 };

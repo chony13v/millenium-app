@@ -6,6 +6,8 @@ import {
   logLocationUpdate,
   logNeighborhoodInferred,
 } from "@/src/analytics";
+import { analytics } from "@/config/FirebaseConfig";
+import { logEvent } from "firebase/analytics";
 import {
   getUserLocation,
   upsertUserLocation,
@@ -193,6 +195,25 @@ export const useNeighborhood = (): UseNeighborhoodState => {
           neighborhood: locationSnapshot.neighborhood,
           accuracy: locationSnapshot.accuracy,
         });
+
+                const bucketId =
+          Number.isFinite(locationSnapshot.latBucket) &&
+          Number.isFinite(locationSnapshot.lonBucket)
+            ? `${locationSnapshot.latBucket},${locationSnapshot.lonBucket}`
+            : null;
+
+        if (analytics) {
+          try {
+            logEvent(analytics, "location_update", {
+              cityId: snapshot.cityId ?? null,
+              neighborhoodSlug: snapshot.neighborhoodSlug ?? null,
+              bucketId,
+            });
+          } catch (eventError) {
+            console.warn("Failed to log location_update", eventError);
+          }
+        }
+
         return snapshot;
       } catch (error) {
         console.warn("Failed to refresh neighborhood", error);

@@ -53,9 +53,10 @@ const logSafely = async (
   params?: AnalyticsParams | null
 ) => {
   try {
-   const payload = sanitizeAnalyticsParams(params ?? {});
+const payload = sanitizeAnalyticsParams(params ?? {});
+    const hasParams = Object.keys(payload).length > 0;
 
-    if (payload) {
+    if (hasParams) {
       await Analytics.logEvent(eventName, payload);
     } else {
       await Analytics.logEvent(eventName);
