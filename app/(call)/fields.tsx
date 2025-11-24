@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
-  
 } from "react-native";
 import React, {
   useEffect,
@@ -63,6 +62,9 @@ export default function Field() {
     {}
   );
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
+  const [prefetchStatus, setPrefetchStatus] = useState<
+    Record<string, "pending" | "loaded" | "failed">
+  >({});
   const imageLoadTimeouts = useRef<{
     [key: string]: ReturnType<typeof setTimeout>;
   }>({});
@@ -237,6 +239,63 @@ export default function Field() {
     }
   }, [userLocation, fieldList, calculateDistances]);
 
+  useEffect(() => {
+    if (fieldList.length === 0) {
+      return;
+    }
+
+    let isMounted = true;
+    const prefetchTimeouts: ReturnType<typeof setTimeout>[] = [];
+
+    const prefetchImage = async (field: FieldItem) => {
+      setImageError((prev) => ({ ...prev, [field.id]: false }));
+      setPrefetchStatus((prev) => ({ ...prev, [field.id]: "pending" }));
+
+      return new Promise<void>((resolve) => {
+        const timeoutId = setTimeout(() => {
+          if (!isMounted) return resolve();
+          setPrefetchStatus((prev) => ({ ...prev, [field.id]: "failed" }));
+          setImageError((prev) => ({ ...prev, [field.id]: true }));
+          resolve();
+        }, 12000);
+
+        prefetchTimeouts.push(timeoutId);
+
+        Image.prefetch(field.imageUrl)
+          .then((success) => {
+            if (!isMounted) return;
+            clearTimeout(timeoutId);
+            if (success) {
+              setPrefetchStatus((prev) => ({ ...prev, [field.id]: "loaded" }));
+            } else {
+              setPrefetchStatus((prev) => ({ ...prev, [field.id]: "failed" }));
+              setImageError((prev) => ({ ...prev, [field.id]: true }));
+            }
+          })
+          .catch(() => {
+            if (!isMounted) return;
+            clearTimeout(timeoutId);
+            setPrefetchStatus((prev) => ({ ...prev, [field.id]: "failed" }));
+            setImageError((prev) => ({ ...prev, [field.id]: true }));
+          })
+          .finally(() => {
+            resolve();
+          });
+      });
+    };
+
+    const warmUpImages = async () => {
+      await Promise.all(fieldList.map((field) => prefetchImage(field)));
+    };
+
+    void warmUpImages();
+
+    return () => {
+      isMounted = false;
+      prefetchTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+    };
+  }, [fieldList]);
+
   // Memoize the sorted list to prevent unnecessary re-sorting
   const sortedFieldList = useMemo(() => {
     if (!distances || fieldList.length === 0) return fieldList;
@@ -247,86 +306,100 @@ export default function Field() {
     });
   }, [fieldList, distances]);
 
-  const renderItem = ({ item }: { item: FieldItem }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.imageContainer}>
-        <Image
-          source={{
-            uri: item.imageUrl,
-            cache: "force-cache",
-            headers: {
-              Pragma: "no-cache",
-            },
-          }}
-          style={styles.image}
-          resizeMode="cover"
-          onLoadStart={() => {
-            setImageLoading((prev) => ({ ...prev, [item.id]: true }));
-            if (imageLoadTimeouts.current[item.id]) {
-              clearTimeout(imageLoadTimeouts.current[item.id]);
-            }
-            imageLoadTimeouts.current[item.id] = setTimeout(() => {
+  const renderItem = ({ item }: { item: FieldItem }) => {
+    const hasPrefetchedImage = prefetchStatus[item.id] === "loaded";
+
+    return (
+      <View style={styles.itemContainer}>
+        <View style={styles.imageContainer}>
+          <Image
+            source={{
+              uri: item.imageUrl,
+              cache: "force-cache",
+              headers: {
+                Pragma: "no-cache",
+              },
+            }}
+            style={styles.image}
+            resizeMode="cover"
+            onLoadStart={() => {
+              if (hasPrefetchedImage) {
+                setImageLoading((prev) => ({ ...prev, [item.id]: false }));
+                return;
+              }
+
+              setImageLoading((prev) => ({ ...prev, [item.id]: true }));
+              if (imageLoadTimeouts.current[item.id]) {
+                clearTimeout(imageLoadTimeouts.current[item.id]);
+              }
+              imageLoadTimeouts.current[item.id] = setTimeout(() => {
+                setImageError((prev) => ({ ...prev, [item.id]: true }));
+                setImageLoading((prev) => ({ ...prev, [item.id]: false }));
+                console.warn(
+                  "Tiempo de carga excedido para la imagen:",
+                  item.imageUrl
+                );
+              }, 15000);
+            }}
+            onLoadEnd={() => {
+              if (imageLoadTimeouts.current[item.id]) {
+                clearTimeout(imageLoadTimeouts.current[item.id]);
+                delete imageLoadTimeouts.current[item.id];
+              }
+              setImageLoading((prev) => ({ ...prev, [item.id]: false }));
+            }}
+            onError={() => {
+              if (imageLoadTimeouts.current[item.id]) {
+                clearTimeout(imageLoadTimeouts.current[item.id]);
+                delete imageLoadTimeouts.current[item.id];
+              }
               setImageError((prev) => ({ ...prev, [item.id]: true }));
               setImageLoading((prev) => ({ ...prev, [item.id]: false }));
-              console.warn(
-                "Tiempo de carga excedido para la imagen:",
-                item.imageUrl
-              );
-            }, 10000);
-          }}
-          onLoadEnd={() => {
-            if (imageLoadTimeouts.current[item.id]) {
-              clearTimeout(imageLoadTimeouts.current[item.id]);
-              delete imageLoadTimeouts.current[item.id];
+              console.warn("Error loading image:", item.imageUrl);
+            }}
+            defaultSource={require("@/assets/images/placeholder.png")} // Add a default placeholder image
+          />
+          {imageLoading[item.id] && (
+            <View style={styles.imageLoaderContainer}>
+              <LoadingBall text="Cargando imagen..." />
+            </View>
+          )}
+          {imageError[item.id] && (
+            <View style={styles.errorContainer}>
+              <FontAwesome name="image" size={40} color="#666" />
+              <Text style={styles.errorText}>No se pudo cargar la imagen</Text>
+            </View>
+          )}
+        </View>
+        <View style={styles.textContainer}>
+          <TouchableOpacity
+            style={styles.titleContainer}
+            onPress={() =>
+              handleLocationPress(
+                item.locationUrl,
+                item.latitude,
+                item.longitude
+              )
             }
-            setImageLoading((prev) => ({ ...prev, [item.id]: false }));
-          }}
-          onError={() => {
-            if (imageLoadTimeouts.current[item.id]) {
-              clearTimeout(imageLoadTimeouts.current[item.id]);
-              delete imageLoadTimeouts.current[item.id];
-            }
-            setImageError((prev) => ({ ...prev, [item.id]: true }));
-            setImageLoading((prev) => ({ ...prev, [item.id]: false }));
-            console.warn("Error loading image:", item.imageUrl);
-          }}
-          defaultSource={require("@/assets/images/placeholder.png")} // Add a default placeholder image
-        />
-        {imageLoading[item.id] && (
-          <View style={styles.imageLoaderContainer}>
-            <LoadingBall text="Cargando imagen..." />
-          </View>
-        )}
-        {imageError[item.id] && (
-          <View style={styles.errorContainer}>
-            <FontAwesome name="image" size={40} color="#666" />
-            <Text style={styles.errorText}>No se pudo cargar la imagen</Text>
-          </View>
-        )}
+          >
+            <Text style={styles.headerTitle}>{item.title}</Text>
+            <MaterialIcons name="location-on" size={20} color="#4630EB" />
+          </TouchableOpacity>
+          {distances[item.id] !== undefined && (
+            <Text style={styles.distanceText}>
+              {(distances[item.id] / 1000).toFixed(2)} km de distancia
+            </Text>
+          )}
+        </View>
       </View>
-      <View style={styles.textContainer}>
-        <TouchableOpacity
-          style={styles.titleContainer}
-          onPress={() =>
-            handleLocationPress(item.locationUrl, item.latitude, item.longitude)
-          }
-        >
-          <Text style={styles.headerTitle}>{item.title}</Text>
-          <MaterialIcons name="location-on" size={20} color="#4630EB" />
-        </TouchableOpacity>
-        {distances[item.id] !== undefined && (
-          <Text style={styles.distanceText}>
-            {(distances[item.id] / 1000).toFixed(2)} km de distancia
-          </Text>
-        )}
-      </View>
-    </View>
-  );
+    );
+  };
 
   const memoizedRenderItem = useCallback(renderItem, [
     distances,
     imageLoading,
     imageError,
+    prefetchStatus,
   ]);
 
   const handleUpdateLocationBucket = useCallback(async () => {
@@ -350,6 +423,7 @@ export default function Field() {
       setIsUpdatingLocation(true);
       const result = await updateUserLocationBucket({
         userId: user.id,
+        userEmail: user.primaryEmailAddress?.emailAddress,
         cityId: selectedCity,
       });
 
@@ -368,7 +442,7 @@ export default function Field() {
     } finally {
       setIsUpdatingLocation(false);
     }
-  }, [selectedCity, user?.id]);
+  }, [selectedCity, user?.id, user?.primaryEmailAddress?.emailAddress]);
 
   if (!hasHydrated) {
     return <LoadingBall text="Cargando ciudades..." />;

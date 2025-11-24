@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /* ─────────── mensajesContacto ─────────── */
+    match /mensajesContacto/{docId} {
+
+      /* Escritura anónima permitida, con validaciones básicas y fecha de caducidad */
+      allow write: if
+          request.time < timestamp.date(2026, 1, 1) &&           // ▸ vence el 1‑ene‑2026
+          request.resource.data.keys().hasOnly(
+            ['nombre','email','mensaje','timestamp']
+          ) &&
+          request.resource.data.nombre is string &&
+          request.resource.data.email  is string &&
+          request.resource.data.mensaje is string &&
+          request.resource.data.nombre.size()  <= 80 &&
+          request.resource.data.email.size()   <= 120 &&
+          request.resource.data.mensaje.size() <= 2000;
+
+      /* Nadie puede leer públicamente la bandeja */
+      allow read: if false;
+    }
+
+    /* ─────────── GlobalEvents (igual que antes) ─────────── */
+    match /GlobalEvents/{eventId} {
+      allow read: if true;
+      allow write, delete:
+        if request.auth != null &&
+           request.auth.token.email == "f13vasconez@gmail.com";
+    }
+
+    /* Participantes: mantiene regla abierta de prueba */
+    match /Participantes/{userId} {
+      allow read:  if true;
+      allow write: if true;
+    }
+
+    /* Colecciones públicas de solo lectura */
+    match /Field/{doc}     { allow read: if true; }
+    match /Category/{doc}  { allow read: if true; }
+    match /News/{doc}      { allow read: if true; }
+    match /videoData/{doc} { allow read: if true; }
+    match /Academy/{doc}   { allow read: if true; }
+
+    /* ─────────── Location buckets por usuario ─────────── */
+    match /users/{userId}/locationBuckets/{bucketId} {
+      function isOwner() {
+        return request.auth != null &&
+          (request.auth.uid == userId ||
+           (request.auth.token.email != null && request.auth.token.email == userId));
+      }
+
+      function isValidPlaceField(field) {
+        return field is string || field == null;
+      }
+
+      allow read: if isOwner();
+      allow write: if isOwner()
+        && request.resource.data.keys().hasOnly([
+          'bucketId',
+          'latCenter',
+          'lngCenter',
+          'count',
+          'updatedAt',
+          'source',
+          'lastResolvedNeighborhood',
+          'lastResolvedCity',
+          'lastResolvedRegion',
+          'lastResolvedCountry',
+          'lastResolvedIsoCountry',
+          'lastResolvedFormatted'
+        ])
+        && request.resource.data.bucketId is string
+        && request.resource.data.bucketId == bucketId
+        && request.resource.data.latCenter is number
+        && request.resource.data.lngCenter is number
+        && request.resource.data.count is number
+        && request.resource.data.updatedAt is timestamp
+        && (!('source' in request.resource.data) || request.resource.data.source is string)
+        && (!('lastResolvedNeighborhood' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedNeighborhood))
+        && (!('lastResolvedCity' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedCity))
+        && (!('lastResolvedRegion' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedRegion))
+        && (!('lastResolvedCountry' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedCountry))
+        && (!('lastResolvedIsoCountry' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedIsoCountry))
+        && (!('lastResolvedFormatted' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedFormatted));
+    }
+
+    /* ─────────── Location buckets global por usuario ─────────── */
+    match /locationBuckets/{docId} {
+      function isOwnerField(userId) {
+        return request.auth != null &&
+          (request.auth.uid == userId ||
+           (request.auth.token.email != null && request.auth.token.email == userId));
+      }
+
+      function isNullableString(field) {
+        return field is string || field == null;
+      }
+
+      function isNullableNumber(field) {
+        return field is number || field == null;
+      }
+
+      function hasValidCoords(coords) {
+        return coords is map &&
+          coords.keys().hasOnly(['latitude', 'longitude', 'accuracy']) &&
+          coords.latitude is number &&
+          coords.longitude is number &&
+          isNullableNumber(coords.accuracy);
+      }
+
+      allow read: if isOwnerField(resource.data.userId);
+      allow write: if request.resource != null && isOwnerField(request.resource.data.userId)
+        && request.resource.data.keys().hasOnly([
+          'userId',
+          'userEmail',
+          'consentGiven',
+          'coords',
+          'cityId',
+          'bucketId',
+          'createdAt'
+        ])
+        && request.resource.data.userId is string
+        && request.resource.data.bucketId is string
+        && request.resource.data.consentGiven is bool
+        && isNullableString(request.resource.data.userEmail)
+        && isNullableString(request.resource.data.cityId)
+        && hasValidCoords(request.resource.data.coords)
+        && request.resource.data.createdAt is timestamp;
+    }
+  }
+}

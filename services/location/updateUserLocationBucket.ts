@@ -9,6 +9,7 @@ const BUCKET_SIZE = 0.02; // ~2 km grid depending on latitude
 type UpdateUserLocationBucketParams = {
   userId: string;
   cityId: CityId | null;
+  userEmail?: string | null;
 };
 
 type UpdateUserLocationBucketResult = {
@@ -36,6 +37,7 @@ const deriveBucketId = (coords: Location.LocationObjectCoords) => {
 
 export const updateUserLocationBucket = async ({
   userId,
+  userEmail,
   cityId,
 }: UpdateUserLocationBucketParams): Promise<UpdateUserLocationBucketResult> => {
   const servicesEnabled = await Location.hasServicesEnabledAsync();
@@ -73,6 +75,7 @@ export const updateUserLocationBucket = async ({
 
   await addDoc(collection(db, "locationBuckets"), {
     userId,
+    userEmail: userEmail ?? null,
     consentGiven: true,
     coords: {
       latitude: position.coords.latitude,
