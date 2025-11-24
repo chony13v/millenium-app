@@ -12,7 +12,10 @@
     "owner": "chony13v",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.chony.milleniumapp"
+      "bundleIdentifier": "com.chony.milleniumapp",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to show nearby fields and do not share it with third parties."
+      }
     },
     "android": {
       "adaptiveIcon": {

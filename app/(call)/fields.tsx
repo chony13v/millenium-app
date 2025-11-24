@@ -8,8 +8,16 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
+  
 } from "react-native";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
 import * as Location from "expo-location";
@@ -18,6 +26,8 @@ import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import LoadingBall from "@/components/LoadingBall";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import type { CityId } from "@/constants/cities";
+import { useUser } from "@clerk/clerk-expo";
+import { updateUserLocationBucket } from "@/services/location/updateUserLocationBucket";
 
 interface FieldItem {
   id: string;
@@ -41,7 +51,6 @@ const handleLocationPress = (
     Linking.openURL(url);
   }
 };
-
 const screenWidth = Dimensions.get("window").width;
 
 export default function Field() {
@@ -54,13 +63,23 @@ export default function Field() {
     {}
   );
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
-  const { selectedCity, hasHydrated } = useCitySelection();
+  const imageLoadTimeouts = useRef<{
+    [key: string]: ReturnType<typeof setTimeout>;
+  }>({});
 
   useEffect(() => {
-    getUserLocation();
+    return () => {
+      Object.values(imageLoadTimeouts.current).forEach((timeoutId) => {
+        clearTimeout(timeoutId);
+      });
+    };
   }, []);
+  const { selectedCity, hasHydrated } = useCitySelection();
+  const { user } = useUser();
+  const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const lastPromptTimeRef = useRef<number | null>(null);
 
-    useEffect(() => {
+  useEffect(() => {
     setDistances({});
   }, [selectedCity]);
 
@@ -119,8 +138,7 @@ export default function Field() {
     };
   }, [selectedCity, hasHydrated]);
 
-
-  const getUserLocation = async () => {
+  const getUserLocation = useCallback(async () => {
     try {
       const servicesEnabled = await Location.hasServicesEnabledAsync();
       if (!servicesEnabled) {
@@ -173,7 +191,23 @@ export default function Field() {
         "Ocurrió un problema al obtener tu ubicación. Inténtalo nuevamente más tarde."
       );
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    getUserLocation();
+  }, [getUserLocation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const now = Date.now();
+      const lastPrompt = lastPromptTimeRef.current;
+
+      if (!lastPrompt || now - lastPrompt > 5 * 60 * 1000) {
+        lastPromptTimeRef.current = now;
+        void getUserLocation();
+      }
+    }, [getUserLocation])
+  );
 
   const calculateDistances = useCallback(
     (fields: FieldItem[]) => {
@@ -226,13 +260,32 @@ export default function Field() {
           }}
           style={styles.image}
           resizeMode="cover"
-          onLoadStart={() =>
-            setImageLoading((prev) => ({ ...prev, [item.id]: true }))
-          }
-          onLoadEnd={() =>
-            setImageLoading((prev) => ({ ...prev, [item.id]: false }))
-          }
+          onLoadStart={() => {
+            setImageLoading((prev) => ({ ...prev, [item.id]: true }));
+            if (imageLoadTimeouts.current[item.id]) {
+              clearTimeout(imageLoadTimeouts.current[item.id]);
+            }
+            imageLoadTimeouts.current[item.id] = setTimeout(() => {
+              setImageError((prev) => ({ ...prev, [item.id]: true }));
+              setImageLoading((prev) => ({ ...prev, [item.id]: false }));
+              console.warn(
+                "Tiempo de carga excedido para la imagen:",
+                item.imageUrl
+              );
+            }, 10000);
+          }}
+          onLoadEnd={() => {
+            if (imageLoadTimeouts.current[item.id]) {
+              clearTimeout(imageLoadTimeouts.current[item.id]);
+              delete imageLoadTimeouts.current[item.id];
+            }
+            setImageLoading((prev) => ({ ...prev, [item.id]: false }));
+          }}
           onError={() => {
+            if (imageLoadTimeouts.current[item.id]) {
+              clearTimeout(imageLoadTimeouts.current[item.id]);
+              delete imageLoadTimeouts.current[item.id];
+            }
             setImageError((prev) => ({ ...prev, [item.id]: true }));
             setImageLoading((prev) => ({ ...prev, [item.id]: false }));
             console.warn("Error loading image:", item.imageUrl);
@@ -276,7 +329,48 @@ export default function Field() {
     imageError,
   ]);
 
-    if (!hasHydrated) {
+  const handleUpdateLocationBucket = useCallback(async () => {
+    if (!user?.id) {
+      Alert.alert(
+        "Inicia sesión",
+        "Necesitas iniciar sesión para actualizar tu ubicación."
+      );
+      return;
+    }
+
+    if (!selectedCity) {
+      Alert.alert(
+        "Selecciona una ciudad",
+        "Elige una ciudad antes de actualizar tu ubicación."
+      );
+      return;
+    }
+
+    try {
+      setIsUpdatingLocation(true);
+      const result = await updateUserLocationBucket({
+        userId: user.id,
+        cityId: selectedCity,
+      });
+
+      setUserLocation(result.coords);
+
+      Alert.alert(
+        "Ubicación actualizada",
+        "Gracias por compartir tu ubicación para mejorar las recomendaciones."
+      );
+    } catch (error) {
+      console.error("Error al actualizar la ubicación del usuario:", error);
+      Alert.alert(
+        "No se pudo actualizar",
+        "Intenta nuevamente más tarde o verifica los permisos de ubicación."
+      );
+    } finally {
+      setIsUpdatingLocation(false);
+    }
+  }, [selectedCity, user?.id]);
+
+  if (!hasHydrated) {
     return <LoadingBall text="Cargando ciudades..." />;
   }
 
@@ -292,12 +386,11 @@ export default function Field() {
     );
   }
 
-
   if (loading) {
     return <LoadingBall text="Cargando campos deportivos..." />;
   }
 
-    if (fieldList.length === 0) {
+  if (fieldList.length === 0) {
     return (
       <View style={styles.emptyStateContainer}>
         <Text style={styles.emptyStateTitle}>
@@ -310,10 +403,36 @@ export default function Field() {
     );
   }
 
-
   return (
     <FlatList
-      ListHeaderComponent={<Text style={styles.title}>Centros deportivos</Text>}
+      ListHeaderComponent={
+        <View style={styles.headerContainer}>
+          <View style={styles.consentCard}>
+            <Text style={styles.consentTitle}>
+              Permite ver canchas cercanas
+            </Text>
+            <Text style={styles.consentDescription}>
+              Con tu consentimiento, guardamos una versión aproximada de tu
+              ubicación para mostrarte centros deportivos cercanos.
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.consentButton,
+                isUpdatingLocation && { opacity: 0.7 },
+              ]}
+              onPress={handleUpdateLocationBucket}
+              disabled={isUpdatingLocation}
+            >
+              <Text style={styles.consentButtonText}>
+                {isUpdatingLocation ? "Actualizando..." : "Actualizar ahora"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.title}>Centros deportivos</Text>
+        </View>
+      }
       data={sortedFieldList}
       keyExtractor={(item) => item.id}
       renderItem={memoizedRenderItem}
@@ -330,6 +449,9 @@ export default function Field() {
 }
 
 const styles = StyleSheet.create({
+  headerContainer: {
+    gap: 12,
+  },
   container: {
     flex: 1,
     backgroundColor: "white",
@@ -412,7 +534,37 @@ const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 80,
   },
-    emptyStateContainer: {
+  consentCard: {
+    backgroundColor: "#eef2ff",
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#c7d2fe",
+  },
+  consentTitle: {
+    fontFamily: "barlow-medium",
+    fontSize: 16,
+    color: "#111827",
+  },
+  consentDescription: {
+    fontFamily: "barlow-regular",
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 20,
+  },
+  consentButton: {
+    backgroundColor: "#4630EB",
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  consentButtonText: {
+    color: "white",
+    fontFamily: "barlow-medium",
+    fontSize: 15,
+  },
+  emptyStateContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
