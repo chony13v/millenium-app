@@ -1,7 +1,6 @@
 import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import {
-  SafeAreaView,
   Image,
   View,
   Platform,
@@ -23,6 +22,7 @@ import { useWarmUpBrowser } from "@/components/SignInWithOAuth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { CITY_OPTIONS, type CityId } from "@/constants/cities";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const DEFAULT_CITY_LOGO = require("../../assets/images/manabi_logo.png");
 

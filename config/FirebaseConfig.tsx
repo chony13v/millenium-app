@@ -1,8 +1,10 @@
+// config/FirebaseConfig.ts
 import { initializeApp, getApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { initializeAuth } from 'firebase/auth';
+import { getAuth, type Auth } from 'firebase/auth';
 import { getAnalytics, isSupported } from 'firebase/analytics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
@@ -11,39 +13,44 @@ const firebaseConfig = {
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-console.log('Firebase Config:', firebaseConfig);
+// App
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// ✅ Initialize Firebase app
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Auth (tipado) con persistencia en RN y fallback si ya estaba inicializado
+let auth: Auth;
 
-// ✅ Initialize Auth with AsyncStorage persistence (removes warning)
-let auth;
-
-try {
-  auth = initializeAuth(app, {
-    // For web/Expo, you can use browserLocalPersistence or browserSessionPersistence
-    // persistence: browserLocalPersistence,
-  });
-} catch (error) {
+if (Platform.OS === 'web') {
   auth = getAuth(app);
+} else {
+
+  const rnAuth = require('firebase/auth');
+  const initializeAuth = rnAuth.initializeAuth as (app: any, opts: any) => Auth;
+  const getReactNativePersistence = rnAuth.getReactNativePersistence as (storage: unknown) => any;
+
+  try {
+    auth = initializeAuth(app, {
+      persistence: getReactNativePersistence(AsyncStorage),
+    });
+  } catch {
+    // si ya estaba inicializado en otro lugar
+    auth = getAuth(app);
+  }
 }
 
-// ✅ Analytics (only if supported)
+export { auth };
+
+// Analytics (solo si es soportado)
 let analytics: ReturnType<typeof getAnalytics> | null = null;
 isSupported()
   .then((supported) => {
-    if (supported) {
-      analytics = getAnalytics(app);
-    } else {
-      console.log('Firebase Analytics is not supported in this environment');
-    }
+    if (supported) analytics = getAnalytics(app);
   })
-  .catch((err) => console.log('Error checking analytics support:', err));
+  .catch(() => {});
 
-// ✅ Initialize Firestore
-const db = getFirestore(app);
+export { analytics };
 
-export { app, db, auth, analytics };
+// Firestore
+export const db = getFirestore(app);

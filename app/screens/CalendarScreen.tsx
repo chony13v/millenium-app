@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TouchableOpacity,
-  SafeAreaView,
+
   StyleSheet,
   Alert,
   ActivityIndicator,
@@ -18,7 +18,7 @@ import { db } from "@/config/FirebaseConfig";
 import { Colors } from "@/constants/Colors";
 import { isAdmin } from "@/config/AdminConfig";
 import AddEventModal from "@/components/modals/AddEventModal";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { CITY_OPTIONS, type CityId, isCityId } from "@/constants/cities";
 
