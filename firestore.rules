@@ -2,12 +2,41 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    /* ─────────────────────── Helpers ─────────────────────── */
+    function isOwnerUidOrEmail(userId) {
+      return request.auth != null &&
+        (
+          request.auth.uid == userId ||
+          (request.auth.token.email != null && request.auth.token.email == userId)
+        );
+    }
+
+    function isNullableString(field) {
+      return field is string || field == null;
+    }
+
+    function isNullableNumber(field) {
+      return field is number || field == null;
+    }
+
+    function hasValidCoords(coords) {
+      return coords is map &&
+        coords.keys().hasOnly(['latitude','longitude','accuracy']) &&
+        coords.latitude is number &&
+        coords.longitude is number &&
+        isNullableNumber(coords.accuracy);
+    }
+
+    /* Para eventos: accuracy razonable (≤ 100 m) si viene presente */
+    function hasValidEventCoords(coords) {
+      return hasValidCoords(coords) &&
+        ( !(coords.accuracy is number) || coords.accuracy <= 100 );
+    }
+
     /* ─────────── mensajesContacto ─────────── */
     match /mensajesContacto/{docId} {
-
-      /* Escritura anónima permitida, con validaciones básicas y fecha de caducidad */
       allow write: if
-          request.time < timestamp.date(2026, 1, 1) &&           // ▸ vence el 1‑ene‑2026
+          request.time < timestamp.date(2026, 1, 1) &&
           request.resource.data.keys().hasOnly(
             ['nombre','email','mensaje','timestamp']
           ) &&
@@ -17,12 +46,10 @@ service cloud.firestore {
           request.resource.data.nombre.size()  <= 80 &&
           request.resource.data.email.size()   <= 120 &&
           request.resource.data.mensaje.size() <= 2000;
-
-      /* Nadie puede leer públicamente la bandeja */
-      allow read: if false;
+      allow read: if false; // bandeja privada
     }
 
-    /* ─────────── GlobalEvents (igual que antes) ─────────── */
+    /* ─────────── GlobalEvents ─────────── */
     match /GlobalEvents/{eventId} {
       allow read: if true;
       allow write, delete:
@@ -30,30 +57,25 @@ service cloud.firestore {
            request.auth.token.email == "f13vasconez@gmail.com";
     }
 
-    /* Participantes: mantiene regla abierta de prueba */
+    /* ─────────── Participantes (abierto de prueba) ─────────── */
     match /Participantes/{userId} {
       allow read:  if true;
       allow write: if true;
     }
 
-    /* Colecciones públicas de solo lectura */
+    /* ─────────── Colecciones públicas de solo lectura ─────────── */
     match /Field/{doc}     { allow read: if true; }
     match /Category/{doc}  { allow read: if true; }
     match /News/{doc}      { allow read: if true; }
     match /videoData/{doc} { allow read: if true; }
     match /Academy/{doc}   { allow read: if true; }
 
-    /* ─────────── Location buckets por usuario ─────────── */
+    /* ─────────── Location buckets por usuario ───────────
+       (perfil/balde por usuario autenticado; PII permitida limitada) */
     match /users/{userId}/locationBuckets/{bucketId} {
-      function isOwner() {
-        return request.auth != null &&
-          (request.auth.uid == userId ||
-           (request.auth.token.email != null && request.auth.token.email == userId));
-      }
+      function isOwner() { return isOwnerUidOrEmail(userId); }
 
-      function isValidPlaceField(field) {
-        return field is string || field == null;
-      }
+      function isValidPlaceField(field) { return field is string || field == null; }
 
       allow read: if isOwner();
       allow write: if isOwner()
@@ -86,29 +108,10 @@ service cloud.firestore {
         && (!('lastResolvedFormatted' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedFormatted));
     }
 
-    /* ─────────── Location buckets global por usuario ─────────── */
+    /* ─────────── Location buckets global (por usuario) ───────────
+       (whitelist estricta; requiere request.auth y propiedad) */
     match /locationBuckets/{docId} {
-      function isOwnerField(userId) {
-        return request.auth != null &&
-          (request.auth.uid == userId ||
-           (request.auth.token.email != null && request.auth.token.email == userId));
-      }
-
-      function isNullableString(field) {
-        return field is string || field == null;
-      }
-
-      function isNullableNumber(field) {
-        return field is number || field == null;
-      }
-
-      function hasValidCoords(coords) {
-        return coords is map &&
-          coords.keys().hasOnly(['latitude', 'longitude', 'accuracy']) &&
-          coords.latitude is number &&
-          coords.longitude is number &&
-          isNullableNumber(coords.accuracy);
-      }
+      function isOwnerField(userId) { return isOwnerUidOrEmail(userId); }
 
       allow read: if isOwnerField(resource.data.userId);
       allow write: if request.resource != null && isOwnerField(request.resource.data.userId)
@@ -128,6 +131,73 @@ service cloud.firestore {
         && isNullableString(request.resource.data.cityId)
         && hasValidCoords(request.resource.data.coords)
         && request.resource.data.createdAt is timestamp;
+    }
+
+    /* ─────────── locationEvents (eventos anonimizados para analítica) ───────────
+       Destinado a guardar eventos enriquecidos SIN PII (usa userAnonId). */
+    match /locationEvents/{docId} {
+      function hasValidEnrichedEvent(data) {
+        return
+          // Whitelist de campos permitidos
+          data.keys().hasOnly([
+            'bucketId',
+            'cityId',
+            'userAnonId',
+            'consentGiven',
+            'coords',
+            'geohash',
+            'date',
+            'hour',
+            'weekday',
+            'locationMethod',
+            'permissionStatus',
+            'eventType',
+            'appVersion',
+            'platform',
+            'provinceId',
+            'cantonId',
+            'parishId',
+            'neighborhoodSlug',
+            'timestamp'
+          ])
+          // Tipos y validaciones mínimas
+          && (data.bucketId is string)
+          && (isNullableString(data.cityId))
+          && (data.userAnonId is string && data.userAnonId.size() >= 32) // hash hex
+          && (data.consentGiven == true)
+          && (hasValidEventCoords(data.coords))
+          && (data.geohash is string && data.geohash.size() >= 5 && data.geohash.size() <= 12)
+          && (data.date is string)      // 'YYYY-MM-DD' (no validamos regex en reglas)
+          && (data.hour is number && data.hour >= 0 && data.hour <= 23)
+          && (data.weekday is number && data.weekday >= 0 && data.weekday <= 6)
+          && (data.locationMethod is string)
+          && (data.permissionStatus is string)
+          && (data.eventType is string)
+          && (data.appVersion is string)
+          && (data.platform is string)
+          && (isNullableString(data.provinceId))
+          && (isNullableString(data.cantonId))
+          && (isNullableString(data.parishId))
+          && (isNullableString(data.neighborhoodSlug))
+          // timestamp: aceptamos number (ms epoch) o timestamp Firestore
+          && ((data.timestamp is number) || (data.timestamp is timestamp));
+      }
+
+      // Escritura: requiere usuario autenticado (no PII en el doc)
+      allow write: if request.auth != null && hasValidEnrichedEvent(request.resource.data);
+
+      // Lectura: por defecto cerrado (ajusta a tu necesidad: true, auth-only, etc.)
+      allow read: if false;
+    }
+
+    /* ─────────── cellsDaily (agregados por celda/día) ───────────
+       Escribe solo backend/admin; el cliente puede leer si lo necesitas. */
+    match /cellsDaily/{docId} {
+      // Lectura pública opcional para mapas; cámbialo a `if request.auth != null` si prefieres.
+      allow read: if true;
+
+      // NO permitir escritura desde cliente
+      allow write: if false;
     }
   }
 }
