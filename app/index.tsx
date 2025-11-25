@@ -12,7 +12,7 @@ export default function Page() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
         <SignedIn>
-          <Redirect href="/home" />
+          <Redirect href="/Home" />
         </SignedIn>
         <SignedOut>
           <SignIn />

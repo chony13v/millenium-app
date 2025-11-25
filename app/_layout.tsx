@@ -1,12 +1,12 @@
 import "react-native-gesture-handler";
-import { tokenCache } from "@/utils/cache";
+
 import {
   ClerkProvider,
   ClerkLoaded,
   useAuth,
   useUser,
 } from "@clerk/clerk-expo";
-import { esES } from "@clerk/localizations";
+
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -21,6 +21,7 @@ import {
 import { db } from "@/config/FirebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
+import { localization, publishableKey, tokenCache } from "@/config/ClerkConfig";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -113,7 +114,6 @@ const AfterClerkLoaded = () => {
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [appIsReady, setAppIsReady] = useState(false);
-  const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
   useEffect(() => {
     async function prepare() {
@@ -147,11 +147,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }} onLayout={onLayoutRootView}>
       <SafeAreaProvider>
-        <ClerkProvider
-          tokenCache={tokenCache}
-          publishableKey={publishableKey}
-          localization={esES}
-        >
+        <ClerkProvider tokenCache={tokenCache} publishableKey={publishableKey}>
           <ClerkLoaded>
             <AfterClerkLoaded />
           </ClerkLoaded>

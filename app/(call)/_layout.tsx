@@ -18,7 +18,6 @@ import {
   FontAwesome,
   FontAwesome6,
 } from "@expo/vector-icons";
-import { useWarmUpBrowser } from "@/components/SignInWithOAuth";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { CITY_OPTIONS, type CityId } from "@/constants/cities";
@@ -252,8 +251,6 @@ export default function CallRoutesLayout() {
     [selectedCity]
   );
 
-  useWarmUpBrowser();
-
   React.useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
@@ -363,7 +360,7 @@ export default function CallRoutesLayout() {
           })}
         >
           <Tabs.Screen
-            name="home"
+            name="Home"
             options={{
               title: "COMUNIDAD",
               tabBarIcon: ({ color, focused }) => (
@@ -379,7 +376,7 @@ export default function CallRoutesLayout() {
           />
 
           <Tabs.Screen
-            name="fields"
+            name="Fields"
             options={{
               title: "CANCHAS",
               tabBarIcon: ({ color, focused }) => (
@@ -395,7 +392,7 @@ export default function CallRoutesLayout() {
           />
 
           <Tabs.Screen
-            name="metodology"
+            name="Metodology"
             options={{
               title: "CLUB",
               headerTitle: "Club",
@@ -412,7 +409,7 @@ export default function CallRoutesLayout() {
           />
 
           <Tabs.Screen
-            name="profile"
+            name="Profile"
             options={{
               title: "REGISTRO",
               headerTitle: "Registro para selectivo",
@@ -519,8 +516,8 @@ export default function CallRoutesLayout() {
             <Image
               source={CITY_LOGOS[selectedCity] ?? DEFAULT_CITY_LOGO}
               style={{
-                width: "100%",  // full horizontal coverage
-                height: 40,     // smaller height
+                width: "100%", // full horizontal coverage
+                height: 40, // smaller height
                 resizeMode: "contain", // keep aspect ratio without cropping
               }}
               // accessibility

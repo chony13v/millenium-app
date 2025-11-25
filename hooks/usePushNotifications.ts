@@ -1,16 +1,14 @@
 import { useEffect } from "react";
+import {
+  registerForPushNotificationsAsync as registerForPushNotificationsAsyncService,
+  registerNotificationListeners,
+} from "@/services/notifications/push";
 
-export async function registerForPushNotificationsAsync(): Promise<
-  string | undefined
-> {
-  console.info(
-    "Push notifications disabled: registerForPushNotificationsAsync skipped."
-  );
-  return undefined;
-}
+export const registerForPushNotificationsAsync =
+  registerForPushNotificationsAsyncService;
 
 export function useNotificationListeners() {
   useEffect(() => {
-    console.info("Push notifications disabled: listeners not registered.");
+    registerNotificationListeners();
   }, []);
 }

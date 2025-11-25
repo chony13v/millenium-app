@@ -15,7 +15,6 @@ import {
   FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import SignInWithOAuth from "@/components/SignInWithOAuth";
 
 export default function SignInForm() {
   const { signIn, setActive, isLoaded } = useSignIn();
@@ -297,10 +296,6 @@ export default function SignInForm() {
                   <Text style={styles.signUpLink}>Regístrate acá</Text>
                 </Link>
               </View>
-              <View style={styles.oauthContainer}>
-                {/* Uncomment the line below to enable OAuth sign-in */}
-                {/* <SignInWithOAuth /> */}
-              </View>
             </View>
           </>
         }
@@ -435,11 +430,7 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-regular",
     flex: 1,
   },
-  oauthContainer: {
-    width: "100%",
-    marginTop: 20,
-    marginBottom: 20,
-  },
+
   passwordContainer: {
     flexDirection: "row",
     alignItems: "center",
