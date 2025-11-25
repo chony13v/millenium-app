@@ -109,8 +109,6 @@ const AfterClerkLoaded = () => {
   );
 };
 
-/* ------------------------------------------------------------------ */
-
 export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [appIsReady, setAppIsReady] = useState(false);
@@ -118,7 +116,6 @@ export default function RootLayout() {
   useEffect(() => {
     async function prepare() {
       try {
-        // Aquí podrías cargar fuentes, assets, etc.
       } catch (e) {
         console.warn("Error preparing app:", e);
       } finally {
