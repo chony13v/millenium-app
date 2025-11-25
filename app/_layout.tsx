@@ -21,7 +21,7 @@ import {
 import { db } from "@/config/FirebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
-import { localization, publishableKey, tokenCache } from "@/config/ClerkConfig";
+import { publishableKey, tokenCache } from "@/config/ClerkConfig";
 
 SplashScreen.preventAutoHideAsync();
 

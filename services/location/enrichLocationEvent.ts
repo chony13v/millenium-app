@@ -42,7 +42,7 @@ export type EnrichedLocationEvent = {
   };
   geohash: string;
   date: string;
-  hour: string;
+  hour: number;
   weekday: number;
   locationMethod: "gps" | "network" | "fused" | "unknown";
   permissionStatus: "granted" | "denied" | "limited" | "unknown";
@@ -78,7 +78,7 @@ export const enrichLocationEvent = (
     return null;
   }
 
-  if (typeof accuracy !== "number" || !Number.isFinite(accuracy) || accuracy > 50) {
+  if (typeof accuracy !== "number" || !Number.isFinite(accuracy) || accuracy > 75) {
     console.warn("Low accuracy coordinates; skipping location event write.");
     return null;
   }
@@ -88,7 +88,7 @@ export const enrichLocationEvent = (
   const timestamp = raw.timestamp ?? Date.now();
   const timestampDate = new Date(timestamp);
 
-  const geohash = toGeohash(roundedLat, roundedLon, 8);
+  const geohash = toGeohash(roundedLat, roundedLon, 7);
   const isoString = timestampDate.toISOString();
 
   const appVersion =
@@ -109,7 +109,7 @@ export const enrichLocationEvent = (
     },
     geohash,
     date: isoString.slice(0, 10),
-    hour: isoString.slice(11, 16),
+    hour: timestampDate.getUTCHours(),
     weekday: timestampDate.getUTCDay(),
     locationMethod: raw.locationMethod ?? "unknown",
     permissionStatus: mapPermissionStatus(raw.permissionStatus),

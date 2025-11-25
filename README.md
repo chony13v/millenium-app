@@ -10,6 +10,17 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    npm install
    ```
 
+   ### Export tools
+
+Para usar el script `npm run export:csv` se requieren las dependencias de desarrollo `ts-node` y `@types/node`. En lugar de añadirlas manualmente al `package.json`, instálalas con npm para que se actualicen también el lockfile y `node_modules`:
+
+```bash
+npm install --save-dev ts-node @types/node
+```
+
+Si tu entorno tiene restricciones de red o políticas de acceso al registro de npm, ejecuta el comando anterior cuando tengas conectividad o utiliza la fuente de paquetes permitida en tu organización (por ejemplo, configurando el registry con `npm config set registry <url>`).
+
+
 2. Start the app
 
    ```bash
