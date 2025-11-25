@@ -1,11 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, Animated, Easing, Image } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet, Animated, Easing, Image } from "react-native";
 
 interface LoadingBallProps {
   text?: string;
 }
 
-export default function LoadingBall({ text = "Cargando..." }: LoadingBallProps) {
+export default function LoadingBall({
+  text = "Cargando...",
+}: LoadingBallProps) {
   const bounceValue = new Animated.Value(0);
 
   React.useEffect(() => {
@@ -22,14 +24,14 @@ export default function LoadingBall({ text = "Cargando..." }: LoadingBallProps) 
           duration: 400,
           easing: Easing.in(Easing.cubic),
           useNativeDriver: true,
-        })
+        }),
       ])
     ).start();
   }, []);
 
   const bounce = bounceValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -40] // Bounce height in pixels
+    outputRange: [0, -40], // Bounce height in pixels
   });
 
   return (
@@ -38,12 +40,12 @@ export default function LoadingBall({ text = "Cargando..." }: LoadingBallProps) 
         style={[
           styles.soccerBall,
           {
-            transform: [{ translateY: bounce }]
-          }
+            transform: [{ translateY: bounce }],
+          },
         ]}
       >
-        <Image 
-          source={require('@/assets/images/soccer.png')} 
+        <Image
+          source={require("@/assets/images/soccer.png")}
           style={{ width: 40, height: 40 }}
         />
       </Animated.View>
@@ -55,16 +57,16 @@ export default function LoadingBall({ text = "Cargando..." }: LoadingBallProps) 
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
   },
   soccerBall: {
     marginBottom: 20,
   },
   loadingText: {
-    fontFamily: 'barlow-medium',
+    fontFamily: "barlow-medium",
     fontSize: 16,
-    color: '#0A2240',
+    color: "#0A2240",
   },
 });

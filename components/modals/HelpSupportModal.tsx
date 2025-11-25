@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { Colors } from '@/constants/Colors';
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
+import { Colors } from "@/constants/Colors";
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -13,7 +13,8 @@ export default function HelpSupportModal({ visible, onClose }: Props) {
         <View style={styles.modalContent}>
           <Text style={styles.title}>Ayuda y Soporte</Text>
           <Text style={styles.message}>
-            Para asistencia por favor visite nuestra página web www.milleniumfc.com o llámenos al: +(1) (786) 338-9897
+            Para asistencia por favor visite nuestra página web
+            www.milleniumfc.com o llámenos al: +(1) (786) 338-9897
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Entendido</Text>
@@ -27,37 +28,37 @@ export default function HelpSupportModal({ visible, onClose }: Props) {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    width: '80%',
-    backgroundColor: '#fff',
+    width: "80%",
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 10,
   },
   message: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   button: {
     backgroundColor: Colors.NAVY_BLUE,
     padding: 10,
     borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

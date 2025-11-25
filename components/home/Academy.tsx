@@ -1,9 +1,19 @@
-import { View, Text, Dimensions, Animated, StyleSheet, Platform, NativeSyntheticEvent, NativeScrollEvent, Alert } from 'react-native';
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { collection, getDocs, query } from 'firebase/firestore';
-import { db } from '@/config/FirebaseConfig';
-import YoutubePlayer from 'react-native-youtube-iframe';
-import LoadingBall from '@/components/LoadingBall';
+import {
+  View,
+  Text,
+  Dimensions,
+  Animated,
+  StyleSheet,
+  Platform,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  Alert,
+} from "react-native";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { collection, getDocs, query } from "firebase/firestore";
+import { db } from "@/config/FirebaseConfig";
+import YoutubePlayer from "react-native-youtube-iframe";
+import LoadingBall from "@/components/LoadingBall";
 
 interface VideoItem {
   id: string;
@@ -11,8 +21,8 @@ interface VideoItem {
   videoId: string; // Remove optional marker since we only use YouTube videos
 }
 
-const screenWidth = Dimensions.get('window').width;
-const videoHeight = (screenWidth * 0.9) * (9/16); // 16:9 aspect ratio
+const screenWidth = Dimensions.get("window").width;
+const videoHeight = screenWidth * 0.9 * (9 / 16); // 16:9 aspect ratio
 
 export default function Academy() {
   const [videoList, setVideoList] = useState<VideoItem[]>([]);
@@ -20,17 +30,19 @@ export default function Academy() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const scrollX = new Animated.Value(0);
-  const [videoErrors, setVideoErrors] = useState<{ [key: string]: boolean }>({});
+  const [videoErrors, setVideoErrors] = useState<{ [key: string]: boolean }>(
+    {}
+  );
 
   const onStateChange = useCallback((state: string) => {
-    if (state === 'ended') {
+    if (state === "ended") {
       setPlaying(false);
     }
   }, []);
 
   const onError = (error: string) => {
     console.error("YouTube Player Error:", error);
-    setVideoErrors(prev => ({ ...prev, [currentIndex]: true }));
+    setVideoErrors((prev) => ({ ...prev, [currentIndex]: true }));
   };
 
   useEffect(() => {
@@ -39,33 +51,34 @@ export default function Academy() {
 
   const getVideoList = async () => {
     try {
-      const q = query(collection(db, 'Academy'));
+      const q = query(collection(db, "Academy"));
       const querySnapshot = await getDocs(q);
-  
+
       if (querySnapshot.empty) {
-        console.log('No videos found in Academy collection');
+        console.log("No videos found in Academy collection");
         setVideoList([]);
         return;
       }
-  
+
       const videos: VideoItem[] = [];
       querySnapshot.forEach((doc) => {
         const data = doc.data();
-        if (data.videoId) { // Only add videos with videoId
+        if (data.videoId) {
+          // Only add videos with videoId
           videos.push({
             id: doc.id,
             title: data.title,
-            videoId: data.videoId
+            videoId: data.videoId,
           });
         }
       });
       setVideoList(videos);
     } catch (error) {
-      console.error('Error fetching video data:', error);
+      console.error("Error fetching video data:", error);
       Alert.alert(
-        'Error',
-        'No se pudieron cargar los videos. Por favor intente más tarde.',
-        [{ text: 'OK' }]
+        "Error",
+        "No se pudieron cargar los videos. Por favor intente más tarde.",
+        [{ text: "OK" }]
       );
       setVideoList([]);
     } finally {
@@ -74,15 +87,14 @@ export default function Academy() {
   };
 
   const onScroll = Platform.select({
-    ios: Animated.event(
-      [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-      { useNativeDriver: false }
-    ),
+    ios: Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
+      useNativeDriver: false,
+    }),
     android: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
       const offsetX = event.nativeEvent.contentOffset.x;
       scrollX.setValue(offsetX);
       setCurrentIndex(Math.round(offsetX / screenWidth));
-    }
+    },
   });
 
   const renderVideoContent = (item: VideoItem, index: number) => {
@@ -105,7 +117,7 @@ export default function Academy() {
         onChangeState={onStateChange}
         onError={onError}
         webViewProps={{
-          androidLayerType: Platform.OS === 'android' ? 'hardware' : undefined,
+          androidLayerType: Platform.OS === "android" ? "hardware" : undefined,
           allowsInlineMediaPlayback: true,
           mediaPlaybackRequiresUserAction: false,
           bounces: false,
@@ -116,34 +128,39 @@ export default function Academy() {
           showClosedCaptions: false,
           modestbranding: true,
           controls: true,
-          iv_load_policy: 3
+          iv_load_policy: 3,
         }}
       />
     );
   };
 
-  const renderVideoItem = useCallback(({ item, index }: { item: VideoItem, index: number }) => {
-    const inputRange = [
-      (index - 1) * screenWidth,
-      index * screenWidth,
-      (index + 1) * screenWidth,
-    ];
+  const renderVideoItem = useCallback(
+    ({ item, index }: { item: VideoItem; index: number }) => {
+      const inputRange = [
+        (index - 1) * screenWidth,
+        index * screenWidth,
+        (index + 1) * screenWidth,
+      ];
 
-    const scale = scrollX.interpolate({
-      inputRange,
-      outputRange: [0.8, 1, 0.8],
-      extrapolate: 'clamp',
-    });
+      const scale = scrollX.interpolate({
+        inputRange,
+        outputRange: [0.8, 1, 0.8],
+        extrapolate: "clamp",
+      });
 
-    return (
-      <Animated.View style={[styles.videoContainer, { transform: [{ scale }] }]}>
-        <View style={styles.playerContainer}>
-          {renderVideoContent(item, index)}
-          <Text style={styles.videoTitle}>{item.title}</Text>
-        </View>
-      </Animated.View>
-    );
-  }, [currentIndex, playing, onStateChange, scrollX, videoErrors]);
+      return (
+        <Animated.View
+          style={[styles.videoContainer, { transform: [{ scale }] }]}
+        >
+          <View style={styles.playerContainer}>
+            {renderVideoContent(item, index)}
+            <Text style={styles.videoTitle}>{item.title}</Text>
+          </View>
+        </Animated.View>
+      );
+    },
+    [currentIndex, playing, onStateChange, scrollX, videoErrors]
+  );
 
   const renderIndicators = () => {
     return (
@@ -158,22 +175,19 @@ export default function Academy() {
           const width = scrollX.interpolate({
             inputRange,
             outputRange: [15, 30, 15],
-            extrapolate: 'clamp',
+            extrapolate: "clamp",
           });
 
           const backgroundColor = scrollX.interpolate({
             inputRange,
-            outputRange: ['#ccc', '#6200ee', '#ccc'],
-            extrapolate: 'clamp',
+            outputRange: ["#ccc", "#6200ee", "#ccc"],
+            extrapolate: "clamp",
           });
 
           return (
             <Animated.View
               key={index}
-              style={[
-                styles.indicator,
-                { width, backgroundColor }
-              ]}
+              style={[styles.indicator, { width, backgroundColor }]}
             />
           );
         })}
@@ -202,12 +216,17 @@ export default function Academy() {
             maxToRenderPerBatch={2}
             initialNumToRender={1}
             windowSize={3}
-   
-            onMomentumScrollEnd={Platform.OS === 'ios' ? (event) => {
-              const newIndex = Math.floor(event.nativeEvent.contentOffset.x / screenWidth);
-              setCurrentIndex(newIndex);
-              setPlaying(false);
-            } : undefined}
+            onMomentumScrollEnd={
+              Platform.OS === "ios"
+                ? (event) => {
+                    const newIndex = Math.floor(
+                      event.nativeEvent.contentOffset.x / screenWidth
+                    );
+                    setCurrentIndex(newIndex);
+                    setPlaying(false);
+                  }
+                : undefined
+            }
             scrollEventThrottle={16}
           />
           {renderIndicators()}
@@ -220,10 +239,10 @@ export default function Academy() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white"
+    backgroundColor: "white",
   },
   title: {
-    fontFamily: 'barlow-medium',
+    fontFamily: "barlow-medium",
     fontSize: 20,
     paddingLeft: 20,
     paddingTop: 10,
@@ -233,33 +252,33 @@ const styles = StyleSheet.create({
   },
   videoContainer: {
     width: screenWidth,
-    height: videoHeight + 60, 
-    justifyContent: 'center',
-    alignItems: 'center',
+    height: videoHeight + 60,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 10,
   },
   playerContainer: {
     width: screenWidth * 0.9,
     height: videoHeight,
     borderRadius: 15,
-    overflow: 'hidden',
-    backgroundColor: '#000', 
+    overflow: "hidden",
+    backgroundColor: "#000",
   },
   video: {
     width: screenWidth * 0.9,
     height: videoHeight,
   },
   videoTitle: {
-    color: '#333',
+    color: "#333",
     fontSize: 16,
-    fontFamily: 'barlow-medium',
+    fontFamily: "barlow-medium",
     marginTop: 8,
-    textAlign: 'center',
+    textAlign: "center",
   },
   pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 15,
   },
   indicator: {
@@ -268,27 +287,27 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
   listContainer: {
-    marginBottom: 20, 
+    marginBottom: 20,
   },
   fallbackContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
   },
   errorIcon: {
     fontSize: 40,
-    color: '#666',
+    color: "#666",
     marginBottom: 10,
   },
   errorText: {
-    color: '#666',
+    color: "#666",
     fontSize: 16,
-    fontFamily: 'barlow-medium',
+    fontFamily: "barlow-medium",
   },
   retryText: {
-    color: '#999',
+    color: "#999",
     fontSize: 14,
-    fontFamily: 'barlow-regular',
+    fontFamily: "barlow-regular",
     marginTop: 5,
   },
 });

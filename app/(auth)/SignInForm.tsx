@@ -299,7 +299,7 @@ export default function SignInForm() {
             </View>
           </>
         }
-   renderItem={() => null}
+        renderItem={() => null}
         ListEmptyComponent={<View />}
         showsVerticalScrollIndicator={false}
       />

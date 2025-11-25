@@ -1,6 +1,6 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { Colors } from '@/constants/Colors';
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
+import { Colors } from "@/constants/Colors";
 
 interface Props {
   visible: boolean;
@@ -16,17 +16,18 @@ export default function AboutModal({ visible, onClose }: Props) {
           <Text style={styles.version}>Versión 1.1</Text>
           <Text style={styles.description}>
             Millenium App v1.1
-            {'\n\n'}Tu plataforma integral para torneos selectivos y gestión deportiva.
-            {'\n\n'}Características principales:
-            {'\n'}• Gestión de torneos
-            {'\n'}• Registro de jugadores
-            {'\n'}• Estadísticas en tiempo real
-            {'\n'}• Notificaciones personalizadas
-            {'\n\n'}Desarrollado por Millenium Football Solutions
-            {'\n'}© 2025 Millenium. Todos los derechos reservados.
-            {'\n\n'}Contáctanos:
-            {'\n'}info@milleniumfc.com
-            {'\n'}www.milleniumfc.com
+            {"\n\n"}Tu plataforma integral para torneos selectivos y gestión
+            deportiva.
+            {"\n\n"}Características principales:
+            {"\n"}• Gestión de torneos
+            {"\n"}• Registro de jugadores
+            {"\n"}• Estadísticas en tiempo real
+            {"\n"}• Notificaciones personalizadas
+            {"\n\n"}Desarrollado por Millenium Football Solutions
+            {"\n"}© 2025 Millenium. Todos los derechos reservados.
+            {"\n\n"}Contáctanos:
+            {"\n"}info@milleniumfc.com
+            {"\n"}www.milleniumfc.com
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Cerrar</Text>
@@ -40,42 +41,42 @@ export default function AboutModal({ visible, onClose }: Props) {
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
   },
   modalContent: {
-    width: '85%',
-    backgroundColor: '#fff',
+    width: "85%",
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 5,
   },
   version: {
     fontSize: 14,
-    color: '#888888',
+    color: "#888888",
     marginBottom: 15,
   },
   description: {
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   button: {
     backgroundColor: Colors.NAVY_BLUE,
     padding: 10,
     borderRadius: 8,
-    width: '100%',
-    alignItems: 'center',
+    width: "100%",
+    alignItems: "center",
   },
   buttonText: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });

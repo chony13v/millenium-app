@@ -1,5 +1,5 @@
-import React from 'react';
-import Dialog from 'react-native-dialog';
+import React from "react";
+import Dialog from "react-native-dialog";
 import { useAuth } from "@clerk/clerk-expo";
 
 interface SignOutDialogProps {
@@ -7,7 +7,10 @@ interface SignOutDialogProps {
   onClose: () => void;
 }
 
-export default function SignOutDialog({ visible, onClose }: SignOutDialogProps) {
+export default function SignOutDialog({
+  visible,
+  onClose,
+}: SignOutDialogProps) {
   const { signOut } = useAuth();
 
   return (

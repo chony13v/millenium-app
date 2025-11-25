@@ -3,7 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-
   StyleSheet,
   Alert,
   ActivityIndicator,
@@ -12,32 +11,75 @@ import { Calendar, LocaleConfig, DateData } from "react-native-calendars";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useUser, useAuth } from "@clerk/clerk-expo";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { db } from "@/config/FirebaseConfig";
 import { Colors } from "@/constants/Colors";
 import { isAdmin } from "@/config/AdminConfig";
 import AddEventModal from "@/components/modals/AddEventModal";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { CITY_OPTIONS, type CityId, isCityId } from "@/constants/cities";
 
 type MarkedDate = { marked: boolean; dotColor: string; isEvent: boolean };
-type EventDetail = { description: string; id?: string; time?: string; cityId?: CityId };
+type EventDetail = {
+  description: string;
+  id?: string;
+  time?: string;
+  cityId?: CityId;
+};
 
 const auth = getAuth();
 
 LocaleConfig.locales["es"] = {
   monthNames: [
-    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
   ],
   monthNamesShort: [
-    "Ene.","Feb.","Mar.","Abr.","May.","Jun.",
-    "Jul.","Ago.","Sep.","Oct.","Nov.","Dic."
+    "Ene.",
+    "Feb.",
+    "Mar.",
+    "Abr.",
+    "May.",
+    "Jun.",
+    "Jul.",
+    "Ago.",
+    "Sep.",
+    "Oct.",
+    "Nov.",
+    "Dic.",
   ],
-  dayNames: ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
-  dayNamesShort: ["Dom.","Lun.","Mar.","Mié.","Jue.","Vie.","Sáb."],
+  dayNames: [
+    "Domingo",
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+  ],
+  dayNamesShort: ["Dom.", "Lun.", "Mar.", "Mié.", "Jue.", "Vie.", "Sáb."],
 };
 LocaleConfig.defaultLocale = "es";
 
@@ -48,17 +90,23 @@ export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
   const { selectedCity, hasHydrated } = useCitySelection();
 
-  const [markedDates, setMarkedDates] = useState<Record<string, MarkedDate>>({});
-  const [eventDetails, setEventDetails] = useState<Record<string, EventDetail>>({});
+  const [markedDates, setMarkedDates] = useState<Record<string, MarkedDate>>(
+    {}
+  );
+  const [eventDetails, setEventDetails] = useState<Record<string, EventDetail>>(
+    {}
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-    const [editEvent, setEditEvent] = useState<
-    | null
-    | { id: string; date: string; time: string; description: string; cityId: CityId }
-  >(null);
+  const [editEvent, setEditEvent] = useState<null | {
+    id: string;
+    date: string;
+    time: string;
+    description: string;
+    cityId: CityId;
+  }>(null);
   const [firebaseReady, setFirebaseReady] = useState(false);
-
 
   useEffect(() => {
     const checkAndSignIn = async () => {
@@ -69,7 +117,12 @@ export default function CalendarScreen() {
         if (!token) throw new Error("No se recibió token de Firebase");
 
         await signInWithCustomToken(auth, token);
-        console.log('firebase uid:', auth.currentUser?.uid, 'email:', auth.currentUser?.email);
+        console.log(
+          "firebase uid:",
+          auth.currentUser?.uid,
+          "email:",
+          auth.currentUser?.email
+        );
         setFirebaseReady(true);
 
         const email = user.primaryEmailAddress.emailAddress;
@@ -90,8 +143,18 @@ export default function CalendarScreen() {
     const day = match[1].padStart(2, "0");
     const monthName = match[2].toLowerCase();
     const monthMap: { [key: string]: string } = {
-      enero: "01", febrero: "02", marzo: "03", abril: "04", mayo: "05", junio: "06",
-      julio: "07", agosto: "08", septiembre: "09", octubre: "10", noviembre: "11", diciembre: "12",
+      enero: "01",
+      febrero: "02",
+      marzo: "03",
+      abril: "04",
+      mayo: "05",
+      junio: "06",
+      julio: "07",
+      agosto: "08",
+      septiembre: "09",
+      octubre: "10",
+      noviembre: "11",
+      diciembre: "12",
     };
     const month = monthMap[monthName];
     const year = new Date().getFullYear();
@@ -119,7 +182,11 @@ export default function CalendarScreen() {
           if (data.city === cityId && dateTime) {
             const parsedDate = parseDateTime(dateTime);
             if (parsedDate) {
-              marked[parsedDate] = { marked: true, dotColor: "#F02B44", isEvent: true };
+              marked[parsedDate] = {
+                marked: true,
+                dotColor: "#F02B44",
+                isEvent: true,
+              };
               details[parsedDate] = { description: dateTime };
             }
           }
@@ -131,7 +198,7 @@ export default function CalendarScreen() {
         );
         const globalSnapshot = await getDocs(eventsQuery);
         globalSnapshot.forEach((docSnap) => {
-            const data = docSnap.data() as {
+          const data = docSnap.data() as {
             date?: string;
             description?: string;
             time?: string;
@@ -215,7 +282,10 @@ export default function CalendarScreen() {
     const hasEvent = markedDates[date.dateString]?.isEvent;
 
     return (
-      <TouchableOpacity style={styles.dayContainer} onPress={() => handleDayPress(date)}>
+      <TouchableOpacity
+        style={styles.dayContainer}
+        onPress={() => handleDayPress(date)}
+      >
         <Text
           style={[
             styles.dayText,
@@ -256,8 +326,14 @@ export default function CalendarScreen() {
               setModalVisible(true);
             }}
           >
-            <FontAwesome name="calendar-plus-o" size={30} color={Colors.NAVY_BLUE} />
-            <Text style={styles.addEventText}>Agregar eventos del proyecto</Text>
+            <FontAwesome
+              name="calendar-plus-o"
+              size={30}
+              color={Colors.NAVY_BLUE}
+            />
+            <Text style={styles.addEventText}>
+              Agregar eventos del proyecto
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -277,7 +353,9 @@ export default function CalendarScreen() {
             markingType="custom"
             markedDates={markedDates}
             onDayPress={handleDayPress}
-            dayComponent={({ date, state = "" }) => date && renderDay({ date, state })}
+            dayComponent={({ date, state = "" }) =>
+              date && renderDay({ date, state })
+            }
             theme={{
               backgroundColor: "#ffffff",
               calendarBackground: "#ffffff",
@@ -316,7 +394,7 @@ const styles = StyleSheet.create({
     width: "100%",
     flexDirection: "row",
     alignItems: "center",
-    paddingBottom: 8,          // un poco de aire bajo el header
+    paddingBottom: 8, // un poco de aire bajo el header
     paddingHorizontal: 12,
   },
   headerTitle: {

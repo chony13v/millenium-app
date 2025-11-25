@@ -1,11 +1,16 @@
++12 - 7;
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import React, {
+import {
   createContext,
+  createElement,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
+  type ReactElement,
+  type ReactNode,
 } from "react";
 import { isCityId, type CityId } from "@/constants/cities";
 
@@ -22,10 +27,12 @@ const CitySelectionContext = createContext<
 >(undefined);
 
 type CityProviderProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
-export const CitySelectionProvider = ({ children }: CityProviderProps) => {
+export const CitySelectionProvider = ({
+  children,
+}: CityProviderProps): ReactElement => {
   const [selectedCity, setSelectedCity] = useState<CityId | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
@@ -97,11 +104,7 @@ export const CitySelectionProvider = ({ children }: CityProviderProps) => {
     [clearCity, hasHydrated, isLoading, selectCity, selectedCity]
   );
 
-  return (
-    <CitySelectionContext.Provider value={value}>
-      {children}
-    </CitySelectionContext.Provider>
-  );
+  return createElement(CitySelectionContext.Provider, { value }, children);
 };
 
 export const useCitySelection = () => {

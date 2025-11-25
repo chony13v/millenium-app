@@ -29,8 +29,8 @@ interface AddEventModalProps {
   mode?: "add" | "edit";
   initialEvent?: {
     id: string;
-    date: string;        // Esperado en Firestore como YYYY-MM-DD
-    time: string;        // HH:MM (24h)
+    date: string; // Esperado en Firestore como YYYY-MM-DD
+    time: string; // HH:MM (24h)
     description: string;
     cityId?: CityId;
   };
@@ -46,7 +46,7 @@ export default function AddEventModal({
   cityId,
 }: AddEventModalProps) {
   const [eventData, setEventData] = useState({
-    date: "",            // aquí lo manejamos como DD/MM/AAAA en UI
+    date: "", // aquí lo manejamos como DD/MM/AAAA en UI
     time: "",
     description: "",
     cityId: (cityId ?? "") as CityId | "",
@@ -122,11 +122,17 @@ export default function AddEventModal({
     // Validaciones
     const isoDate = isoFromDDMMYYYY(eventData.date);
     if (!isoDate) {
-      Alert.alert("Fecha inválida", "Usa el formato DD/MM/AAAA (p. ej. 01/04/2025).");
+      Alert.alert(
+        "Fecha inválida",
+        "Usa el formato DD/MM/AAAA (p. ej. 01/04/2025)."
+      );
       return;
     }
     if (!isValidTime(eventData.time)) {
-      Alert.alert("Hora inválida", "Usa el formato 24 horas HH:MM (p. ej. 08:30 o 14:05).");
+      Alert.alert(
+        "Hora inválida",
+        "Usa el formato 24 horas HH:MM (p. ej. 08:30 o 14:05)."
+      );
       return;
     }
     if (!eventData.description || !eventData.cityId) {
@@ -137,7 +143,7 @@ export default function AddEventModal({
     setIsSaving(true);
     try {
       const payload = {
-        date: isoDate,                 // Guardamos normalizado en YYYY-MM-DD
+        date: isoDate, // Guardamos normalizado en YYYY-MM-DD
         time: eventData.time,
         description: eventData.description.trim(),
         cityId: eventData.cityId,
@@ -232,7 +238,8 @@ export default function AddEventModal({
             editable={false}
             value={
               eventData.cityId
-                ? CITY_OPTIONS.find((option) => option.id === eventData.cityId)?.title ?? ""
+                ? CITY_OPTIONS.find((option) => option.id === eventData.cityId)
+                    ?.title ?? ""
                 : ""
             }
           />

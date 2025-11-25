@@ -25,7 +25,7 @@ const DrawerContent: React.FC<DrawerContentProps> = ({
         flex: 1,
         backgroundColor: "#fff",
         paddingHorizontal: 20,
-        paddingTop: insets.top + 5, 
+        paddingTop: insets.top + 5,
       }}
     >
       <TouchableOpacity

@@ -96,7 +96,11 @@ export default function SettingsScreen() {
       >
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <FontAwesome name="user-circle" size={24} color={Colors.NAVY_BLUE} />
+            <FontAwesome
+              name="user-circle"
+              size={24}
+              color={Colors.NAVY_BLUE}
+            />
             <Text style={styles.sectionTitle}>Cuenta</Text>
           </View>
 
@@ -108,12 +112,20 @@ export default function SettingsScreen() {
               <FontAwesome name="lock" size={20} color={Colors.NAVY_BLUE} />
               <Text style={styles.settingItemText}>Cambiar Contraseña</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.NAVY_BLUE} />
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={Colors.NAVY_BLUE}
+            />
           </TouchableOpacity>
         </View>
 
         <View style={styles.helpSection}>
-          <MaterialIcons name="headset-mic" size={48} color={Colors.NAVY_BLUE} />
+          <MaterialIcons
+            name="headset-mic"
+            size={48}
+            color={Colors.NAVY_BLUE}
+          />
           <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
           <Text style={styles.helpDescription}>
             Nuestro equipo está disponible 24/7 para ayudarte con cualquier
@@ -128,8 +140,14 @@ export default function SettingsScreen() {
               style={[styles.helpButton, styles.secondaryButton]}
               onPress={handleHelpSupport}
             >
-              <FontAwesome name="question-circle" size={20} color={Colors.NAVY_BLUE} />
-              <Text style={[styles.getHelpButtonText, { color: Colors.NAVY_BLUE }]}>
+              <FontAwesome
+                name="question-circle"
+                size={20}
+                color={Colors.NAVY_BLUE}
+              />
+              <Text
+                style={[styles.getHelpButtonText, { color: Colors.NAVY_BLUE }]}
+              >
                 FAQ
               </Text>
             </TouchableOpacity>
