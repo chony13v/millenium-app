@@ -1,8 +1,9 @@
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { addDoc, collection, doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { logEvent } from "firebase/analytics";
 import * as Location from "expo-location";
 import { db, analytics } from "@/config/FirebaseConfig";
 import type { CityId } from "@/constants/cities";
+import { enrichLocationEvent } from "./enrichLocationEvent";
 
 const BUCKET_SIZE = 0.02; // ~2 km grid depending on latitude
 
@@ -73,17 +74,28 @@ export const updateUserLocationBucket = async ({
 
   const bucketId = deriveBucketId(position.coords);
 
-  await addDoc(collection(db, "locationBuckets"), {
+  const enrichedEvent = enrichLocationEvent({
     userId,
-    userEmail: userEmail ?? null,
-    consentGiven: true,
-    coords: {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      accuracy: position.coords.accuracy ?? null,
-    },
     cityId,
     bucketId,
+        coords: position.coords,
+    consentGiven: true,
+    permissionStatus: status,
+    eventType: "manual_update",
+    locationMethod: position?.mocked ? "unknown" : "fused",
+    timestamp: position.timestamp ?? Date.now(),
+  });
+
+  if (!enrichedEvent) {
+    throw new Error("El evento de ubicación no cumple los requisitos para guardarse.");
+  }
+
+  if (userEmail) {
+    await setDoc(doc(db, "profiles", userId), { userEmail }, { merge: true });
+  }
+
+  await addDoc(collection(db, "locationBuckets"), {
+    ...enrichedEvent,
     createdAt: serverTimestamp(),
   });
 

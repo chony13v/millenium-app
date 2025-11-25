@@ -1,0 +1,1 @@
+export const getAnonSalt = (): string | undefined => process.env.ANON_SALT;
