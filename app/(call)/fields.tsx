@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,16 +7,18 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser, useAuth } from "@clerk/clerk-expo";
 import LoadingBall from "@/components/LoadingBall";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { updateUserLocationBucket } from "@/services/location/updateUserLocationBucket";
 import { useFieldsData } from "@/hooks/useFieldsData";
 import FieldCard from "@/components/fields/FieldCard";
+import { getAuth, signInWithCustomToken } from "firebase/auth";
 
 export default function Field() {
   const { selectedCity, hasHydrated } = useCitySelection();
   const { user } = useUser();
+  const { getToken } = useAuth();
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
 
   const {
@@ -32,6 +34,18 @@ export default function Field() {
     setUserLocation,
     requestLocation,
   } = useFieldsData(selectedCity, hasHydrated);
+
+  const ensureFirebaseSession = useCallback(async () => {
+    const auth = getAuth();
+    if (auth.currentUser) return;
+
+    const token = await getToken({ template: "integration_firebase" });
+    if (!token) {
+      throw new Error("No se pudo obtener el token de Firebase.");
+    }
+
+    await signInWithCustomToken(auth, token);
+  }, [getToken]);
 
   const handleUpdateLocationBucket = async () => {
     if (!user?.id) {
@@ -52,6 +66,7 @@ export default function Field() {
 
     try {
       setIsUpdatingLocation(true);
+      await ensureFirebaseSession();
       const result = await updateUserLocationBucket({
         userId: user.id,
         userEmail: user.primaryEmailAddress?.emailAddress,

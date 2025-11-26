@@ -9,6 +9,34 @@ import { db } from "@/config/FirebaseConfig";
 import { prefetchFieldImage } from "@/utils/fieldLocation";
 import type { CityId } from "@/constants/cities";
 
+const normalizeStorageUrl = (url?: string) => {
+  if (!url) return "";
+
+  try {
+    const parsed = new URL(url);
+
+    // Nueva compatibilidad de Firebase Storage (firebasestorage.app) → host clásico
+    if (parsed.hostname.includes("firebasestorage.app")) {
+      parsed.hostname = parsed.hostname.replace("firebasestorage.app", "appspot.com");
+    }
+
+    // Asegura que el path del objeto esté correctamente codificado para evitar timeouts
+    if (parsed.pathname.includes("/o/")) {
+      const [before, objectPath] = parsed.pathname.split("/o/");
+      if (objectPath) {
+        parsed.pathname = `${before}/o/${encodeURIComponent(
+          decodeURIComponent(objectPath)
+        )}`;
+      }
+    }
+
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+};
+
+
 type PrefetchStatus = Record<string, "pending" | "loaded" | "failed">;
 
 export interface FieldItem {
@@ -163,7 +191,12 @@ export const useFieldsData = (
         const querySnapshot = await getDocs(q);
         const items: FieldItem[] = [];
         querySnapshot.forEach((doc) => {
-          items.push({ ...doc.data(), id: doc.id } as FieldItem);
+          const data = doc.data();
+          items.push({
+            ...data,
+            id: doc.id,
+            imageUrl: normalizeStorageUrl((data as FieldItem).imageUrl),
+          } as FieldItem);
         });
 
         if (isActive) {
@@ -280,7 +313,7 @@ export const useFieldsData = (
         setImageError((prev) => ({ ...prev, [fieldId]: true }));
         setImageLoading((prev) => ({ ...prev, [fieldId]: false }));
         console.warn("Tiempo de carga excedido para la imagen:", imageUrl);
-      }, 15000);
+      }, 30000);
     },
     []
   );
