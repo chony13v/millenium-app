@@ -1,10 +1,4 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  serverTimestamp,
-  setDoc,
-} from "firebase/firestore";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { logEvent } from "firebase/analytics";
 import * as Location from "expo-location";
 import { db, analytics } from "@/config/FirebaseConfig";
@@ -17,7 +11,7 @@ const BUCKET_SIZE = 0.02; // ~2 km grid depending on latitude
 type UpdateUserLocationBucketParams = {
   userId: string;
   cityId: CityId | null;
-  userEmail?: string | null;
+
 };
 
 type UpdateUserLocationBucketResult = {
@@ -45,7 +39,7 @@ const deriveBucketId = (coords: Location.LocationObjectCoords) => {
 
 export const updateUserLocationBucket = async ({
   userId,
-  userEmail,
+
   cityId,
 }: UpdateUserLocationBucketParams): Promise<UpdateUserLocationBucketResult> => {
   const servicesEnabled = await Location.hasServicesEnabledAsync();
@@ -99,15 +93,13 @@ export const updateUserLocationBucket = async ({
     );
   }
 
-  if (userEmail) {
-    await setDoc(doc(db, "profiles", userId), { userEmail }, { merge: true });
-  }
+
   await addDoc(collection(db, "locationEvents"), {
     ...enrichedEvent,
     createdAt: serverTimestamp(),
   });
 
-  await updateCellDailyForEvent(enrichedEvent);
+
 
   await addDoc(collection(db, "locationBuckets"), {
     ...enrichedEvent,

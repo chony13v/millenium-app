@@ -69,7 +69,7 @@ export default function Field() {
       await ensureFirebaseSession();
       const result = await updateUserLocationBucket({
         userId: user.id,
-        userEmail: user.primaryEmailAddress?.emailAddress,
+
         cityId: selectedCity,
       });
 
