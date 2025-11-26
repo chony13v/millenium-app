@@ -17,7 +17,10 @@ const normalizeStorageUrl = (url?: string) => {
 
     // Nueva compatibilidad de Firebase Storage (firebasestorage.app) → host clásico
     if (parsed.hostname.includes("firebasestorage.app")) {
-      parsed.hostname = parsed.hostname.replace("firebasestorage.app", "appspot.com");
+      parsed.hostname = parsed.hostname.replace(
+        "firebasestorage.app",
+        "appspot.com"
+      );
     }
 
     // Asegura que el path del objeto esté correctamente codificado para evitar timeouts
@@ -35,7 +38,6 @@ const normalizeStorageUrl = (url?: string) => {
     return url;
   }
 };
-
 
 type PrefetchStatus = Record<string, "pending" | "loaded" | "failed">;
 

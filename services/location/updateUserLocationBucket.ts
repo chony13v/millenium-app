@@ -4,14 +4,13 @@ import * as Location from "expo-location";
 import { db, analytics } from "@/config/FirebaseConfig";
 import type { CityId } from "@/constants/cities";
 import { enrichLocationEvent } from "./enrichLocationEvent";
-import { updateCellDailyForEvent } from "@/services/location/cellsDaily";
 
 const BUCKET_SIZE = 0.02; // ~2 km grid depending on latitude
 
 type UpdateUserLocationBucketParams = {
   userId: string;
+  userEmail?: string | null;
   cityId: CityId | null;
-
 };
 
 type UpdateUserLocationBucketResult = {
@@ -39,7 +38,7 @@ const deriveBucketId = (coords: Location.LocationObjectCoords) => {
 
 export const updateUserLocationBucket = async ({
   userId,
-
+  userEmail,
   cityId,
 }: UpdateUserLocationBucketParams): Promise<UpdateUserLocationBucketResult> => {
   const servicesEnabled = await Location.hasServicesEnabledAsync();
@@ -77,14 +76,10 @@ export const updateUserLocationBucket = async ({
 
   const enrichedEvent = enrichLocationEvent({
     userId,
+    userEmail,
     cityId,
     bucketId,
     coords: position.coords,
-    consentGiven: true,
-    permissionStatus: status,
-    eventType: "manual_update",
-    locationMethod: position?.mocked ? "unknown" : "fused",
-    timestamp: position.timestamp ?? Date.now(),
   });
 
   if (!enrichedEvent) {
@@ -93,15 +88,7 @@ export const updateUserLocationBucket = async ({
     );
   }
 
-
   await addDoc(collection(db, "locationEvents"), {
-    ...enrichedEvent,
-    createdAt: serverTimestamp(),
-  });
-
-
-
-  await addDoc(collection(db, "locationBuckets"), {
     ...enrichedEvent,
     createdAt: serverTimestamp(),
   });
@@ -109,7 +96,6 @@ export const updateUserLocationBucket = async ({
   logAnalytics("location_update_ok", {
     bucketId,
     cityId: cityId ?? "unknown",
-    accuracy: position.coords.accuracy ?? 0,
   });
 
   return { bucketId, coords: position.coords };

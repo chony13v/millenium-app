@@ -15,22 +15,11 @@ service cloud.firestore {
       return field is string || field == null;
     }
 
-    function isNullableNumber(field) {
-      return field is number || field == null;
-    }
-
     function hasValidCoords(coords) {
       return coords is map &&
-        coords.keys().hasOnly(['latitude','longitude','accuracy']) &&
+        coords.keys().hasOnly(['latitude','longitude']) &&
         coords.latitude is number &&
-        coords.longitude is number &&
-        isNullableNumber(coords.accuracy);
-    }
-
-    /* Para eventos: accuracy razonable (≤ 100 m) si viene presente */
-    function hasValidEventCoords(coords) {
-      return hasValidCoords(coords) &&
-        ( !(coords.accuracy is number) || coords.accuracy <= 100 );
+        coords.longitude is number;
     }
 
     /* ─────────── mensajesContacto ─────────── */
@@ -81,31 +70,25 @@ service cloud.firestore {
       allow write: if isOwner()
         && request.resource.data.keys().hasOnly([
           'bucketId',
-          'latCenter',
-          'lngCenter',
-          'count',
-          'updatedAt',
-          'source',
-          'lastResolvedNeighborhood',
-          'lastResolvedCity',
-          'lastResolvedRegion',
-          'lastResolvedCountry',
-          'lastResolvedIsoCountry',
-          'lastResolvedFormatted'
+          'userId',
+          'userEmail',
+          'cityId',
+          'coords',
+          'geohash',
+          'platform',
+          'appVersion',
+          'createdAt'
         ])
         && request.resource.data.bucketId is string
         && request.resource.data.bucketId == bucketId
-        && request.resource.data.latCenter is number
-        && request.resource.data.lngCenter is number
-        && request.resource.data.count is number
-        && request.resource.data.updatedAt is timestamp
-        && (!('source' in request.resource.data) || request.resource.data.source is string)
-        && (!('lastResolvedNeighborhood' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedNeighborhood))
-        && (!('lastResolvedCity' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedCity))
-        && (!('lastResolvedRegion' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedRegion))
-        && (!('lastResolvedCountry' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedCountry))
-        && (!('lastResolvedIsoCountry' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedIsoCountry))
-        && (!('lastResolvedFormatted' in request.resource.data) || isValidPlaceField(request.resource.data.lastResolvedFormatted));
+        && request.resource.data.userId is string
+        && isNullableString(request.resource.data.userEmail)
+        && isNullableString(request.resource.data.cityId)
+        && hasValidCoords(request.resource.data.coords)
+        && request.resource.data.geohash is string
+        && request.resource.data.platform is string
+        && request.resource.data.appVersion is string
+        && request.resource.data.createdAt is timestamp;
     }
 
     /* ─────────── Location buckets global (por usuario) ───────────
@@ -118,69 +101,52 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly([
           'userId',
           'userEmail',
-          'consentGiven',
           'coords',
           'cityId',
           'bucketId',
+          'geohash',
+          'platform',
+          'appVersion',
           'createdAt'
         ])
         && request.resource.data.userId is string
         && request.resource.data.bucketId is string
-        && request.resource.data.consentGiven is bool
         && isNullableString(request.resource.data.userEmail)
         && isNullableString(request.resource.data.cityId)
         && hasValidCoords(request.resource.data.coords)
+        && request.resource.data.geohash is string
+        && request.resource.data.platform is string
+        && request.resource.data.appVersion is string
         && request.resource.data.createdAt is timestamp;
     }
 
-    /* ─────────── locationEvents (eventos anonimizados para analítica) ───────────
-       Destinado a guardar eventos enriquecidos SIN PII (usa userAnonId). */
+    /* ─────────── locationEvents (eventos de ubicación simplificados) ───────────
+       Destinado a guardar los datos mínimos necesarios para analítica. */
     match /locationEvents/{docId} {
       function hasValidEnrichedEvent(data) {
         return
           // Whitelist de campos permitidos
           data.keys().hasOnly([
-            'bucketId',
+            'userId',
+            'userEmail',
             'cityId',
-            'userAnonId',
-            'consentGiven',
+            'bucketId',
             'coords',
             'geohash',
-            'date',
-            'hour',
-            'weekday',
-            'locationMethod',
-            'permissionStatus',
-            'eventType',
-            'appVersion',
             'platform',
-            'provinceId',
-            'cantonId',
-            'parishId',
-            'neighborhoodSlug',
-            'timestamp'
+            'appVersion',
+            'createdAt'
           ])
           // Tipos y validaciones mínimas
+          && (data.userId is string)
           && (data.bucketId is string)
+          && (isNullableString(data.userEmail))
           && (isNullableString(data.cityId))
-          && (data.userAnonId is string && data.userAnonId.size() >= 32) // hash hex
-          && (data.consentGiven == true)
-          && (hasValidEventCoords(data.coords))
+          && (hasValidCoords(data.coords))
           && (data.geohash is string && data.geohash.size() >= 5 && data.geohash.size() <= 12)
-          && (data.date is string)      // 'YYYY-MM-DD' (no validamos regex en reglas)
-          && (data.hour is number && data.hour >= 0 && data.hour <= 23)
-          && (data.weekday is number && data.weekday >= 0 && data.weekday <= 6)
-          && (data.locationMethod is string)
-          && (data.permissionStatus is string)
-          && (data.eventType is string)
-          && (data.appVersion is string)
           && (data.platform is string)
-          && (isNullableString(data.provinceId))
-          && (isNullableString(data.cantonId))
-          && (isNullableString(data.parishId))
-          && (isNullableString(data.neighborhoodSlug))
-          // timestamp: aceptamos number (ms epoch) o timestamp Firestore
-          && ((data.timestamp is number) || (data.timestamp is timestamp));
+          && (data.appVersion is string)
+          && (data.createdAt is timestamp);
       }
 
       // Escritura: requiere usuario autenticado (no PII en el doc)
