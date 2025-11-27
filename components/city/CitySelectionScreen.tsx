@@ -5,6 +5,7 @@ import {
   Pressable,
   ScrollView,
   StatusBar,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -32,187 +33,211 @@ const CitySelectionScreen = () => {
     [selectCity]
   );
 
-  const TOP_SPACING =
-    (Platform.OS === "android" ? StatusBar.currentHeight ?? 0 : 0) + 8;
-
   return (
-    <LinearGradient
-      colors={["#0f172a", "#1e293b", "#111827"]}
-      start={[0, 0]}
-      end={[1, 1]}
-      style={{ flex: 1, paddingTop: TOP_SPACING }}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
-        <View
-          style={{
-            flex: 1,
-            paddingHorizontal: 24,
-            paddingVertical: 28,
-            justifyContent: "space-between",
-          }}
-        >
-          {/* HEADER */}
-          <View style={{ gap: 16 }}>
-            <Text
-              style={{
-                color: "#60a5fa",
-                fontWeight: "700",
-                letterSpacing: 2,
-                fontSize: 12,
-                textTransform: "uppercase",
-              }}
-            >
-              BIENVENIDO A MILLENIUM ACADEMY
-            </Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.kicker}>Millenium Academy</Text>
+        <Text style={styles.title}>Elige tu ciudad</Text>
+        <Text style={styles.subtitle}>
+          Personalizamos la comunidad, canchas y noticias según tu ubicación.
+        </Text>
 
-            <Text
-              style={{
-                color: "white",
-                fontSize: 28,
-                fontWeight: "800",
-              }}
-            >
-              ¿Dónde quieres jugar hoy?
-            </Text>
-
-            <Text
-              style={{
-                color: "rgba(255,255,255,0.7)",
-                fontSize: 15,
-                lineHeight: 22,
-              }}
-            >
-              Selecciona la ciudad para personalizar la comunidad, canchas y
-              eventos destacados.
-            </Text>
-
-            <View
-              style={{
-                backgroundColor: "rgba(96,165,250,0.12)",
-                borderRadius: 14,
-                padding: 12,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <View
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: "rgba(96,165,250,0.35)",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <Text
-                  style={{
-                    color: "white",
-                    fontWeight: "700",
-                    fontSize: 14,
-                  }}
-                >
-                  1
-                </Text>
-              </View>
-              <Text
-                style={{
-                  color: "rgba(255,255,255,0.75)",
-                  fontSize: 13,
-                  lineHeight: 18,
-                  flex: 1,
-                }}
-              >
-                Esta selección se guardará para tus próximos ingresos, pero
-                siempre podrás cambiarla cuando lo necesites.
-              </Text>
-            </View>
+        <View style={styles.tipCard}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>Recomendado</Text>
           </View>
-
-          {/* CITY LIST */}
-          <View style={{ flex: 1, marginTop: 28 }}>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 24 }}
-            >
-              {CITY_OPTIONS.map((option) => (
-                <Pressable
-                  key={option.id}
-                  onPress={() => handleSelect(option.id)}
-                  style={({ pressed }) => [
-                    {
-                      width: "100%",
-                      borderRadius: 20,
-                      overflow: "hidden",
-                      marginBottom: 16,
-                      borderWidth: highlightedCity === option.id ? 2 : 0,
-                      borderColor:
-                        highlightedCity === option.id
-                          ? "rgba(255,255,255,0.35)"
-                          : "transparent",
-                      transform: [{ scale: pressed ? 0.98 : 1 }],
-                      opacity: pressed ? 0.92 : 1,
-                    },
-                  ]}
-                >
-                  <LinearGradient
-                    colors={[...option.gradient]}
-                    start={[0, 0]}
-                    end={[1, 1]}
-                    style={{ padding: 20 }}
-                  >
-                    <Text
-                      style={{
-                        color: "white",
-                        fontSize: 22,
-                        fontWeight: "700",
-                        marginBottom: 6,
-                      }}
-                    >
-                      {option.title}
-                    </Text>
-
-                    <Text
-                      style={{
-                        color: "rgba(255,255,255,0.85)",
-                        fontSize: 14,
-                        lineHeight: 20,
-                      }}
-                    >
-                      {option.description}
-                    </Text>
-
-                    {highlightedCity === option.id && (
-                      <View
-                        style={{
-                          marginTop: 18,
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 10,
-                        }}
-                      >
-                        <ActivityIndicator color="white" />
-                        <Text
-                          style={{
-                            color: "rgba(255,255,255,0.85)",
-                            fontSize: 13,
-                            fontWeight: "600",
-                          }}
-                        >
-                          Personalizando tu experiencia...
-                        </Text>
-                      </View>
-                    )}
-                  </LinearGradient>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
+          <Text style={styles.tipTitle}>Guarda tu selección</Text>
+          <Text style={styles.tipBody}>
+            Quedará registrada para tus próximos ingresos. Siempre podrás
+            cambiarla más adelante.
+          </Text>
         </View>
-      </SafeAreaView>
-    </LinearGradient>
+
+        <View style={styles.list}>
+          {CITY_OPTIONS.map((option) => {
+            const isActive = highlightedCity === option.id;
+            return (
+              <Pressable
+                key={option.id}
+                onPress={() => handleSelect(option.id)}
+                style={({ pressed }) => [
+                  styles.card,
+                  isActive && styles.cardActive,
+                  pressed && styles.cardPressed,
+                ]}
+              >
+                <LinearGradient
+                  colors={[...option.gradient]}
+                  start={[0, 0]}
+                  end={[1, 1]}
+                  style={styles.cardHeader}
+                >
+                  <Text style={styles.cardTitle}>{option.title}</Text>
+                  <Text style={styles.cardPill}>
+                    {isActive ? "Cargando" : "Seleccionar"}
+                  </Text>
+                </LinearGradient>
+
+                <View style={styles.cardBody}>
+                  <Text style={styles.cardDescription}>
+                    {option.description}
+                  </Text>
+
+                  {isActive && (
+                    <View style={styles.loadingRow}>
+                      <ActivityIndicator color="#0A2240" size="small" />
+                      <Text style={styles.loadingText}>
+                        Personalizando tu experiencia...
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+  },
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) + 12 : 12,
+    paddingBottom: 28,
+    gap: 14,
+  },
+  kicker: {
+    fontSize: 12,
+    fontFamily: "barlow-medium",
+    letterSpacing: 2,
+    color: "#0ea5e9",
+    textTransform: "uppercase",
+  },
+  title: {
+    fontSize: 30,
+    fontFamily: "barlow-medium",
+    color: "#0A2240",
+  },
+  subtitle: {
+    fontSize: 16,
+    fontFamily: "barlow-regular",
+    color: "#475569",
+    lineHeight: 22,
+  },
+  tipCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  badge: {
+    alignSelf: "flex-start",
+    backgroundColor: "#e0f2fe",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  badgeText: {
+    color: "#0ea5e9",
+    fontFamily: "barlow-medium",
+    fontSize: 12,
+  },
+  tipTitle: {
+    fontSize: 18,
+    fontFamily: "barlow-medium",
+    color: "#0f172a",
+  },
+  tipBody: {
+    fontSize: 14,
+    fontFamily: "barlow-regular",
+    color: "#475569",
+    lineHeight: 20,
+  },
+  list: {
+    gap: 14,
+    marginTop: 6,
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 18,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  cardActive: {
+    borderColor: "rgba(14,165,233,0.4)",
+  },
+  cardPressed: {
+    transform: [{ scale: 0.99 }],
+    opacity: 0.96,
+  },
+  cardHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontFamily: "barlow-medium",
+    color: "white",
+  },
+  cardPill: {
+    fontSize: 12,
+    fontFamily: "barlow-medium",
+    color: "#0f172a",
+    backgroundColor: "rgba(255,255,255,0.92)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+  },
+  cardBody: {
+    padding: 16,
+    gap: 10,
+  },
+  cardDescription: {
+    fontSize: 14,
+    fontFamily: "barlow-regular",
+    color: "#475569",
+    lineHeight: 20,
+  },
+  loadingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  loadingText: {
+    fontSize: 13,
+    fontFamily: "barlow-medium",
+    color: "#0A2240",
+  },
+});
 
 export default CitySelectionScreen;

@@ -5,25 +5,30 @@ import {
   StyleSheet,
   ActivityIndicator,
   Image,
-  Button,
   ScrollView,
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useUser } from "@clerk/clerk-expo";
 import LoadingBall from "@/components/LoadingBall";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileDetails from "@/components/profile/ProfileDetails";
 import { fetchProfile, Profile } from "@/services/profile/profileScreenData";
 import { useProfileImage } from "@/hooks/profile/useProfileImage";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useCitySelection } from "@/hooks/useCitySelection";
 
 export default function ProfileScreen() {
   const { user } = useUser();
   const navigation = useNavigation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Align with safe areas and selected city for visuals
+  const insets = useSafeAreaInsets();
+  const { selectedCity } = useCitySelection();
 
   const { isImageLoading, handleChangeImage } = useProfileImage({
     userId: user?.id,
@@ -52,7 +57,7 @@ export default function ProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.safeArea}>
         <View style={styles.loader}>
           <ActivityIndicator size="large" color="#4630EB" />
           <LoadingBall text="Cargando perfil..." />
@@ -64,23 +69,53 @@ export default function ProfileScreen() {
   if (!profile) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.backgroundContainer}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.emptyContent,
+            { paddingBottom: 24 + insets.bottom },
+          ]}
+          showsVerticalScrollIndicator={false}
+        >
+          <LinearGradient
+            colors={["#0A2240", "#0ea5e9"]}
+            start={[0, 0]}
+            end={[1, 1]}
+            style={[styles.heroCard, { paddingTop: insets.top + 6 }]}
+          >
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={22} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.heroTitle}>Mi perfil</Text>
+            <Text style={styles.heroSubtitle}>
+              Completa tu registro para sincronizar tu cuenta con Conecta y las
+              demás pestañas.
+            </Text>
+          </LinearGradient>
+
           <View style={styles.card}>
-            <TouchableOpacity onPress={handleChangeImage}>
+            <TouchableOpacity onPress={handleChangeImage} activeOpacity={0.9}>
               <Image source={{ uri: user?.imageUrl }} style={styles.avatar} />
             </TouchableOpacity>
             <Text style={styles.userName}>{user?.fullName}</Text>
             <Text style={styles.userEmail}>
               {user?.primaryEmailAddress?.emailAddress}
             </Text>
-          </View>
-          <View style={styles.outsideContainer}>
             <Text style={styles.registrationText}>
-              Regístrate para actualizar tu perfil
+              Aún no tienes un registro activo. Completa el formulario para
+              continuar.
             </Text>
-            <Button title="Volver" onPress={() => navigation.goBack()} />
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              style={styles.secondaryButton}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.secondaryButtonText}>Ir a registrar</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -89,16 +124,29 @@ export default function ProfileScreen() {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.container}
+        contentContainerStyle={[
+          styles.container,
+          { paddingBottom: 24 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerBackground}>
+        <LinearGradient
+          colors={["#0A2240", "#0ea5e9"]}
+          start={[0, 0]}
+          end={[1, 1]}
+          style={[styles.heroCard, { paddingTop: insets.top + 6 }]}
+        >
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#000000" />
+            <Ionicons name="arrow-back" size={22} color="white" />
           </TouchableOpacity>
-        </View>
+          <Text style={styles.heroTitle}>Mi perfil</Text>
+          <Text style={styles.heroSubtitle}>
+            Visualiza tu registro y mantén tus datos alineados a Conecta.
+          </Text>
+        </LinearGradient>
 
         <ProfileHeader
           profile={profile}
@@ -108,7 +156,7 @@ export default function ProfileScreen() {
           isImageLoading={isImageLoading}
         />
 
-        <ProfileDetails profile={profile} />
+        <ProfileDetails profile={profile} selectedCity={selectedCity} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -120,90 +168,115 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  headerBackground: {
-    backgroundColor: "#FFFFFF",
-    height: 10,
-    width: "100%",
-    flexDirection: "row",
-    alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 20,
-  },
-  backButton: {
-    marginLeft: 20,
-    marginBottom: -70,
-    marginTop: -60,
-  },
   scrollView: {
     flex: 1,
-    backgroundColor: "#ffffff",
-    marginTop: -10,
+    backgroundColor: "#f8fafc",
   },
   container: {
-    paddingTop: 20,
+    paddingTop: 14,
+    gap: 16,
   },
   safeArea: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f8fafc",
   },
-  backgroundContainer: {
-    flex: 1,
-    backgroundColor: "#ffffff",
-    paddingVertical: 20,
+  heroCard: {
+    borderRadius: 18,
+    padding: 18,
+    marginHorizontal: 16,
+    shadowColor: "#0A2240",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+    gap: 8,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroTitle: {
+    color: "white",
+    fontFamily: "barlow-semibold",
+    fontSize: 22,
+    marginTop: 4,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.9)",
+    fontFamily: "barlow-regular",
+    fontSize: 14,
+    lineHeight: 20,
   },
   card: {
-    backgroundColor: "#ffffff",
-    position: "relative",
+    backgroundColor: "#fff",
     padding: 20,
     borderRadius: 16,
-    marginTop: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    elevation: 8,
+    marginHorizontal: 16,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-    maxWidth: 300,
-    alignSelf: "center",
-    transform: [{ perspective: 1000 }, { translateY: 2 }],
+    borderColor: "#e2e8f0",
+    alignItems: "center",
+    gap: 6,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: "#f5f5f5",
-    marginBottom: 8,
-  },
-  outsideContainer: {
-    padding: 16,
-    marginTop: 10,
-    alignItems: "center",
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   registrationText: {
-    fontSize: 16,
-    color: "#1a1a1a",
-    marginBottom: 16,
+    fontSize: 14,
+    color: "#475569",
+    marginTop: 6,
     textAlign: "center",
-    fontFamily: "barlow-medium",
+    fontFamily: "barlow-regular",
+    lineHeight: 20,
   },
   userName: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: "barlow-semibold",
-    color: "#333",
+    color: "#0A2240",
     marginTop: 8,
     textAlign: "left",
   },
   userEmail: {
-    fontSize: 14,
-    fontFamily: "outfit-regular",
-    color: "#777",
-    marginTop: 2,
+    fontSize: 13,
+    fontFamily: "barlow-regular",
+    color: "#64748b",
+    marginTop: 1,
     textAlign: "left",
+  },
+  emptyContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 16,
+  },
+  secondaryButton: {
+    marginTop: 10,
+    backgroundColor: "#0A2240",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    shadowColor: "#0A2240",
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  secondaryButtonText: {
+    color: "white",
+    fontFamily: "barlow-semibold",
+    fontSize: 14,
   },
 });

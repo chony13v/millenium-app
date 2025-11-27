@@ -156,6 +156,22 @@ export default function CallRoutesLayout() {
           />
 
           <Tabs.Screen
+            name="Conecta"
+            options={{
+              title: "CONECTA",
+              tabBarIcon: ({ color, focused }) => (
+                <TabIcon
+                  focused={focused}
+                  color={color}
+                  icon={FontAwesome}
+                  iconName="comments"
+                  size={24}
+                />
+              ),
+            }}
+          />
+
+          <Tabs.Screen
             name="Metodology"
             options={{
               title: "CLUB",

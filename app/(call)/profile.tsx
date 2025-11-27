@@ -1,9 +1,18 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, Image, Alert, StyleSheet, Keyboard } from "react-native";
+import {
+  View,
+  Text,
+  Image,
+  Alert,
+  StyleSheet,
+  Keyboard,
+} from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import * as WebBrowser from "expo-web-browser";
+import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Section1Form from "@/components/form/Section1Form";
 import Section2Form from "@/components/form/Section2Form";
@@ -40,6 +49,7 @@ export default function Profile() {
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [currentSection, setCurrentSection] = useState(1);
+  const insets = useSafeAreaInsets();
 
   const section1 = useSection1Form();
   const section2 = useSection2Form();
@@ -186,7 +196,7 @@ export default function Profile() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
       <TermsModal
         visible={termsModalVisible}
         onClose={() => setTermsModalVisible(false)}
@@ -203,7 +213,34 @@ export default function Profile() {
         isKeyboardVisible={isKeyboardVisible}
       />
 
-      <KeyboardAwareScrollView contentContainerStyle={styles.scrollContainer}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={[
+          styles.scrollContainer,
+          { paddingBottom: 24 + insets.bottom },
+        ]}
+      >
+        <LinearGradient
+          colors={["#0A2240", "#0ea5e9"]}
+          start={[0, 0]}
+          end={[1, 1]}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroRow}>
+            <Text style={styles.heroBadge}>Registro</Text>
+            <Text style={styles.heroPill}>3 pasos</Text>
+          </View>
+          <Text style={styles.heroTitle}>Completa tu postulación</Text>
+          <Text style={styles.heroSubtitle}>
+            Datos del jugador, tutor y consentimientos para el selectivo 2025.
+            Todo alineado a la experiencia Conecta.
+          </Text>
+          <View style={styles.heroTags}>
+            <Text style={styles.heroTag}>Datos personales</Text>
+            <Text style={styles.heroTag}>Tutor responsable</Text>
+            <Text style={styles.heroTag}>Consentimientos</Text>
+          </View>
+        </LinearGradient>
+
         <View style={styles.card}>
           <Image source={{ uri: user?.imageUrl }} style={styles.avatar} />
           <Text style={styles.userName}>{user?.fullName}</Text>
@@ -311,15 +348,79 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-    marginHorizontal: 20,
+    backgroundColor: "#f8fafc",
+    paddingTop: 10,
   },
 
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    gap: 14,
+  },
+  heroCard: {
+    width: "100%",
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: "#0A2240",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
+  },
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  heroBadge: {
+    backgroundColor: "rgba(255,255,255,0.18)",
+    color: "white",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    fontFamily: "barlow-semibold",
+    letterSpacing: 0.4,
+    fontSize: 12,
+  },
+  heroPill: {
+    backgroundColor: "rgba(255,255,255,0.12)",
+    color: "white",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    fontFamily: "barlow-medium",
+    fontSize: 12,
+  },
+  heroTitle: {
+    color: "white",
+    fontFamily: "barlow-semibold",
+    fontSize: 22,
+    marginTop: 12,
+    lineHeight: 28,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.9)",
+    fontFamily: "barlow-regular",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+  },
+  heroTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 12,
+  },
+  heroTag: {
+    color: "white",
+    fontFamily: "barlow-medium",
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.16)",
   },
   card: {
     backgroundColor: "#fff",
@@ -327,31 +428,34 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     marginBottom: 16,
-    shadowColor: "#000",
+    shadowColor: "#0f172a",
     shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
     borderWidth: 1,
-    borderColor: "#f0f0f0",
+    borderColor: "#e2e8f0",
+    width: "100%",
   },
   avatar: {
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f8fafc",
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   userName: {
     fontFamily: "barlow-semibold",
-    fontSize: 20,
-    color: "#222",
+    fontSize: 21,
+    color: "#0A2240",
     marginBottom: 4,
   },
   userEmail: {
     fontFamily: "barlow-regular",
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#475569",
     marginBottom: 4,
   },
   cancelContainer: {
@@ -360,9 +464,9 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   cancelText: {
-    color: "#1a1a1a",
-    fontSize: 16,
-    fontFamily: "barlow-regular",
+    fontSize: 15,
+    fontFamily: "barlow-medium",
     textDecorationLine: "underline",
+    color: "#0A2240",
   },
 });

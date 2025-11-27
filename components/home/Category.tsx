@@ -12,7 +12,6 @@ import { db } from "@/config/FirebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import LoadingBall from "@/components/LoadingBall";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface CategoryItem {
   id: string;
@@ -22,12 +21,9 @@ interface CategoryItem {
 }
 
 export default function CategoryIcons() {
-  const insets = useSafeAreaInsets();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-
-  const HEADER_HEIGHT = -30;
 
   useEffect(() => {
     (async () => {
@@ -72,69 +68,82 @@ export default function CategoryIcons() {
   };
 
   return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: "white",
-        paddingTop: insets.top + HEADER_HEIGHT,
-      }}
-    >
-      <View style={styles.container}>
-        <Text
-          style={{
-            fontFamily: "barlow-light",
-            fontSize: 16,
-            marginHorizontal: 20,
-            marginBottom: 20,
-          }}
-        >
-          Síguenos en nuestros canales oficiales:
-        </Text>
+    <View style={styles.container}>
+      <Text style={styles.subtitle}>Síguenos en nuestros canales oficiales</Text>
 
-        <FlatList
-          horizontal
-          data={categories}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.item}
-              onPress={() => handlePress(item.link)}
-              activeOpacity={0.7}
-            >
+      <FlatList
+        horizontal
+        data={categories}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.item}
+            onPress={() => handlePress(item.link)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.iconWrapper}>
               <Image source={{ uri: item.icon }} style={styles.icon} />
-              <Text style={styles.name}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingLeft: 20 }}
-        />
-      </View>
-
-      <View style={styles.separator} />
+            </View>
+            <Text style={styles.name}>{item.name}</Text>
+          </TouchableOpacity>
+        )}
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingBottom: 10,
+    gap: 10,
   },
-  separator: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#F0F4FF",
-    marginHorizontal: 20,
+  subtitle: {
+    fontFamily: "barlow-medium",
+    fontSize: 14,
+    color: "#0A2240",
+    marginHorizontal: 4,
+  },
+  listContent: {
+    paddingVertical: 4,
+    paddingLeft: 4,
   },
   item: {
     alignItems: "center",
-    marginRight: 15,
+    marginRight: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 14,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    minWidth: 110,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  iconWrapper: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    justifyContent: "center",
+    alignItems: "center",
   },
   icon: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     resizeMode: "contain",
   },
   name: {
     marginTop: 5,
-    fontSize: 14,
+    fontSize: 13,
+    fontFamily: "barlow-medium",
+    color: "#0A2240",
+    textAlign: "center",
   },
 });

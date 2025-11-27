@@ -180,7 +180,7 @@ export default function Academy() {
 
           const backgroundColor = scrollX.interpolate({
             inputRange,
-            outputRange: ["#ccc", "#6200ee", "#ccc"],
+            outputRange: ["#dbeafe", "#0ea5e9", "#dbeafe"],
             extrapolate: "clamp",
           });
 
@@ -239,13 +239,14 @@ export default function Academy() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "transparent",
   },
   title: {
-    fontFamily: "barlow-medium",
-    fontSize: 20,
-    paddingLeft: 20,
-    paddingTop: 10,
+    fontFamily: "barlow-semibold",
+    fontSize: 18,
+    paddingLeft: 8,
+    paddingTop: 6,
+    color: "#0A2240",
   },
   loader: {
     marginTop: 20,
@@ -262,14 +263,21 @@ const styles = StyleSheet.create({
     height: videoHeight,
     borderRadius: 15,
     overflow: "hidden",
-    backgroundColor: "#000",
+    backgroundColor: "#0A2240",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
   },
   video: {
     width: screenWidth * 0.9,
     height: videoHeight,
   },
   videoTitle: {
-    color: "#333",
+    color: "#0A2240",
     fontSize: 16,
     fontFamily: "barlow-medium",
     marginTop: 8,
@@ -287,7 +295,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
   listContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   fallbackContainer: {
     justifyContent: "center",

@@ -37,27 +37,31 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               source={require("@/assets/images/verify.png")}
               style={styles.checkIcon}
             />
-            <Image
-              source={require("@/assets/images/LogoFC.png")}
-              style={styles.logoIcon}
-            />
           </View>
           <Text style={styles.userName}>{profile.fullName}</Text>
           <Text style={styles.userEmail}>{email}</Text>
-          <View style={styles.cityContainer}>
-            <Image
-              source={require("@/assets/images/company.png")}
-              style={styles.cityIcon}
-            />
-            <Text style={styles.cityText}>{profile.city}</Text>
+          <View style={styles.chipsRow}>
+            <View style={styles.cityChip}>
+              <Image
+                source={require("@/assets/images/company.png")}
+                style={styles.cityIcon}
+              />
+              <Text style={styles.cityText}>{profile.city}</Text>
+            </View>
+            <View style={styles.positionChip}>
+              <Text style={styles.positionText}>{profile.position}</Text>
+            </View>
           </View>
         </View>
         <View style={styles.rightColumn}>
-          <Text style={styles.position}>{profile.position}</Text>
-          <View style={styles.separator} />
+          <Text style={styles.metaLabel}>Edad</Text>
           <Text style={styles.age}>
             {profile.edad ? `${profile.edad} años` : "N/A"}
           </Text>
+          <View style={styles.separator} />
+          <View style={styles.metaBadge}>
+            <Text style={styles.metaBadgeText}>Registro activo</Text>
+          </View>
         </View>
       </View>
     </View>
@@ -68,26 +72,19 @@ export default ProfileHeader;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: "#ffffff",
-    position: "relative",
-    padding: 20,
+    backgroundColor: "#fff",
+    padding: 18,
     borderRadius: 16,
-    marginTop: 20,
-    marginHorizontal: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: {
-      width: 0,
-      height: 6,
-    },
-    elevation: 8,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.8)",
-    maxWidth: 300,
-    alignSelf: "center",
-    transform: [{ perspective: 1000 }, { translateY: 2 }],
+    borderColor: "#e2e8f0",
   },
   profileRow: {
     flexDirection: "row",
@@ -111,6 +108,8 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     backgroundColor: "#f5f5f5",
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   checkIcon: {
     position: "absolute",
@@ -119,59 +118,93 @@ const styles = StyleSheet.create({
     bottom: 0,
     right: 0,
   },
-  logoIcon: {
-    position: "absolute",
-    width: 20,
-    height: 20,
-    bottom: -75,
-    right: -170,
-  },
   userName: {
     fontSize: 16,
     fontFamily: "barlow-semibold",
-    color: "#333",
+    color: "#0A2240",
     marginTop: 8,
     textAlign: "left",
   },
   userEmail: {
-    fontSize: 14,
-    fontFamily: "outfit-regular",
-    color: "#777",
+    fontSize: 13,
+    fontFamily: "barlow-regular",
+    color: "#64748b",
     marginTop: 2,
     textAlign: "left",
+  },
+  chipsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+    gap: 8,
   },
   cityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
-    gap: 4,
+    gap: 6,
+  },
+  cityChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#f8fafc",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
   },
   cityIcon: {
-    width: 20,
-    height: 20,
+    width: 18,
+    height: 18,
     resizeMode: "contain",
   },
   cityText: {
-    fontSize: 14,
-    fontFamily: "outfit-medium",
-    color: "#666",
+    fontSize: 13,
+    fontFamily: "barlow-medium",
+    color: "#0A2240",
   },
-  position: {
-    fontSize: 14,
-    fontFamily: "outfit-medium",
-    color: "#4630EB",
-    marginHorizontal: -10,
+  positionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "rgba(14,165,233,0.12)",
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+  },
+  positionText: {
+    fontSize: 13,
+    fontFamily: "barlow-semibold",
+    color: "#0ea5e9",
   },
   age: {
-    fontSize: 13,
-    fontFamily: "outfit-regular",
-    color: "#000000",
-    marginTop: 10,
+    fontSize: 16,
+    fontFamily: "barlow-semibold",
+    color: "#0A2240",
+    marginTop: 6,
   },
   separator: {
     height: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#e2e8f0",
     width: "100%",
+    marginVertical: 10,
+  },
+  metaLabel: {
+    fontSize: 12,
+    color: "#64748b",
+    fontFamily: "barlow-medium",
+    letterSpacing: 0.2,
+  },
+  metaBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: "#0A2240",
+  },
+  metaBadgeText: {
+    color: "white",
+    fontFamily: "barlow-semibold",
+    fontSize: 12,
   },
   loadingOverlay: {
     position: "absolute",

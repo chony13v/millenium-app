@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import {
   Image,
   StyleSheet,
@@ -28,8 +28,9 @@ interface FieldCardProps {
 }
 
 const screenWidth = Dimensions.get("window").width;
+const cardWidth = screenWidth - 32;
 
-export const FieldCard: React.FC<FieldCardProps> = ({
+function FieldCard({
   item,
   distance,
   isImageLoading,
@@ -38,7 +39,7 @@ export const FieldCard: React.FC<FieldCardProps> = ({
   onLoadStart,
   onLoadEnd,
   onError,
-}) => {
+}: FieldCardProps) {
   return (
     <View style={styles.itemContainer}>
       <View style={styles.imageContainer}>
@@ -79,22 +80,35 @@ export const FieldCard: React.FC<FieldCardProps> = ({
           }
         >
           <Text style={styles.headerTitle}>{item.title}</Text>
-          <MaterialIcons name="location-on" size={20} color="#4630EB" />
+          <MaterialIcons name="location-on" size={20} color="#0ea5e9" />
         </TouchableOpacity>
         {distance !== undefined && (
-          <Text style={styles.distanceText}>
-            {(distance / 1000).toFixed(2)} km de distancia
-          </Text>
+          <View style={styles.metaRow}>
+            <Text style={styles.distanceText}>
+              {(distance / 1000).toFixed(2)} km cerca
+            </Text>
+          </View>
         )}
       </View>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   itemContainer: {
-    marginBottom: 20,
+    marginBottom: 18,
     alignItems: "center",
+    backgroundColor: "white",
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+    width: "100%",
   },
   titleContainer: {
     flexDirection: "row",
@@ -102,29 +116,35 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textContainer: {
-    alignItems: "flex-start",
     width: "100%",
-    paddingTop: 10,
-    paddingHorizontal: 10,
+    paddingTop: 12,
+    paddingHorizontal: 14,
+    paddingBottom: 14,
+    gap: 6,
   },
   headerTitle: {
     fontFamily: "barlow-medium",
-    fontSize: 16,
-    marginBottom: 5,
+    fontSize: 17,
     color: "#0A2240",
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   distanceText: {
     fontFamily: "barlow-regular",
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 5,
+    fontSize: 13,
+    color: "#0ea5e9",
+    backgroundColor: "rgba(14,165,233,0.12)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
   },
   imageContainer: {
-    width: screenWidth * 0.9,
-    height: screenWidth * 0.9 * (9 / 16),
-    borderRadius: 3,
+    width: cardWidth,
+    height: cardWidth * (9 / 16),
     overflow: "hidden",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#0A2240",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -154,4 +174,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FieldCard;
+export default memo(FieldCard);

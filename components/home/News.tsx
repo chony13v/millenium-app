@@ -39,7 +39,7 @@ const NewsCard = React.memo(({ item }: { item: NewsItem }) => {
           {imageLoading && (
             <ActivityIndicator
               size="small"
-              color="#F02B44"
+              color="#0ea5e9"
               style={{
                 position: "absolute",
                 top: "50%",
@@ -169,17 +169,15 @@ export default function News() {
 
   return (
     <View style={styles.mainContainer}>
-      <Text style={styles.headerTitle}>NOTICIAS</Text>
+      <Text style={styles.headerTitle}>Noticias recientes</Text>
       <FlatList
         data={newsItems}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
-        renderItem={({ item }) => (
-          <>
-            <NewsCard item={item} />
-            <View style={styles.separator} />
-          </>
-        )}
+        renderItem={({ item }) => <NewsCard item={item} />}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        scrollEnabled={false}
+        showsVerticalScrollIndicator={false}
       />
     </View>
   );
@@ -188,22 +186,23 @@ export default function News() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "transparent",
   },
   headerTitle: {
     fontFamily: "barlow-regular",
-    fontSize: 20,
-    color: "#000",
-    paddingHorizontal: 20,
-    paddingTop: 4,
-    paddingBottom: 10,
+    fontSize: 16,
+    color: "#0A2240",
+    paddingHorizontal: 4,
+    paddingTop: 2,
+    paddingBottom: 8,
   },
   listContainer: {
-    padding: 20,
+    paddingTop: 4,
+    paddingBottom: 4,
   },
   emptyStateContainer: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 24,
@@ -225,26 +224,24 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    marginBottom: 10,
-    marginHorizontal: 16,
     borderRadius: 12,
     backgroundColor: "white",
-    shadowColor: "#000",
+    shadowColor: "#0f172a",
     shadowOffset: {
       width: 0,
-      height: 3,
+      height: 2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowRadius: 5,
+    elevation: 4,
     overflow: "hidden",
     flexDirection: "row",
     borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.05)",
+    borderColor: "#e2e8f0",
   },
   imageContainer: {
     width: 120,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#0A2240",
   },
   image: {
     width: 120,
@@ -262,39 +259,39 @@ const styles = StyleSheet.create({
   },
   date: {
     fontSize: 12,
-    color: "#888",
-    fontFamily: "barlow-light",
+    color: "#64748b",
+    fontFamily: "barlow-medium",
     marginBottom: 4,
     letterSpacing: 0.2,
   },
   tag: {
     fontSize: 12,
-    color: "#F02B44",
+    color: "#0ea5e9",
     fontFamily: "barlow-medium",
     alignSelf: "flex-start",
     marginBottom: 2,
     paddingHorizontal: 8,
     paddingVertical: 2,
-    backgroundColor: "rgba(240,43,68,0.08)",
+    backgroundColor: "rgba(14,165,233,0.12)",
     borderRadius: 4,
   },
   title: {
     fontSize: 13,
     fontFamily: "barlow-semibold",
-    color: "#0A2240",
+    color: "#0f172a",
     marginBottom: 2,
     textAlign: "justify",
   },
   description: {
     fontSize: 12,
-    color: "#0A2240",
-    fontFamily: "barlow-light",
+    color: "#475569",
+    fontFamily: "barlow-regular",
     textAlign: "justify",
+    lineHeight: 18,
   },
   separator: {
-    height: 2,
-    backgroundColor: "#E0E0E0",
-    marginHorizontal: 20,
-    marginBottom: 15,
+    height: 1,
+    backgroundColor: "#e2e8f0",
+    marginVertical: 10,
   },
 });

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import LoadingBall from "@/components/LoadingBall";
 import { useCitySelection } from "@/hooks/useCitySelection";
@@ -14,12 +15,15 @@ import { updateUserLocationBucket } from "@/services/location/updateUserLocation
 import { useFieldsData } from "@/hooks/useFieldsData";
 import FieldCard from "@/components/fields/FieldCard";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
+import { CITY_OPTIONS } from "@/constants/cities";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Field() {
   const { selectedCity, hasHydrated } = useCitySelection();
   const { user } = useUser();
   const { getToken } = useAuth();
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const {
     sortedFieldList,
@@ -34,6 +38,11 @@ export default function Field() {
     setUserLocation,
     requestLocation,
   } = useFieldsData(selectedCity, hasHydrated);
+
+  const selectedCityInfo = useMemo(
+    () => CITY_OPTIONS.find((city) => city.id === selectedCity),
+    [selectedCity]
+  );
 
   const ensureFirebaseSession = useCallback(async () => {
     const auth = getAuth();
@@ -92,32 +101,65 @@ export default function Field() {
 
   const listHeader = useMemo(
     () => (
-      <View style={styles.headerContainer}>
-        <View style={styles.consentCard}>
-          <Text style={styles.consentTitle}>Permite ver canchas cercanas</Text>
-          <Text style={styles.consentDescription}>
-            Con tu consentimiento, guardamos una versión aproximada de tu
-            ubicación para mostrarte centros deportivos cercanos.
+      <View style={[styles.headerContainer, { paddingTop: insets.top + 6 }]}>
+        <LinearGradient
+          colors={["#0A2240", "#0ea5e9"]}
+          start={[0, 0]}
+          end={[1, 1]}
+          style={styles.heroCard}
+        >
+          <View style={styles.heroRow}>
+            <Text style={styles.heroBadge}>Fields</Text>
+            <Text style={styles.heroCity}>
+              {selectedCityInfo?.title ?? "Tu ciudad"}
+            </Text>
+          </View>
+          <Text style={styles.heroTitle}>Encuentra tu cancha ideal</Text>
+          <Text style={styles.heroSubtitle}>
+            Comparte tu ubicación aproximada para ordenar los centros por
+            cercanía y guardar tus favoritas.
           </Text>
 
-          <TouchableOpacity
-            style={[
-              styles.consentButton,
-              isUpdatingLocation && { opacity: 0.7 },
-            ]}
-            onPress={handleUpdateLocationBucket}
-            disabled={isUpdatingLocation}
-          >
-            <Text style={styles.consentButtonText}>
-              {isUpdatingLocation ? "Actualizando..." : "Actualizar ahora"}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.heroFooter}>
+            <View style={styles.heroTags}>
+              <Text style={styles.heroTag}>Orden por cercanía</Text>
+              <Text style={styles.heroTag}>Ubicación segura</Text>
+              <Text style={styles.heroTag}>Proyecto Conecta</Text>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.heroButton,
+                isUpdatingLocation && styles.heroButtonDisabled,
+              ]}
+              onPress={handleUpdateLocationBucket}
+              disabled={isUpdatingLocation}
+              activeOpacity={0.9}
+            >
+              <Text style={styles.heroButtonText}>
+                {isUpdatingLocation ? "Actualizando..." : "Actualizar ubicación"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
 
-        <Text style={styles.title}>Centros deportivos</Text>
+        <View style={styles.sectionHeaderRow}>
+          <View>
+            <Text style={styles.sectionTitle}>Centros deportivos</Text>
+            <Text style={styles.sectionSubtitle}>
+              {sortedFieldList.length} opciones cerca de ti
+            </Text>
+          </View>
+          <Text style={styles.sectionPill}>CONECTA</Text>
+        </View>
       </View>
     ),
-    [handleUpdateLocationBucket, isUpdatingLocation]
+    [
+      handleUpdateLocationBucket,
+      insets.top,
+      isUpdatingLocation,
+      selectedCityInfo?.title,
+      sortedFieldList.length,
+    ]
   );
 
   if (!hasHydrated) {
@@ -170,8 +212,11 @@ export default function Field() {
           onError={handleImageError}
         />
       )}
-      style={[styles.list, { backgroundColor: "white" }]}
-      contentContainerStyle={styles.listContent}
+      style={styles.list}
+      contentContainerStyle={[
+        styles.listContent,
+        { paddingBottom: 24 + insets.bottom },
+      ]}
       showsVerticalScrollIndicator={false}
       scrollEnabled={true}
       removeClippedSubviews={true}
@@ -186,67 +231,133 @@ export default function Field() {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    gap: 12,
+    gap: 16,
+    paddingHorizontal: 16,
   },
-  container: {
-    flex: 1,
-    backgroundColor: "white",
+  heroCard: {
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: "#0A2240",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
-  title: {
-    fontFamily: "barlow-regular",
-    fontSize: 35,
-    color: "#0A2240",
-    paddingVertical: 10,
-    marginBottom: 5,
-    textAlign: "center",
-    width: "100%",
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-
-  list: {
-    paddingHorizontal: 10,
+  heroBadge: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    color: "white",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    fontFamily: "barlow-semibold",
+    fontSize: 12,
+    letterSpacing: 0.4,
   },
-  listContent: {
-    paddingBottom: 80,
-  },
-  consentCard: {
-    backgroundColor: "#eef2ff",
-    padding: 16,
-    borderRadius: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "#c7d2fe",
-  },
-  consentTitle: {
+  heroCity: {
+    color: "rgba(255,255,255,0.92)",
     fontFamily: "barlow-medium",
-    fontSize: 16,
-    color: "#111827",
+    fontSize: 13,
   },
-  consentDescription: {
+  heroTitle: {
+    color: "white",
+    fontFamily: "barlow-semibold",
+    fontSize: 22,
+    marginTop: 12,
+    lineHeight: 28,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.9)",
     fontFamily: "barlow-regular",
     fontSize: 14,
-    color: "#374151",
     lineHeight: 20,
+    marginTop: 6,
   },
-  consentButton: {
-    backgroundColor: "#4630EB",
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: "center",
+  heroFooter: {
+    marginTop: 14,
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 12,
   },
-  consentButtonText: {
+  heroTags: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  heroTag: {
     color: "white",
     fontFamily: "barlow-medium",
-    fontSize: 15,
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.16)",
+  },
+  heroButton: {
+    backgroundColor: "white",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: "#0A2240",
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+  heroButtonDisabled: {
+    opacity: 0.7,
+  },
+  heroButtonText: {
+    color: "#0A2240",
+    fontFamily: "barlow-semibold",
+    fontSize: 14,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sectionTitle: {
+    fontFamily: "barlow-medium",
+    fontSize: 18,
+    color: "#0A2240",
+  },
+  sectionSubtitle: {
+    fontFamily: "barlow-regular",
+    fontSize: 13,
+    color: "#475569",
+    marginTop: 2,
+  },
+  sectionPill: {
+    fontFamily: "barlow-semibold",
+    fontSize: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#e0f2fe",
+    color: "#0ea5e9",
+  },
+  list: {
+    backgroundColor: "#f8fafc",
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   emptyStateContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
-    backgroundColor: "white",
+    backgroundColor: "#f8fafc",
   },
   emptyStateTitle: {
-    fontFamily: "barlow-medium",
+    fontFamily: "barlow-semibold",
     fontSize: 20,
     color: "#0A2240",
     textAlign: "center",
@@ -254,8 +365,8 @@ const styles = StyleSheet.create({
   },
   emptyStateDescription: {
     fontFamily: "barlow-regular",
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#64748b",
     textAlign: "center",
     lineHeight: 22,
   },
