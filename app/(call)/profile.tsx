@@ -232,7 +232,7 @@ export default function Profile() {
           <Text style={styles.heroTitle}>Completa tu postulación</Text>
           <Text style={styles.heroSubtitle}>
             Datos del jugador, tutor y consentimientos para el selectivo 2025.
-            Todo alineado a la experiencia Conecta.
+            Todo alineado a la experiencia Ciudad FC.
           </Text>
           <View style={styles.heroTags}>
             <Text style={styles.heroTag}>Datos personales</Text>

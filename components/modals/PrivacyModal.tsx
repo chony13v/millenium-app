@@ -65,12 +65,12 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
               color: "#000000",
             }}
           >
-            Esta Política de Privacidad describe cómo MILLENIUMFS S.A.S.
-            recopila, utiliza y protege la información personal de los usuarios
-            de nuestra aplicación móvil para el registro y participación en
-            actividades relacionadas con el fútbol juvenil. Esta app está
-            destinada a adolescentes mayores de 13 años, y toda recolección de
-            datos se realiza con autorización del padre o tutor legal.
+            Esta Política de Privacidad describe cómo Ciudad FC administra,
+            utiliza y protege la información personal de los usuarios de nuestra
+            aplicación móvil para el registro y participación en actividades
+            relacionadas con el fútbol juvenil. Esta app está destinada a
+            adolescentes mayores de 13 años, y toda recolección de datos se
+            realiza con autorización del padre o tutor legal.
           </Text>
 
           <Text
@@ -210,7 +210,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             {"\n"}- Solicitar la eliminación de sus datos personales
             {"\n"}- Oponerse al tratamiento de sus datos personales
             {"\n"}Para ejercer estos derechos o si tiene preguntas, por favor
-            contacte a: info@milleniumfc.com
+            contacte a: soporte@ciudadfc.com
           </Text>
 
           <Text
@@ -336,7 +336,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             }}
           >
             Esta política también está disponible en línea en la siguiente
-            dirección: https://chony13v.github.io/milleniumapp-privacy-policy/
+            dirección: https://ciudadfc.com/politica-privacidad
           </Text>
 
           <Text
@@ -359,7 +359,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             }}
           >
             Si tiene preguntas o inquietudes sobre esta Política de Privacidad,
-            por favor contacte a info@milleniumfc.com
+            por favor contacte a soporte@ciudadfc.com
           </Text>
         </ScrollView>
 

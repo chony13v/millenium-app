@@ -42,22 +42,16 @@ type ProblemType =
   | "basura"
   | "huecos"
   | "alumbrado"
-  | "agua"
+  | "infraestructura"
   | "seguridad"
-  | "parques"
-  | "transito"
-  | "ruido"
   | "otros";
 
 const PROBLEM_TYPES: { id: ProblemType; label: string }[] = [
   { id: "basura", label: "Basura" },
   { id: "huecos", label: "Huecos" },
   { id: "alumbrado", label: "Alumbrado" },
-  { id: "agua", label: "Agua" },
+  { id: "infraestructura", label: "Infraestructura" },
   { id: "seguridad", label: "Seguridad" },
-  { id: "parques", label: "Parques" },
-  { id: "transito", label: "Tránsito" },
-  { id: "ruido", label: "Ruido" },
   { id: "otros", label: "Otros" },
 ];
 
@@ -102,9 +96,9 @@ export default function Conecta() {
   const router = useRouter();
 
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [surveyResponses, setSurveyResponses] = useState<Record<string, string>>(
-    {}
-  );
+  const [surveyResponses, setSurveyResponses] = useState<
+    Record<string, string>
+  >({});
   const [surveysLoading, setSurveysLoading] = useState(false);
   const [surveyError, setSurveyError] = useState<string | null>(null);
   const [sendingSurvey, setSendingSurvey] = useState<Record<string, boolean>>(
@@ -114,7 +108,10 @@ export default function Conecta() {
   const [problemType, setProblemType] = useState<ProblemType | null>(null);
   const [description, setDescription] = useState("");
   const [locationText, setLocationText] = useState("");
-  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [coords, setCoords] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submittingReport, setSubmittingReport] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -265,7 +262,10 @@ export default function Conecta() {
 
   const handleAnswerSurvey = async (surveyId: string, answer: string) => {
     if (!user?.id) {
-      Alert.alert("Inicia sesión", "Necesitas una sesión activa para responder.");
+      Alert.alert(
+        "Inicia sesión",
+        "Necesitas una sesión activa para responder."
+      );
       return;
     }
 
@@ -297,10 +297,7 @@ export default function Conecta() {
       Alert.alert("Respuesta enviada", "Gracias por participar.");
     } catch (error) {
       console.error("Error guardando respuesta", error);
-      Alert.alert(
-        "No pudimos guardar",
-        "Intenta nuevamente en unos segundos."
-      );
+      Alert.alert("No pudimos guardar", "Intenta nuevamente en unos segundos.");
     } finally {
       setSendingSurvey((prev) => ({ ...prev, [surveyId]: false }));
     }
@@ -419,7 +416,10 @@ export default function Conecta() {
 
   const handleSubmitReport = async () => {
     if (!user?.id) {
-      Alert.alert("Inicia sesión", "Necesitas estar autenticado para reportar.");
+      Alert.alert(
+        "Inicia sesión",
+        "Necesitas estar autenticado para reportar."
+      );
       return;
     }
 
@@ -479,7 +479,10 @@ export default function Conecta() {
       setCoords(null);
       setPhotoUri(null);
 
-      Alert.alert("Reporte enviado", "Gracias por ayudarnos a mejorar la ciudad.");
+      Alert.alert(
+        "Reporte enviado",
+        "Gracias por ayudarnos a mejorar la ciudad."
+      );
     } catch (error) {
       console.error("Error enviando reporte", error);
       Alert.alert(
@@ -521,9 +524,10 @@ export default function Conecta() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.screenTitle}>Conecta</Text>
+        <Text style={styles.screenTitle}>Ciudad FC</Text>
         <Text style={styles.screenSubtitle}>
-          Participa en encuestas rápidas y reporta problemas de tu ciudad.
+          Participa y vive el deporte en tu ciudad con Ciudad FC: encuestas
+          rápidas y reportes ciudadanos para mejorar cada cancha.
         </Text>
 
         <View style={styles.sectionCard}>
@@ -600,8 +604,9 @@ export default function Conecta() {
             <Text style={[styles.sectionPill, styles.pillOrange]}>Nuevo</Text>
           </View>
           <Text style={styles.sectionDescription}>
-            Describe el problema para que el municipio pueda atenderlo. Adjuntar
-            ubicación es obligatorio, la foto es opcional.
+            Cuéntanos qué ocurre en tu cancha o en los espacios deportivos
+            cercanos. Tu reporte ayuda al municipio a mantener y mejorar las
+            zonas donde entrenamos y jugamos.
           </Text>
           <Text style={styles.hintText}>Peso máximo de la foto: 3 MB.</Text>
 
@@ -639,7 +644,7 @@ export default function Conecta() {
             numberOfLines={4}
             value={description}
             onChangeText={setDescription}
-            placeholder="¿Qué está pasando?"
+            placeholder="Ejemplo: el arco está roto, no funciona la luz en la cancha, hay basura en el área, o faltan redes."
             placeholderTextColor="#94a3b8"
             editable={!submittingReport}
           />

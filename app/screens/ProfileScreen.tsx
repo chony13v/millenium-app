@@ -90,8 +90,8 @@ export default function ProfileScreen() {
             </TouchableOpacity>
             <Text style={styles.heroTitle}>Mi perfil</Text>
             <Text style={styles.heroSubtitle}>
-              Completa tu registro para sincronizar tu cuenta con Conecta y las
-              demás pestañas.
+              Completa tu registro para sincronizar tu cuenta con Ciudad FC y el
+              resto de la experiencia.
             </Text>
           </LinearGradient>
 
@@ -144,7 +144,7 @@ export default function ProfileScreen() {
           </TouchableOpacity>
           <Text style={styles.heroTitle}>Mi perfil</Text>
           <Text style={styles.heroSubtitle}>
-            Visualiza tu registro y mantén tus datos alineados a Conecta.
+            Visualiza tu registro y mantén tus datos alineados a Ciudad FC.
           </Text>
         </LinearGradient>
 

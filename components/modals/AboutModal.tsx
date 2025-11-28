@@ -12,22 +12,22 @@ export default function AboutModal({ visible, onClose }: Props) {
     <Modal visible={visible} transparent animationType="slide">
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
-          <Text style={styles.title}>Acerca de Millenium</Text>
+          <Text style={styles.title}>Acerca de Ciudad FC</Text>
           <Text style={styles.version}>Versión 1.1</Text>
           <Text style={styles.description}>
-            Millenium App v1.1
-            {"\n\n"}Tu plataforma integral para torneos selectivos y gestión
-            deportiva.
+            Ciudad FC App v1.1
+            {"\n\n"}Tu plataforma integral para torneos selectivos y comunidad
+            deportiva local.
             {"\n\n"}Características principales:
             {"\n"}• Gestión de torneos
             {"\n"}• Registro de jugadores
             {"\n"}• Estadísticas en tiempo real
             {"\n"}• Notificaciones personalizadas
-            {"\n\n"}Desarrollado por Millenium Football Solutions
-            {"\n"}© 2025 Millenium. Todos los derechos reservados.
+            {"\n\n"}Desarrollado por Ciudad FC
+            {"\n"}© 2025 Ciudad FC. Todos los derechos reservados.
             {"\n\n"}Contáctanos:
-            {"\n"}info@milleniumfc.com
-            {"\n"}www.milleniumfc.com
+            {"\n"}soporte@ciudadfc.com
+            {"\n"}www.ciudadfc.com
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Cerrar</Text>

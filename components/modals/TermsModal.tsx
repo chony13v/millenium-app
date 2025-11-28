@@ -171,8 +171,8 @@ const TermsModal: React.FC<TermsModalProps> = ({ visible, onClose }) => (
             Al utilizar la app, el usuario (o su representante legal) autoriza
             la toma de imágenes y videos durante entrenamientos o eventos, así
             como su uso con fines promocionales e institucionales por parte de
-            MILLENIUMFS S.A.S., siempre respetando la dignidad y privacidad de
-            los participantes, sin compensación adicional.
+            Ciudad FC, siempre respetando la dignidad y privacidad de los
+            participantes, sin compensación adicional.
           </Text>
 
           <Text
@@ -273,7 +273,7 @@ const TermsModal: React.FC<TermsModalProps> = ({ visible, onClose }) => (
             }}
           >
             Para cualquier consulta o información adicional, por favor
-            contáctenos en: info@milleniumfc.com
+            contáctenos en: soporte@ciudadfc.com
           </Text>
         </ScrollView>
 

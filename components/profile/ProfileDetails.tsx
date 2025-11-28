@@ -89,7 +89,8 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
           <Image source={cityLogo} style={styles.logo} />
         </View>
         <Text style={styles.supportMessage}>
-          Si deseas cambiar tu información, contacta a info@milleniumfc.com
+          Si deseas cambiar tu información, contacta al equipo Ciudad FC en
+          soporte@ciudadfc.com
         </Text>
       </View>
     </View>

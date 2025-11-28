@@ -174,7 +174,7 @@ export default function CallRoutesLayout() {
           <Tabs.Screen
             name="Metodology"
             options={{
-              title: "CLUB",
+              title: "CLUB FC",
               headerTitle: "Club",
               tabBarIcon: ({ color, focused }) => (
                 <TabIcon
@@ -258,6 +258,7 @@ export default function CallRoutesLayout() {
                 Proyecto: {selectedCityInfo?.title ?? selectedCity}
               </Text>
 
+              {/* 
               <Pressable
                 onPress={clearCity}
                 style={({ pressed }) => ({
@@ -280,6 +281,8 @@ export default function CallRoutesLayout() {
                   Cambiar ciudad
                 </Text>
               </Pressable>
+
+                    */}
             </View>
 
             {/* ── Separator (full width) */}

@@ -124,7 +124,7 @@ export default function Field() {
             <View style={styles.heroTags}>
               <Text style={styles.heroTag}>Orden por cercanía</Text>
               <Text style={styles.heroTag}>Ubicación segura</Text>
-              <Text style={styles.heroTag}>Proyecto Conecta</Text>
+              <Text style={styles.heroTag}>Proyecto Ciudad FC</Text>
             </View>
             <TouchableOpacity
               style={[
@@ -149,7 +149,7 @@ export default function Field() {
               {sortedFieldList.length} opciones cerca de ti
             </Text>
           </View>
-          <Text style={styles.sectionPill}>CONECTA</Text>
+          <Text style={styles.sectionPill}>CIUDAD FC</Text>
         </View>
       </View>
     ),

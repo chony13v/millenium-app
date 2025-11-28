@@ -82,7 +82,7 @@ export default function HomeScreen() {
               style={styles.heroCard}
             >
               <View style={styles.heroBadgeRow}>
-                <Text style={styles.heroBadge}>Conecta</Text>
+                <Text style={styles.heroBadge}>Ciudad FC</Text>
                 <Text style={styles.heroCity}>
                   {selectedCityInfo?.title ?? "Tu comunidad"}
                 </Text>
@@ -92,8 +92,8 @@ export default function HomeScreen() {
                 Todo lo que pasa en tu comunidad
               </Text>
               <Text style={styles.heroSubtitle}>
-                Noticias, academia y enlaces oficiales en un solo lugar,
-                alineados con Conecta.
+                Participa y vive el deporte en tu ciudad con Ciudad FC: noticias,
+                academia y enlaces oficiales en un solo lugar.
               </Text>
 
               <View style={styles.heroActions}>
@@ -107,7 +107,7 @@ export default function HomeScreen() {
                   style={styles.heroButton}
                   onPress={handleGoToConecta}
                 >
-                  <Text style={styles.heroButtonText}>Abrir Conecta</Text>
+                  <Text style={styles.heroButtonText}>Abrir Ciudad FC</Text>
                 </TouchableOpacity>
               </View>
             </LinearGradient>
@@ -128,13 +128,13 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <View>
-                  <Text style={styles.sectionTitle}>Academia Millenium</Text>
-                  <Text style={styles.sectionSubtitle}>
-                    Videos y entrenamientos curados para ti.
-                  </Text>
-                </View>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Academia Ciudad FC</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Videos y entrenamientos curados para ti.
+                </Text>
+              </View>
                 <Text style={[styles.sectionPill, styles.pillAcademy]}>
                   Academia
                 </Text>
@@ -143,14 +143,14 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.sectionCard}>
-              <View style={styles.sectionHeader}>
-                <View>
-                  <Text style={styles.sectionTitle}>Noticias</Text>
-                  <Text style={styles.sectionSubtitle}>
+            <View style={styles.sectionHeader}>
+              <View>
+                <Text style={styles.sectionTitle}>Noticias</Text>
+                <Text style={styles.sectionSubtitle}>
                     Actualizaciones del proyecto{" "}
-                    {selectedCityInfo?.title ?? "Millenium"}
-                  </Text>
-                </View>
+                    {selectedCityInfo?.title ?? "Ciudad FC"}
+                </Text>
+              </View>
                 <Text style={[styles.sectionPill, styles.pillNews]}>
                   Novedades
                 </Text>

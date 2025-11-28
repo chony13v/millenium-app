@@ -197,7 +197,7 @@ export default function Academy() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>2025 ACADEMIA MILLENIUM</Text>
+      <Text style={styles.title}>2025 ACADEMIA CIUDAD FC</Text>
       {loading ? (
         <LoadingBall text="Cargando videos..." />
       ) : (

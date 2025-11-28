@@ -1,6 +1,7 @@
 {
   "expo": {
-    "name": "Millenium FC",
+    "name": "Ciudad FC",
+    "description": "Participa y vive el deporte en tu ciudad con Ciudad FC.",
     "slug": "millenium-app",
     "version": "1.0.6",
     "orientation": "portrait",

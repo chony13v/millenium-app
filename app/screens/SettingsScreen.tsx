@@ -92,7 +92,7 @@ export default function SettingsScreen() {
         <View style={styles.heroTags}>
           <Text style={styles.tag}>Cuenta</Text>
           <Text style={styles.tag}>Soporte</Text>
-          <Text style={styles.tag}>Millenium</Text>
+          <Text style={styles.tag}>Ciudad FC</Text>
         </View>
       </LinearGradient>
 
@@ -169,7 +169,7 @@ export default function SettingsScreen() {
         <TouchableOpacity style={styles.aboutButton} onPress={handleAbout}>
           <View style={styles.aboutContent}>
             <View>
-              <Text style={styles.aboutButtonText}>Acerca de Millenium</Text>
+              <Text style={styles.aboutButtonText}>Acerca de Ciudad FC</Text>
               <Text style={styles.aboutVersion}>Versión 1.1</Text>
             </View>
           </View>

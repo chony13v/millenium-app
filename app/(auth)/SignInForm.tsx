@@ -174,7 +174,7 @@ export default function SignInForm() {
               <Text style={styles.welcomeSubtitle}>
                 Accede a tu cuenta de{" "}
                 <Text style={{ fontWeight: "bold" }}>
-                  Millenium Gestión Deportiva
+                  Ciudad FC
                 </Text>{" "}
                 con tu email y contraseña.
               </Text>

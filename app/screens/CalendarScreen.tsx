@@ -348,7 +348,7 @@ export default function CalendarScreen() {
         <View style={styles.heroTags}>
           <Text style={styles.tag}>Eventos locales</Text>
           <Text style={styles.tag}>Pruebas selectivas</Text>
-          <Text style={styles.tag}>Conecta</Text>
+          <Text style={styles.tag}>Ciudad FC</Text>
         </View>
       </LinearGradient>
 

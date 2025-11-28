@@ -41,7 +41,7 @@ const CitySelectionScreen = () => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.kicker}>Millenium Academy</Text>
+        <Text style={styles.kicker}>Ciudad FC Academy</Text>
         <Text style={styles.title}>Elige tu ciudad</Text>
         <Text style={styles.subtitle}>
           Personalizamos la comunidad, canchas y noticias según tu ubicación.
