@@ -333,7 +333,7 @@ export default function CalendarScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <LinearGradient
-        colors={["#0A2240", "#0ea5e9"]}
+        colors={["#1e3a8a", "#1e3a8a"]}
         start={[0, 0]}
         end={[1, 1]}
         style={[styles.heroCard, { paddingTop: insets.top + 10 }]}
@@ -415,7 +415,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     borderRadius: 18,
     padding: 18,
-    shadowColor: "#0A2240",
+    shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },

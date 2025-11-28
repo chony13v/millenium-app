@@ -101,15 +101,15 @@ export default function Field() {
 
   const listHeader = useMemo(
     () => (
-      <View style={[styles.headerContainer, { paddingTop: insets.top + 6 }]}>
+      <View style={styles.headerContainer}>
         <LinearGradient
-          colors={["#0A2240", "#0ea5e9"]}
+          colors={["#1e3a8a", "#1e3a8a"]}
           start={[0, 0]}
           end={[1, 1]}
           style={styles.heroCard}
         >
           <View style={styles.heroRow}>
-            <Text style={styles.heroBadge}>Fields</Text>
+            <Text style={styles.heroBadge}>Centros deportivos</Text>
             <Text style={styles.heroCity}>
               {selectedCityInfo?.title ?? "Tu ciudad"}
             </Text>
@@ -119,38 +119,20 @@ export default function Field() {
             Comparte tu ubicación aproximada para ordenar los centros por
             cercanía y guardar tus favoritas.
           </Text>
-
-          <View style={styles.heroFooter}>
-            <View style={styles.heroTags}>
-              <Text style={styles.heroTag}>Orden por cercanía</Text>
-              <Text style={styles.heroTag}>Ubicación segura</Text>
-              <Text style={styles.heroTag}>Proyecto Ciudad FC</Text>
-            </View>
-            <TouchableOpacity
-              style={[
-                styles.heroButton,
-                isUpdatingLocation && styles.heroButtonDisabled,
-              ]}
-              onPress={handleUpdateLocationBucket}
-              disabled={isUpdatingLocation}
-              activeOpacity={0.9}
-            >
-              <Text style={styles.heroButtonText}>
-                {isUpdatingLocation ? "Actualizando..." : "Actualizar ubicación"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </LinearGradient>
-
-        <View style={styles.sectionHeaderRow}>
-          <View>
-            <Text style={styles.sectionTitle}>Centros deportivos</Text>
-            <Text style={styles.sectionSubtitle}>
-              {sortedFieldList.length} opciones cerca de ti
+          <TouchableOpacity
+            style={[
+              styles.heroButton,
+              isUpdatingLocation && styles.heroButtonDisabled,
+            ]}
+            onPress={handleUpdateLocationBucket}
+            disabled={isUpdatingLocation}
+            activeOpacity={0.9}
+          >
+            <Text style={styles.heroButtonText}>
+              {isUpdatingLocation ? "Actualizando..." : "Actualizar ubicación"}
             </Text>
-          </View>
-          <Text style={styles.sectionPill}>CIUDAD FC</Text>
-        </View>
+          </TouchableOpacity>
+        </LinearGradient>
       </View>
     ),
     [
@@ -231,13 +213,19 @@ export default function Field() {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    gap: 16,
-    paddingHorizontal: 16,
+    gap: 14,
+    paddingTop: 0,
+    paddingHorizontal: 0,
+    width: "100%",
   },
   heroCard: {
+    width: "100%",
     borderRadius: 18,
-    padding: 18,
-    shadowColor: "#0A2240",
+    padding: 16,
+    marginTop: 6,
+    minHeight: 150,
+    gap: 10,
+    shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
@@ -347,7 +335,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
   emptyStateContainer: {
     flex: 1,

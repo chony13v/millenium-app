@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import * as Location from "expo-location";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
@@ -524,11 +525,24 @@ export default function Conecta() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.screenTitle}>Ciudad FC</Text>
-        <Text style={styles.screenSubtitle}>
-          Participa y vive el deporte en tu ciudad con Ciudad FC: encuestas
-          rápidas y reportes ciudadanos para mejorar cada cancha.
-        </Text>
+        <LinearGradient
+          colors={["#1e3a8a", "#1e3a8a"]}
+          start={[0, 0]}
+          end={[1, 1]}
+          style={styles.heroCard}
+        >
+          <Text style={styles.heroKicker}>Ciudad FC</Text>
+          <Text style={styles.heroTitle}>Participa y suma impacto</Text>
+          <Text style={styles.heroSubtitle}>
+            Encuestas rápidas y reportes ciudadanos para mejorar cada cancha. Tu
+            voz cuenta.
+          </Text>
+          <View style={styles.heroTags}>
+            <Text style={styles.heroTag}>Encuestas</Text>
+            <Text style={styles.heroTag}>Reportes</Text>
+            <Text style={styles.heroTag}>Comunidad</Text>
+          </View>
+        </LinearGradient>
 
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
@@ -741,16 +755,50 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     gap: 14,
   },
-  screenTitle: {
-    fontSize: 28,
-    fontFamily: "barlow-medium",
-    color: "#0A2240",
+  heroCard: {
+    width: "100%",
+    borderRadius: 18,
+    padding: 16,
+    gap: 10,
+    marginTop: 6,
+    minHeight: 150,
+    shadowColor: "#1e3a8a",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 8,
   },
-  screenSubtitle: {
-    fontSize: 16,
+  heroKicker: {
+    color: "rgba(255,255,255,0.9)",
+    fontFamily: "barlow-medium",
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  heroTitle: {
+    color: "white",
+    fontFamily: "barlow-semibold",
+    fontSize: 24,
+  },
+  heroSubtitle: {
+    color: "rgba(255,255,255,0.9)",
     fontFamily: "barlow-regular",
-    color: "#475569",
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  heroTags: {
+    flexDirection: "row",
+    gap: 8,
+    flexWrap: "wrap",
+    marginTop: 4,
+  },
+  heroTag: {
+    color: "white",
+    fontFamily: "barlow-medium",
+    fontSize: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.14)",
   },
   sectionCard: {
     backgroundColor: "white",

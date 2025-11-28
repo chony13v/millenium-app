@@ -88,7 +88,7 @@ export default function Metodology() {
       showsVerticalScrollIndicator={false}
     >
       <LinearGradient
-        colors={["#0A2240", "#0ea5e9"]}
+        colors={["#1e3a8a", "#1e3a8a"]}
         start={[0, 0]}
         end={[1, 1]}
         style={styles.heroCard}
@@ -231,7 +231,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     gap: 10,
-    shadowColor: "#0A2240",
+    marginTop: 6,
+    shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },

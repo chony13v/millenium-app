@@ -76,7 +76,7 @@ export default function HomeScreen() {
             ]}
           >
             <LinearGradient
-              colors={["#0A2240", "#0ea5e9"]}
+              colors={["#1e3a8a", "#1e3a8a"]}
               start={[0, 0]}
               end={[1, 1]}
               style={styles.heroCard}
@@ -175,14 +175,16 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingTop: 10,
+    paddingHorizontal: 16,
     gap: 16,
   },
   heroCard: {
-    marginHorizontal: 16,
     marginTop: 6,
-    padding: 18,
+    padding: 16,
     borderRadius: 18,
-    shadowColor: "#0A2240",
+    width: "100%",
+    minHeight: 150,
+    shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
@@ -212,7 +214,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontFamily: "barlow-semibold",
     fontSize: 22,
-    marginTop: 12,
+    marginTop: 8,
     lineHeight: 28,
   },
   heroSubtitle: {
@@ -223,10 +225,10 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   heroActions: {
-    marginTop: 14,
+    marginTop: 10,
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: 12,
+    gap: 10,
   },
   heroTags: {
     flex: 1,
