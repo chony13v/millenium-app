@@ -210,7 +210,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             {"\n"}- Solicitar la eliminación de sus datos personales
             {"\n"}- Oponerse al tratamiento de sus datos personales
             {"\n"}Para ejercer estos derechos o si tiene preguntas, por favor
-            contacte a: soporte@ciudadfc.com
+            contacte a: info@milleniumfc.com
           </Text>
 
           <Text
@@ -359,7 +359,7 @@ const PrivacyModal: React.FC<PrivacyModalProps> = ({ visible, onClose }) => (
             }}
           >
             Si tiene preguntas o inquietudes sobre esta Política de Privacidad,
-            por favor contacte a soporte@ciudadfc.com
+            por favor contacte a info@milleniumfc.com
           </Text>
         </ScrollView>
 

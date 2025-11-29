@@ -22,7 +22,10 @@ interface VideoItem {
 }
 
 const screenWidth = Dimensions.get("window").width;
-const videoHeight = screenWidth * 0.9 * (9 / 16); // 16:9 aspect ratio
+const cardSafePadding = 32; // padding total aproximado dentro de la card
+const contentWidth = Math.max(screenWidth - cardSafePadding * 2, 260);
+const videoWidth = Math.min(contentWidth, screenWidth * 0.9);
+const videoHeight = videoWidth * (9 / 16); // 16:9 aspect ratio
 
 export default function Academy() {
   const [videoList, setVideoList] = useState<VideoItem[]>([]);
@@ -137,9 +140,9 @@ export default function Academy() {
   const renderVideoItem = useCallback(
     ({ item, index }: { item: VideoItem; index: number }) => {
       const inputRange = [
-        (index - 1) * screenWidth,
-        index * screenWidth,
-        (index + 1) * screenWidth,
+        (index - 1) * videoWidth,
+        index * videoWidth,
+        (index + 1) * videoWidth,
       ];
 
       const scale = scrollX.interpolate({
@@ -197,7 +200,6 @@ export default function Academy() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>2025 ACADEMIA CIUDAD FC</Text>
       {loading ? (
         <LoadingBall text="Cargando videos..." />
       ) : (
@@ -207,7 +209,7 @@ export default function Academy() {
             horizontal={true}
             pagingEnabled
             snapToAlignment="center"
-            snapToInterval={screenWidth}
+            snapToInterval={videoWidth}
             showsHorizontalScrollIndicator={false}
             keyExtractor={(item) => item.id}
             renderItem={renderVideoItem}
@@ -220,7 +222,7 @@ export default function Academy() {
               Platform.OS === "ios"
                 ? (event) => {
                     const newIndex = Math.floor(
-                      event.nativeEvent.contentOffset.x / screenWidth
+                      event.nativeEvent.contentOffset.x / videoWidth
                     );
                     setCurrentIndex(newIndex);
                     setPlaying(false);
@@ -238,7 +240,8 @@ export default function Academy() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: "100%",
+    alignItems: "center",
     backgroundColor: "transparent",
   },
   title: {
@@ -252,14 +255,16 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   videoContainer: {
-    width: screenWidth,
+    width: videoWidth,
+    maxWidth: "100%",
     height: videoHeight + 60,
     justifyContent: "center",
     alignItems: "center",
     padding: 10,
+    alignSelf: "center",
   },
   playerContainer: {
-    width: screenWidth * 0.9,
+    width: videoWidth,
     height: videoHeight,
     borderRadius: 15,
     overflow: "hidden",
@@ -273,7 +278,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   video: {
-    width: screenWidth * 0.9,
+    width: videoWidth,
     height: videoHeight,
   },
   videoTitle: {
@@ -295,7 +300,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 3,
   },
   listContainer: {
+    width: "100%",
     marginBottom: 10,
+    alignItems: "center",
   },
   fallbackContainer: {
     justifyContent: "center",

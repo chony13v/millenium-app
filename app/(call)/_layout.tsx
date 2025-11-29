@@ -1,7 +1,6 @@
 import { Redirect, Tabs } from "expo-router";
 import React from "react";
 import {
-  Image,
   View,
   Platform,
   StatusBar,
@@ -9,7 +8,6 @@ import {
   Text,
   Pressable,
   ActivityIndicator,
-  type ImageSourcePropType,
 } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 import {
@@ -23,14 +21,6 @@ import { CITY_OPTIONS, type CityId } from "@/constants/cities";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CitySelectionScreen from "@/components/city/CitySelectionScreen";
 import TabIcon from "@/components/navigation/TabIcon";
-
-const DEFAULT_CITY_LOGO = require("../../assets/images/manabi_logo.png");
-
-const CITY_LOGOS: Record<CityId, ImageSourcePropType> = {
-  manabi: DEFAULT_CITY_LOGO,
-  riobamba: require("../../assets/images/logo_alcaldiaRiobamba.png"),
-  bgr: require("../../assets/images/logo_bgr.png"),
-};
 
 /* ================================================
    LAYOUT CON TABS SEGÚN CIUDAD SELECCIONADA
@@ -295,19 +285,6 @@ export default function CallRoutesLayout() {
               }}
             />
 
-            {/* CITY LOGOS: full width, shorter height */}
-            <Image
-              source={CITY_LOGOS[selectedCity] ?? DEFAULT_CITY_LOGO}
-              style={{
-                width: "100%", // full horizontal coverage
-                height: 40, // smaller height
-                resizeMode: "contain", // keep aspect ratio without cropping
-              }}
-              // accessibility
-              accessible
-              accessibilityRole="image"
-              accessibilityLabel="Logo del proyecto seleccionado"
-            />
           </LinearGradient>
         )}
       </View>

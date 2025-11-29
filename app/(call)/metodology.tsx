@@ -26,6 +26,8 @@ export default function Metodology() {
     user?.id
   );
 
+  const greeting = user?.firstName || user?.fullName || "Jugador de Ciudad FC";
+
   const progress = useMemo(
     () => getLevelProgress(profile.total),
     [profile.total]
@@ -33,9 +35,6 @@ export default function Metodology() {
   const levelDisplay = profile.level ?? progress.level;
   const xpToNext = profile.xpToNext ?? progress.xpToNext;
   const progressValue = progress.progress ?? 0;
-
-  const greeting =
-    user?.firstName || user?.fullName || "Jugador de Ciudad FC";
 
   const handleActionPress = async (action: PointAction) => {
     // Placeholder: conecta con Cloud Function para otorgar puntos de forma segura.
@@ -93,8 +92,9 @@ export default function Metodology() {
         end={[1, 1]}
         style={styles.heroCard}
       >
-        <Text style={styles.heroKicker}>Perfil de puntos</Text>
-        <Text style={styles.heroTitle}>Hola, {greeting}</Text>
+        <View style={styles.heroTitlePill}>
+          <Text style={styles.heroTitle}>Perfil de puntos de {greeting}</Text>
+        </View>
         <Text style={styles.heroSubtitle}>
           Suma puntos, mejora tu nivel y desbloquea recompensas como miembro de
           Ciudad FC.
@@ -238,22 +238,28 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  heroKicker: {
-    color: "rgba(255,255,255,0.9)",
-    fontFamily: "barlow-medium",
-    fontSize: 12,
-    letterSpacing: 1,
-  },
   heroTitle: {
-    color: "white",
-    fontFamily: "barlow-semibold",
-    fontSize: 24,
+    color: "rgba(255,255,255,0.85)",
+    fontFamily: "barlow-regular",
+    fontSize: 16,
+    textAlign: "center",
+    letterSpacing: 0.3,
+  },
+  heroTitlePill: {
+    alignSelf: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.16)",
   },
   heroSubtitle: {
     color: "rgba(255,255,255,0.9)",
     fontFamily: "barlow-regular",
     fontSize: 14,
     lineHeight: 20,
+    textAlign: "center",
   },
   heroStatsRow: {
     flexDirection: "row",

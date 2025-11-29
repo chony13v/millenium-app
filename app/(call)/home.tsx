@@ -5,12 +5,13 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import DrawerLayout from "react-native-gesture-handler/DrawerLayout";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import Academy from "@/components/home/Academy";
-import Header from "@/components/Header";
 import { useRouter } from "expo-router";
 import DrawerContent from "@/components/DrawerContent";
 import SignOutDialog from "@/components/SignOutDialog";
@@ -19,12 +20,14 @@ import News from "@/components/home/News";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CITY_OPTIONS } from "@/constants/cities";
+import { useUser } from "@clerk/clerk-expo";
 
 export default function HomeScreen() {
   const drawerRef = useRef<DrawerLayout>(null);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { selectedCity } = useCitySelection();
+  const { user } = useUser();
   const selectedCityInfo = CITY_OPTIONS.find(
     (city) => city.id === selectedCity
   );
@@ -67,7 +70,6 @@ export default function HomeScreen() {
         )}
       >
         <View style={styles.screen}>
-          <Header onMenuPress={() => drawerRef.current?.openDrawer()} />
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
@@ -81,44 +83,49 @@ export default function HomeScreen() {
               end={[1, 1]}
               style={styles.heroCard}
             >
-              <View style={styles.heroBadgeRow}>
-                <Text style={styles.heroBadge}>Ciudad FC</Text>
-                <Text style={styles.heroCity}>
-                  {selectedCityInfo?.title ?? "Tu comunidad"}
+              <View style={styles.heroTopRow}>
+                <TouchableOpacity
+                  onPress={() => drawerRef.current?.openDrawer()}
+                  style={styles.menuButton}
+                  activeOpacity={0.9}
+                >
+                  <Ionicons name="menu" size={22} color="white" />
+                </TouchableOpacity>
+                <Text style={styles.greetingText}>
+                  Hola, {user?.firstName || user?.fullName || "Ciudad FC"}
                 </Text>
               </View>
 
-              <Text style={styles.heroTitle}>
-                Todo lo que pasa en tu comunidad
-              </Text>
               <Text style={styles.heroSubtitle}>
-                Participa y vive el deporte en tu ciudad con Ciudad FC: noticias,
-                academia y enlaces oficiales en un solo lugar.
+                Participa y vive el deporte en tu ciudad
               </Text>
-
-              <View style={styles.heroActions}>
-                <View style={styles.heroTags}>
-                  <Text style={styles.heroTag}>Novedades locales</Text>
-                  <Text style={styles.heroTag}>Academia 2025</Text>
-                  <Text style={styles.heroTag}>Canales oficiales</Text>
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.heroButton}
-                  onPress={handleGoToConecta}
-                >
-                  <Text style={styles.heroButtonText}>Abrir Ciudad FC</Text>
-                </TouchableOpacity>
+              <View style={styles.heroTags}>
+                <Text style={styles.heroTag}>Canales</Text>
+                <Text style={styles.heroTag}>Videos</Text>
+                <Text style={styles.heroTag}>Novedades</Text>
               </View>
+
             </LinearGradient>
+            <View style={styles.logoContainer}>
+              <Text style={styles.sponsorLabel}>Con el auspicio de:</Text>
+              <View style={styles.logoRow}>
+                <Image
+                  source={require("@/assets/images/logo_alcaldiaRiobamba.png")}
+                  style={styles.cityLogo}
+                  resizeMode="contain"
+                />
+                <Image
+                  source={require("@/assets/images/LogoFC.png")}
+                  style={styles.cityLogo}
+                  resizeMode="contain"
+                />
+              </View>
+            </View>
 
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <View>
                   <Text style={styles.sectionTitle}>Canales oficiales</Text>
-                  <Text style={styles.sectionSubtitle}>
-                    Enlaces directos para no perderte nada.
-                  </Text>
                 </View>
                 <Text style={[styles.sectionPill, styles.pillCommunity]}>
                   Comunidad
@@ -128,15 +135,12 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionTitle}>Academia Ciudad FC</Text>
-                <Text style={styles.sectionSubtitle}>
-                  Videos y entrenamientos curados para ti.
-                </Text>
-              </View>
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={styles.sectionTitle}>Videos deportivos</Text>
+                </View>
                 <Text style={[styles.sectionPill, styles.pillAcademy]}>
-                  Academia
+                  Videos
                 </Text>
               </View>
               <Academy />
@@ -145,11 +149,7 @@ export default function HomeScreen() {
             <View style={styles.sectionCard}>
             <View style={styles.sectionHeader}>
               <View>
-                <Text style={styles.sectionTitle}>Noticias</Text>
-                <Text style={styles.sectionSubtitle}>
-                    Actualizaciones del proyecto{" "}
-                    {selectedCityInfo?.title ?? "Ciudad FC"}
-                </Text>
+                <Text style={styles.sectionTitle}>Noticias Ciudad FC</Text>
               </View>
                 <Text style={[styles.sectionPill, styles.pillNews]}>
                   Novedades
@@ -174,7 +174,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8fafc",
   },
   content: {
-    paddingTop: 10,
+    paddingTop: 16,
     paddingHorizontal: 16,
     gap: 16,
   },
@@ -183,7 +183,8 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 18,
     width: "100%",
-    minHeight: 150,
+    minHeight: 170,
+    gap: 10,
     shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -194,6 +195,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+    marginTop: 6,
+    marginBottom: 2,
   },
   heroBadge: {
     backgroundColor: "rgba(255,255,255,0.16)",
@@ -214,7 +217,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontFamily: "barlow-semibold",
     fontSize: 22,
-    marginTop: 8,
+    marginTop: 12,
     lineHeight: 28,
   },
   heroSubtitle: {
@@ -222,7 +225,7 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-regular",
     fontSize: 14,
     lineHeight: 20,
-    marginTop: 6,
+    marginTop: 4,
   },
   heroActions: {
     marginTop: 10,
@@ -261,9 +264,62 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-semibold",
     fontSize: 14,
   },
+  heroTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  menuButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  greetingText: {
+    color: "rgba(255,255,255,0.92)",
+    fontFamily: "barlow-medium",
+    fontSize: 14,
+  },
+  logoContainer: {
+    marginTop: 10,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    backgroundColor: "#ffffff",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(36,44,68,0.08)",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  cityLogo: {
+    width: 150,
+    height: 70,
+  },
+  logoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 18,
+    width: "100%",
+    alignSelf: "center",
+    flexWrap: "wrap",
+  },
+  sponsorLabel: {
+    fontFamily: "barlow-medium",
+    fontSize: 15,
+    color: "#1f2937",
+    textAlign: "center",
+  },
   sectionCard: {
     backgroundColor: "white",
-    marginHorizontal: 16,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,

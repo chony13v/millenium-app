@@ -12,6 +12,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useUser } from "@clerk/clerk-expo";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
 import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 import HelpSupportModal from "@/components/modals/HelpSupportModal";
 import GetHelpModal from "@/components/modals/GetHelpModal";
@@ -75,25 +76,23 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={["#0A2240", "#0ea5e9"]}
-        start={[0, 0]}
-        end={[1, 1]}
-        style={[styles.heroCard, { paddingTop: insets.top + 10 }]}
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <LinearGradient
+          colors={["#1e3a8a", "#1e3a8a"]}
+          start={[0, 0]}
+          end={[1, 1]}
+          style={[styles.heroCard, { paddingTop: insets.top + 10 }]}
       >
-        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons name="arrow-back" size={22} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.heroTitle}>Configuración</Text>
+        <View style={styles.heroRow}>
+          <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+            <Ionicons name="arrow-back" size={22} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.heroTitle}>Configuración</Text>
+        </View>
         <Text style={styles.heroSubtitle}>
           Ajusta tu cuenta, contraseñas y obtén ayuda rápida.
         </Text>
-        <View style={styles.heroTags}>
-          <Text style={styles.tag}>Cuenta</Text>
-          <Text style={styles.tag}>Soporte</Text>
-          <Text style={styles.tag}>Ciudad FC</Text>
-        </View>
       </LinearGradient>
 
       <ScrollView
@@ -195,11 +194,16 @@ export default function SettingsScreen() {
         visible={isAboutVisible}
         onClose={() => setIsAboutVisible(false)}
       />
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f8fafc",
+  },
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
@@ -217,14 +221,17 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
+    paddingTop: 18,
     paddingBottom: 30,
     gap: 16,
   },
   heroCard: {
     marginHorizontal: 16,
     borderRadius: 18,
-    padding: 18,
-    shadowColor: "#0A2240",
+    padding: 16,
+    marginTop: 12,
+    minHeight: 170,
+    shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
@@ -234,13 +241,18 @@ const styles = StyleSheet.create({
   heroTitle: {
     color: "white",
     fontFamily: "barlow-semibold",
-    fontSize: 22,
+    fontSize: 18,
   },
   heroSubtitle: {
     color: "rgba(255,255,255,0.9)",
     fontFamily: "barlow-regular",
     fontSize: 14,
     lineHeight: 20,
+  },
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   heroTags: {
     flexDirection: "row",

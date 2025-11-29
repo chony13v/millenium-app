@@ -15,7 +15,7 @@ export default function GetHelpModal({ visible, onClose }: Props) {
           <Text style={styles.message}>
             Conéctate con nuestro equipo de soporte:
             {"\n\n"}Teléfono/WhatsApp: (+1) 786-338-9897
-            {"\n"}Email: soporte@ciudadfc.com
+            {"\n"}Email: info@milleniumfc.com
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Cerrar</Text>

@@ -531,8 +531,9 @@ export default function Conecta() {
           end={[1, 1]}
           style={styles.heroCard}
         >
-          <Text style={styles.heroKicker}>Ciudad FC</Text>
-          <Text style={styles.heroTitle}>Participa y suma impacto</Text>
+          <View style={styles.heroRow}>
+            <Text style={styles.heroBadge}>Participación Ciudad FC</Text>
+          </View>
           <Text style={styles.heroSubtitle}>
             Encuestas rápidas y reportes ciudadanos para mejorar cada cancha. Tu
             voz cuenta.
@@ -761,18 +762,33 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 10,
     marginTop: 6,
-    minHeight: 150,
+    minHeight: 170,
     shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
-  heroKicker: {
-    color: "rgba(255,255,255,0.9)",
-    fontFamily: "barlow-medium",
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 6,
+  },
+  heroBadge: {
+    backgroundColor: "rgba(255,255,255,0.14)",
+    color: "white",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    fontFamily: "barlow-semibold",
     fontSize: 12,
-    letterSpacing: 1,
+    letterSpacing: 0.4,
+  },
+  heroCity: {
+    color: "rgba(255,255,255,0.92)",
+    fontFamily: "barlow-medium",
+    fontSize: 13,
   },
   heroTitle: {
     color: "white",

@@ -26,7 +26,7 @@ export default function AboutModal({ visible, onClose }: Props) {
             {"\n\n"}Desarrollado por Ciudad FC
             {"\n"}© 2025 Ciudad FC. Todos los derechos reservados.
             {"\n\n"}Contáctanos:
-            {"\n"}soporte@ciudadfc.com
+            {"\n"}ciudadfc.com
             {"\n"}www.ciudadfc.com
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>

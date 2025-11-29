@@ -338,18 +338,15 @@ export default function CalendarScreen() {
         end={[1, 1]}
         style={[styles.heroCard, { paddingTop: insets.top + 10 }]}
       >
-        <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-          <Ionicons name="arrow-back" size={22} color="white" />
-        </TouchableOpacity>
-        <Text style={styles.heroTitle}>Calendario</Text>
+        <View style={styles.heroTopRow}>
+          <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+            <Ionicons name="arrow-back" size={22} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.heroTitle}>Calendario</Text>
+        </View>
         <Text style={styles.heroSubtitle}>
           Visualiza pruebas, eventos del proyecto y tus fechas programadas.
         </Text>
-        <View style={styles.heroTags}>
-          <Text style={styles.tag}>Eventos locales</Text>
-          <Text style={styles.tag}>Pruebas selectivas</Text>
-          <Text style={styles.tag}>Ciudad FC</Text>
-        </View>
       </LinearGradient>
 
       {isAdminUser && (
@@ -414,7 +411,8 @@ const styles = StyleSheet.create({
   heroCard: {
     marginHorizontal: 16,
     borderRadius: 18,
-    padding: 18,
+    padding: 16,
+    marginTop: 12,
     shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -422,6 +420,7 @@ const styles = StyleSheet.create({
     elevation: 8,
     gap: 10,
     marginBottom: 12,
+    minHeight: 170,
   },
   backButton: {
     width: 36,
@@ -434,27 +433,20 @@ const styles = StyleSheet.create({
   heroTitle: {
     color: "white",
     fontFamily: "barlow-semibold",
-    fontSize: 22,
+    fontSize: 18,
+    marginLeft: 10,
   },
   heroSubtitle: {
     color: "rgba(255,255,255,0.9)",
     fontFamily: "barlow-regular",
     fontSize: 14,
     lineHeight: 20,
+    marginTop: 4,
   },
-  heroTags: {
+  heroTopRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
+    alignItems: "center",
     gap: 8,
-  },
-  tag: {
-    color: "white",
-    fontFamily: "barlow-medium",
-    fontSize: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: "rgba(255,255,255,0.16)",
   },
 
   content: { flex: 1, paddingHorizontal: 16, paddingBottom: 20 },

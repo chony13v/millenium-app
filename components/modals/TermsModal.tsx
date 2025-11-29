@@ -273,7 +273,7 @@ const TermsModal: React.FC<TermsModalProps> = ({ visible, onClose }) => (
             }}
           >
             Para cualquier consulta o información adicional, por favor
-            contáctenos en: soporte@ciudadfc.com
+            contáctenos en: info@milleniumfc.com
           </Text>
         </ScrollView>
 

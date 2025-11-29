@@ -69,7 +69,6 @@ export default function CategoryIcons() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.subtitle}>Síguenos en nuestros canales oficiales</Text>
 
       <FlatList
         horizontal
@@ -97,12 +96,6 @@ export default function CategoryIcons() {
 const styles = StyleSheet.create({
   container: {
     gap: 10,
-  },
-  subtitle: {
-    fontFamily: "barlow-medium",
-    fontSize: 14,
-    color: "#0A2240",
-    marginHorizontal: 4,
   },
   listContent: {
     paddingVertical: 4,

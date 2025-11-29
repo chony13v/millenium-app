@@ -169,7 +169,6 @@ export default function News() {
 
   return (
     <View style={styles.mainContainer}>
-      <Text style={styles.headerTitle}>Noticias recientes</Text>
       <FlatList
         data={newsItems}
         keyExtractor={(item) => item.id}
@@ -199,6 +198,7 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingTop: 4,
     paddingBottom: 4,
+    paddingHorizontal: 4,
   },
   emptyStateContainer: {
     flex: 1,
@@ -240,19 +240,19 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
   },
   imageContainer: {
-    width: 120,
+    width: 110,
     backgroundColor: "#0A2240",
   },
   image: {
-    width: 120,
-    height: 140,
+    width: 110,
+    height: 130,
     resizeMode: "cover",
   },
   contentContainer: {
     flex: 1,
-    padding: 16,
-    paddingTop: 2,
-    paddingRight: 24,
+    padding: 12,
+    paddingTop: 6,
+    paddingRight: 12,
     backgroundColor: "white",
     justifyContent: "flex-start",
     flexDirection: "column",
@@ -276,22 +276,22 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   title: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: "barlow-semibold",
     color: "#0f172a",
-    marginBottom: 2,
-    textAlign: "justify",
+    marginBottom: 4,
+    textAlign: "left",
   },
   description: {
     fontSize: 12,
     color: "#475569",
     fontFamily: "barlow-regular",
-    textAlign: "justify",
+    textAlign: "left",
     lineHeight: 18,
   },
   separator: {
     height: 1,
     backgroundColor: "#e2e8f0",
-    marginVertical: 10,
+    marginVertical: 8,
   },
 });

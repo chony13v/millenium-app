@@ -131,20 +131,22 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={["#0A2240", "#0ea5e9"]}
+          colors={["#1e3a8a", "#1e3a8a"]}
           start={[0, 0]}
           end={[1, 1]}
           style={[styles.heroCard, { paddingTop: insets.top + 6 }]}
         >
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="arrow-back" size={22} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.heroTitle}>Mi perfil</Text>
+          <View style={styles.heroRow}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={22} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.heroTitle}>Mi perfil</Text>
+          </View>
           <Text style={styles.heroSubtitle}>
-            Visualiza tu registro y mantén tus datos alineados a Ciudad FC.
+            Visualiza tu registro para participar en el Torneo.
           </Text>
         </LinearGradient>
 
@@ -182,14 +184,16 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 18,
-    padding: 18,
+    padding: 16,
     marginHorizontal: 16,
-    shadowColor: "#0A2240",
+    marginTop: 6,
+    minHeight: 170,
+    shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
-    gap: 8,
+    gap: 10,
   },
   backButton: {
     width: 36,
@@ -202,8 +206,8 @@ const styles = StyleSheet.create({
   heroTitle: {
     color: "white",
     fontFamily: "barlow-semibold",
-    fontSize: 22,
-    marginTop: 4,
+    fontSize: 18,
+    marginLeft: 10,
   },
   heroSubtitle: {
     color: "rgba(255,255,255,0.9)",
@@ -278,5 +282,10 @@ const styles = StyleSheet.create({
     color: "white",
     fontFamily: "barlow-semibold",
     fontSize: 14,
+  },
+  heroRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
 });

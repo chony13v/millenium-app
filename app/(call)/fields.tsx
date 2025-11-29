@@ -114,7 +114,6 @@ export default function Field() {
               {selectedCityInfo?.title ?? "Tu ciudad"}
             </Text>
           </View>
-          <Text style={styles.heroTitle}>Encuentra tu cancha ideal</Text>
           <Text style={styles.heroSubtitle}>
             Comparte tu ubicación aproximada para ordenar los centros por
             cercanía y guardar tus favoritas.
@@ -217,13 +216,14 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingHorizontal: 0,
     width: "100%",
+    paddingBottom: 14,
   },
   heroCard: {
     width: "100%",
     borderRadius: 18,
     padding: 16,
     marginTop: 6,
-    minHeight: 150,
+    minHeight: 170,
     gap: 10,
     shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,

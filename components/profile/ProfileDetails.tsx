@@ -90,7 +90,7 @@ const ProfileDetails: React.FC<ProfileDetailsProps> = ({
         </View>
         <Text style={styles.supportMessage}>
           Si deseas cambiar tu información, contacta al equipo Ciudad FC en
-          soporte@ciudadfc.com
+          info@milleniumfc.com
         </Text>
       </View>
     </View>
