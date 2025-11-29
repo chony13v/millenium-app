@@ -27,7 +27,7 @@ export const POINT_ACTIONS: PointAction[] = [
   {
     id: "poll_vote",
     title: "Responder encuestas",
-    subtitle: "Comparte tu opinión sobre el club",
+    subtitle: "Tu voz importa, participa y suma puntos puntos puntos puntos",
     points: 10,
     frequency: "Hasta 3 por día",
     eventType: "poll_vote",
@@ -71,12 +71,15 @@ export const LEVEL_THRESHOLDS = [0, 200, 500, 900, 1400, 2000];
 export const getLevelProgress = (total: number) => {
   const levelIndex = LEVEL_THRESHOLDS.findIndex(
     (threshold, idx) =>
-      total >= threshold && (LEVEL_THRESHOLDS[idx + 1] === undefined || total < LEVEL_THRESHOLDS[idx + 1])
+      total >= threshold &&
+      (LEVEL_THRESHOLDS[idx + 1] === undefined ||
+        total < LEVEL_THRESHOLDS[idx + 1])
   );
 
   const level = Math.max(1, levelIndex === -1 ? 1 : levelIndex + 1);
   const currentBase = LEVEL_THRESHOLDS[level - 1] ?? 0;
-  const nextThreshold = LEVEL_THRESHOLDS[level] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+  const nextThreshold =
+    LEVEL_THRESHOLDS[level] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
   const range = Math.max(1, nextThreshold - currentBase);
   const progress = Math.min(1, Math.max(0, (total - currentBase) / range));
   const xpToNext = Math.max(0, nextThreshold - total);

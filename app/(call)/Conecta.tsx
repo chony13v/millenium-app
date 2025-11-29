@@ -22,6 +22,7 @@ import {
   addDoc,
   collection,
   getDocs,
+  limit,
   query,
   serverTimestamp,
   where,
@@ -30,7 +31,8 @@ import { getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import { db, app } from "@/config/FirebaseConfig";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import type { CityId } from "@/constants/cities";
-
+import { awardPointsEvent } from "@/services/points/awardPoints";
+import { updateUserLocationBucket } from "@/services/location/updateUserLocationBucket";
 type Survey = {
   id: string;
   title: string;
@@ -55,14 +57,6 @@ const PROBLEM_TYPES: { id: ProblemType; label: string }[] = [
   { id: "seguridad", label: "Seguridad" },
   { id: "otros", label: "Otros" },
 ];
-
-const FALLBACK_SURVEY: Survey = {
-  id: "beca-deportiva",
-  title: "¿Dónde quisieras una beca deportiva?",
-  question: "Elige el país donde te gustaría acceder a una beca deportiva.",
-  options: ["Ecuador", "Colombia", "Argentina"],
-  cityId: "all",
-};
 
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024; // 3 MB
 const OFFENSIVE_WORDS = [
@@ -89,6 +83,8 @@ const OFFENSIVE_WORDS = [
   "coño",
   "pelotudo",
   "boludo",
+  "chucha",
+  "culo",
 ];
 
 export default function Conecta() {
@@ -116,6 +112,8 @@ export default function Conecta() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submittingReport, setSubmittingReport] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+  const [knownSurveyLocation, setKnownSurveyLocation] =
+    useState<Location.LocationObjectCoords | null>(null);
 
   const storage = useMemo(() => getStorage(app), []);
 
@@ -150,10 +148,7 @@ export default function Conecta() {
         }
       });
 
-      const alreadyIncluded = list.some((s) => s.id === FALLBACK_SURVEY.id);
-      const finalList = alreadyIncluded ? list : [...list, FALLBACK_SURVEY];
-
-      setSurveys(finalList);
+      setSurveys(list);
     } catch (error) {
       console.error("Error cargando encuestas", error);
       setSurveyError("No pudimos cargar las encuestas ahora.");
@@ -186,6 +181,94 @@ export default function Conecta() {
     }
   }, [user?.id]);
 
+  const ensureSurveyLocation = useCallback(async () => {
+    if (!user?.id) return null;
+    if (knownSurveyLocation) return knownSurveyLocation;
+
+    return await new Promise<Location.LocationObjectCoords | null>((resolve) => {
+      Alert.alert(
+        "¿Compartes tu ubicación?",
+        "Ayúdanos a priorizar mejoras en los barrios compartiendo tu ubicación aproximada.",
+        [
+          {
+            text: "Ahora no",
+            style: "cancel",
+            onPress: () => resolve(null),
+          },
+          {
+            text: "Sí, compartir",
+            onPress: async () => {
+              try {
+                const result = await updateUserLocationBucket({
+                  userId: user.id,
+                  userEmail: user.primaryEmailAddress?.emailAddress,
+                  cityId: selectedCity ?? null,
+                });
+                setKnownSurveyLocation(result.coords);
+                resolve(result.coords);
+              } catch (err) {
+                console.warn(
+                  "No se pudo obtener ubicación para encuesta:",
+                  err
+                );
+                Alert.alert(
+                  "Ubicación no disponible",
+                  "No pudimos obtener tu ubicación. Puedes intentar nuevamente desde Canchas."
+                );
+                resolve(null);
+              }
+            },
+          },
+        ]
+      );
+    });
+  }, [
+    knownSurveyLocation,
+    selectedCity,
+    user?.id,
+    user?.primaryEmailAddress?.emailAddress,
+  ]);
+
+  const ensurePollVoteAwarded = useCallback(
+    async (surveyId: string, answer: string) => {
+      if (!user?.id) return;
+
+      try {
+        const ledgerQuery = query(
+          collection(db, "users", user.id, "points_ledger"),
+          where("eventType", "==", "poll_vote"),
+          where("metadata.surveyId", "==", surveyId),
+          limit(1)
+        );
+
+        const ledgerSnap = await getDocs(ledgerQuery);
+        if (!ledgerSnap.empty) {
+          return; // ya registrado
+        }
+
+        const metadata: Record<string, unknown> = { surveyId, answer };
+        if (knownSurveyLocation) {
+          metadata.location = {
+            latitude: knownSurveyLocation.latitude,
+            longitude: knownSurveyLocation.longitude,
+          };
+        }
+
+        await awardPointsEvent({
+          userId: user.id,
+          eventType: "poll_vote",
+          metadata,
+        });
+      } catch (pointsError) {
+        console.warn(
+          "No se pudieron otorgar puntos por la encuesta:",
+          pointsError
+        );
+      }
+    },
+    [knownSurveyLocation, user?.id]
+  );
+
   useEffect(() => {
     void fetchSurveys();
   }, [fetchSurveys]);
@@ -193,6 +276,17 @@ export default function Conecta() {
   useEffect(() => {
     void fetchUserResponses();
   }, [fetchUserResponses]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const awardExisting = async () => {
+      const entries = Object.entries(surveyResponses);
+      for (const [surveyId, answer] of entries) {
+        await ensurePollVoteAwarded(surveyId, answer);
+      }
+    };
+    void awardExisting();
+  }, [surveyResponses, ensurePollVoteAwarded, user?.id]);
 
   const processPhoto = useCallback(async (uri: string) => {
     // Reduce tamaño y calidad para mantener el archivo bajo 3MB
@@ -278,7 +372,10 @@ export default function Conecta() {
       return;
     }
 
+    const surveyLocation = await ensureSurveyLocation();
+
     if (surveyResponses[surveyId]) {
+      await ensurePollVoteAwarded(surveyId, surveyResponses[surveyId]);
       Alert.alert("Gracias", "Ya registramos tu respuesta para esta encuesta.");
       return;
     }
@@ -291,10 +388,21 @@ export default function Conecta() {
         answer,
         userId: user.id,
         cityId: selectedCity,
+        ...(surveyLocation
+          ? {
+              coords: {
+                latitude: surveyLocation.latitude,
+                longitude: surveyLocation.longitude,
+              },
+            }
+          : {}),
         createdAt: serverTimestamp(),
       });
 
       setSurveyResponses((prev) => ({ ...prev, [surveyId]: answer }));
+
+      await ensurePollVoteAwarded(surveyId, answer);
+
       Alert.alert("Respuesta enviada", "Gracias por participar.");
     } catch (error) {
       console.error("Error guardando respuesta", error);
@@ -473,6 +581,22 @@ export default function Conecta() {
         status: "pendiente",
         createdAt: serverTimestamp(),
       });
+
+      try {
+        await awardPointsEvent({
+          userId: user.id,
+          eventType: "city_report_created",
+          metadata: {
+            problemType,
+            cityId: selectedCity,
+          },
+        });
+      } catch (pointsError) {
+        console.warn(
+          "No se pudieron otorgar puntos por reporte ciudadano:",
+          pointsError
+        );
+      }
 
       setProblemType(null);
       setDescription("");

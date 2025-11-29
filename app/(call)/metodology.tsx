@@ -6,9 +6,11 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
 import { Colors } from "@/constants/Colors";
 import {
@@ -21,6 +23,7 @@ import { awardPointsEvent } from "@/services/points/awardPoints";
 
 export default function Metodology() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { user } = useUser();
   const { profile, history, loading, availability } = usePointsProfile(
     user?.id
@@ -37,14 +40,22 @@ export default function Metodology() {
   const progressValue = progress.progress ?? 0;
 
   const handleActionPress = async (action: PointAction) => {
-    // Placeholder: conecta con Cloud Function para otorgar puntos de forma segura.
+    if (action.eventType === "city_report_created") {
+      router.push("/(call)/Conecta");
+      return;
+    }
+
     try {
-      await awardPointsEvent({ eventType: action.eventType });
+      await awardPointsEvent({ eventType: action.eventType, userId: user?.id });
       Alert.alert(
         "Enviado",
         "Registramos tu intento. El backend validará elegibilidad y sumará puntos si corresponde."
       );
     } catch (error) {
+      if (action.eventType === "poll_vote") {
+        console.warn("No se pudieron otorgar puntos de encuesta:", error);
+        return;
+      }
       Alert.alert(
         "No disponible",
         "Aún no conectamos esta acción al backend de puntos."
@@ -99,6 +110,13 @@ export default function Metodology() {
           Suma puntos, mejora tu nivel y desbloquea recompensas como miembro de
           Ciudad FC.
         </Text>
+        <View style={styles.sponsorBox}>
+          <Image
+            source={require("@/assets/images/logo_alcaldiaRiobamba.png")}
+            style={styles.sponsorLogo}
+            resizeMode="contain"
+          />
+        </View>
         <View style={styles.heroStatsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>Puntos</Text>
@@ -106,14 +124,9 @@ export default function Metodology() {
             <Text style={styles.statHint}>Balance actual</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Nivel</Text>
-            <Text style={styles.statValue}>{levelDisplay}</Text>
-            <Text style={styles.statHint}>Siguiente en {xpToNext} pts</Text>
-          </View>
-          <View style={styles.statCard}>
             <Text style={styles.statLabel}>Racha</Text>
             <Text style={styles.statValue}>{profile.streakCount ?? 0}</Text>
-            <Text style={styles.statHint}>días activos</Text>
+            <Text style={styles.statHint}>días activo</Text>
           </View>
         </View>
 
@@ -153,7 +166,7 @@ export default function Metodology() {
               onPress={() => handleActionPress(action)}
             >
               <View style={styles.actionHeader}>
-                <View>
+                <View style={styles.actionTextCol}>
                   <Text style={styles.actionTitle}>{action.title}</Text>
                   <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
                 </View>
@@ -167,7 +180,7 @@ export default function Metodology() {
                     isBlocked ? styles.badgeBlocked : styles.badgeAvailable,
                   ]}
                 >
-                  {isBlocked ? "No disponible hoy" : "Disponible"}
+                  {isBlocked ? "No disponible" : "Disponible"}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -260,6 +273,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
+  },
+  sponsorBox: {
+    marginTop: 10,
+    marginBottom: 4,
+    alignSelf: "stretch",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: 14,
+    backgroundColor: "#ffffff",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+    alignItems: "center",
+  },
+  sponsorLogo: {
+    width: 200,
+    height: 90,
   },
   heroStatsRow: {
     flexDirection: "row",
@@ -362,6 +394,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     gap: 10,
+  },
+  actionTextCol: {
+    flex: 1,
   },
   actionTitle: {
     fontSize: 15,

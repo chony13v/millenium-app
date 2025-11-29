@@ -99,12 +99,6 @@ export default function HomeScreen() {
               <Text style={styles.heroSubtitle}>
                 Participa y vive el deporte en tu ciudad
               </Text>
-              <View style={styles.heroTags}>
-                <Text style={styles.heroTag}>Canales</Text>
-                <Text style={styles.heroTag}>Videos</Text>
-                <Text style={styles.heroTag}>Novedades</Text>
-              </View>
-
             </LinearGradient>
             <View style={styles.logoContainer}>
               <Text style={styles.sponsorLabel}>Con el auspicio de:</Text>
@@ -183,7 +177,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 18,
     width: "100%",
-    minHeight: 170,
+    minHeight: 100,
     gap: 10,
     shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,

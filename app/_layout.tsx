@@ -22,6 +22,7 @@ import { db } from "@/config/FirebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { publishableKey, tokenCache } from "@/config/ClerkConfig";
+import { awardPointsEvent } from "@/services/points/awardPoints";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -93,6 +94,17 @@ const AfterClerkLoaded = () => {
     if (user?.id) {
       setupPush();
     }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    awardPointsEvent({
+      userId: user.id,
+      eventType: "app_open_daily",
+    }).catch((error) => {
+      console.warn("No se pudo otorgar puntos diarios:", error);
+    });
   }, [user?.id]);
 
   return (
