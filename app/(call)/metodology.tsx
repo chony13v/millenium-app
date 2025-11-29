@@ -40,7 +40,7 @@ export default function Metodology() {
   const progressValue = progress.progress ?? 0;
 
   const handleActionPress = async (action: PointAction) => {
-    if (action.eventType === "city_report_created") {
+    if (action.eventType === "city_report_created" || action.eventType === "poll_vote") {
       router.push("/(call)/Conecta");
       return;
     }

@@ -8,7 +8,7 @@ import {
   query,
   Timestamp,
   type Unsubscribe,
-  where,
+  where
 } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
 import { getLevelProgress, type PointsEventType } from "@/constants/points";
@@ -66,7 +66,7 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasCityReportToday, setHasCityReportToday] = useState(false);
-  const [activeSurveyId, setActiveSurveyId] = useState<string | null>(null);
+  const [activeSurveyIds, setActiveSurveyIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!userId) return;
@@ -160,19 +160,21 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
     // app_open_daily
     result.app_open_daily = hasEventToday("app_open_daily") ? "blocked" : "available";
 
-    // poll_vote: disponible si hay encuesta activa y no coincide con la última votada
-    if (activeSurveyId) {
-      result.poll_vote =
-        profile.lastSurveyIdVoted === activeSurveyId ? "blocked" : "available";
+    // poll_vote: disponible si existe alguna encuesta activa que el usuario no haya votado
+    if (activeSurveyIds.length > 0) {
+      const votedSurveyIds = new Set(
+        history
+          .filter(
+            (entry) =>
+              entry.eventType === "poll_vote" && entry.metadata?.surveyId
+          )
+          .map((entry) => String(entry.metadata?.surveyId))
+      );
+      const hasUnvoted = activeSurveyIds.some((id) => !votedSurveyIds.has(id));
+      result.poll_vote = hasUnvoted ? "available" : "blocked";
     } else {
       result.poll_vote = "blocked";
     }
-    const pollVotesToday = history.filter((entry) => {
-      if (entry.eventType !== "poll_vote") return false;
-      if (!entry.createdAt) return false;
-      return isSameDay(entry.createdAt.toDate(), now);
-    }).length;
-    result.poll_vote = pollVotesToday >= 1 ? "blocked" : "available";
 
     // city_report_created: 1 por día, combinando reportes guardados + perfil/ledger
     const reportTodayFromProfile =
@@ -200,7 +202,14 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
     result.streak_bonus = profile.streakCount > 0 ? "available" : "blocked";
 
     return result;
-  }, [history, profile.streakCount, hasCityReportToday, profile.lastCityReportAt, activeSurveyId, profile.lastSurveyIdVoted]);
+  }, [
+    history,
+    profile.streakCount,
+    hasCityReportToday,
+    profile.lastCityReportAt,
+    activeSurveyIds,
+    profile.lastSurveyIdVoted,
+  ]);
 
   useEffect(() => {
     if (!userId) return;
@@ -230,23 +239,31 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
   }, [userId]);
 
   useEffect(() => {
-    const activeQuery = query(
-      collection(db, "surveys"),
-      where("isActive", "==", true),
-      limit(1)
-    );
+    const q = query(collection(db, "surveys"), where("isActive", "==", true));
 
     const unsub = onSnapshot(
-      activeQuery,
+      q,
       (snap) => {
-        const first = snap.docs[0];
-        setActiveSurveyId(first ? first.id : null);
+        const ids = snap.docs.map((docSnap) => docSnap.id);
+        setActiveSurveyIds(ids);
+        console.log("[points] activeSurvey snapshot", ids.length ? ids : "none");
       },
-      () => setActiveSurveyId(null)
+      (err) => {
+        console.warn("No se pudo leer encuesta activa:", err);
+        setActiveSurveyIds([]);
+      }
     );
 
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    console.log("[points] availability ctx", {
+      activeSurveyIds,
+      lastSurveyIdVoted: profile.lastSurveyIdVoted,
+      now: new Date().toISOString(),
+    });
+  }, [activeSurveyIds, profile.lastSurveyIdVoted]);
 
   return {
     profile,
