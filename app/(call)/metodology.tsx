@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
-import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/colors";
 import {
   POINT_ACTIONS,
   getLevelProgress,
@@ -40,7 +40,10 @@ export default function Metodology() {
   const progressValue = progress.progress ?? 0;
 
   const handleActionPress = async (action: PointAction) => {
-    if (action.eventType === "city_report_created" || action.eventType === "poll_vote") {
+    if (
+      action.eventType === "city_report_created" ||
+      action.eventType === "poll_vote"
+    ) {
       router.push("/(call)/Conecta");
       return;
     }
@@ -52,10 +55,6 @@ export default function Metodology() {
         "Registramos tu intento. El backend validará elegibilidad y sumará puntos si corresponde."
       );
     } catch (error) {
-      if (action.eventType === "poll_vote") {
-        console.warn("No se pudieron otorgar puntos de encuesta:", error);
-        return;
-      }
       Alert.alert(
         "No disponible",
         "Aún no conectamos esta acción al backend de puntos."
@@ -94,7 +93,10 @@ export default function Metodology() {
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 20 }]}
+      contentContainerStyle={[
+        styles.content,
+        { paddingBottom: insets.bottom + 20 },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <LinearGradient
@@ -191,9 +193,7 @@ export default function Metodology() {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Historial reciente</Text>
-          <Text style={[styles.sectionPill, styles.pillMuted]}>
-            Últimos 20
-          </Text>
+          <Text style={[styles.sectionPill, styles.pillMuted]}>Últimos 20</Text>
         </View>
 
         {loading && <Text style={styles.mutedText}>Cargando puntos...</Text>}
@@ -217,7 +217,9 @@ export default function Metodology() {
             <Text
               style={[
                 styles.historyPoints,
-                entry.points >= 0 ? styles.pointsPositive : styles.pointsNegative,
+                entry.points >= 0
+                  ? styles.pointsPositive
+                  : styles.pointsNegative,
               ]}
             >
               {entry.points >= 0 ? "+" : ""}

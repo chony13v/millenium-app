@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
-import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/colors";
 interface Props {
   visible: boolean;
   onClose: () => void;
@@ -13,8 +13,8 @@ export default function HelpSupportModal({ visible, onClose }: Props) {
         <View style={styles.modalContent}>
           <Text style={styles.title}>Ayuda y Soporte</Text>
           <Text style={styles.message}>
-            Para asistencia visita nuestra página oficial
-            www.ciudadfc.com o llámanos al: +(1) (786) 338-9897
+            Para asistencia visita nuestra página oficial www.ciudadfc.com o
+            llámanos al: +(1) (786) 338-9897
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Entendido</Text>

@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from "react-native";
-import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/colors";
 
 interface Props {
   visible: boolean;

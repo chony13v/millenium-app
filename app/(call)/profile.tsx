@@ -1,12 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  Image,
-  Alert,
-  StyleSheet,
-  Keyboard,
-} from "react-native";
+import { View, Text, Image, Alert, StyleSheet, Keyboard } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
@@ -26,7 +19,7 @@ import {
   CITIES,
   POSITIONS,
   VALIDATION_PATTERNS,
-} from "@/constants/FormConstants";
+} from "@/constants/formConstants";
 import { useSection1Form } from "@/hooks/profile/useSection1Form";
 import { useSection2Form } from "@/hooks/profile/useSection2Form";
 import { useSection3Form } from "@/hooks/profile/useSection3Form";

@@ -17,7 +17,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
-import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/colors";
 import ModalSelector from "react-native-modal-selector";
 import { CITY_OPTIONS, type CityId } from "@/constants/cities";
 import { MaskedTextInput } from "react-native-mask-text";

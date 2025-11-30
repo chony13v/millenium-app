@@ -22,10 +22,13 @@ import {
 } from "firebase/firestore";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { db } from "@/config/FirebaseConfig";
-import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/colors";
 import { isAdmin } from "@/config/AdminConfig";
 import AddEventModal from "@/components/modals/AddEventModal";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { CITY_OPTIONS, type CityId, isCityId } from "@/constants/cities";
 
@@ -269,10 +272,7 @@ export default function CalendarScreen() {
     }
   }, [loadCityEvents, selectedCity]);
 
-  const todayString = useMemo(
-    () => new Date().toISOString().split("T")[0],
-    []
-  );
+  const todayString = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   const renderDay = useCallback(
     ({ date, state }: { date: DateData; state: string }) => {
@@ -364,7 +364,9 @@ export default function CalendarScreen() {
               size={24}
               color={Colors.NAVY_BLUE}
             />
-            <Text style={styles.addEventText}>Agregar eventos del proyecto</Text>
+            <Text style={styles.addEventText}>
+              Agregar eventos del proyecto
+            </Text>
           </TouchableOpacity>
         </View>
       )}
@@ -479,7 +481,11 @@ const styles = StyleSheet.create({
     borderColor: "#0A2240",
     backgroundColor: "rgba(10,34,64,0.06)",
   },
-  dayText: { fontSize: 15, color: Colors.NAVY_BLUE, fontFamily: "barlow-regular" },
+  dayText: {
+    fontSize: 15,
+    color: Colors.NAVY_BLUE,
+    fontFamily: "barlow-regular",
+  },
   todayText: { fontFamily: "barlow-semibold", color: "#0A2240" },
   disabledDayText: { color: "#d9e1e8" },
   eventIcon: { marginTop: 2 },

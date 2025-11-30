@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { VALIDATION_PATTERNS } from "@/constants/FormConstants";
+import { VALIDATION_PATTERNS } from "@/constants/formConstants";
 
 export type Section2Errors = {
   parentFullName?: string;

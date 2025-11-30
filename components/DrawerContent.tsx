@@ -1,7 +1,7 @@
 import React, { memo, useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface DrawerContentProps {
@@ -38,12 +38,7 @@ const DrawerContent: React.FC<DrawerContentProps> = memo(
     );
 
     return (
-      <View
-        style={[
-          styles.container,
-          { paddingTop: insets.top + 5 },
-        ]}
-      >
+      <View style={[styles.container, { paddingTop: insets.top + 5 }]}>
         {items.map((item) => (
           <TouchableOpacity
             key={item.label}

@@ -17,7 +17,7 @@ import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 import HelpSupportModal from "@/components/modals/HelpSupportModal";
 import GetHelpModal from "@/components/modals/GetHelpModal";
 import AboutModal from "@/components/modals/AboutModal";
-import { Colors } from "@/constants/Colors";
+import { Colors } from "@/constants/colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
@@ -83,45 +83,100 @@ export default function SettingsScreen() {
           start={[0, 0]}
           end={[1, 1]}
           style={[styles.heroCard, { paddingTop: insets.top + 10 }]}
-      >
-        <View style={styles.heroRow}>
-          <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-            <Ionicons name="arrow-back" size={22} color="white" />
-          </TouchableOpacity>
-          <Text style={styles.heroTitle}>Configuración</Text>
-        </View>
-        <Text style={styles.heroSubtitle}>
-          Ajusta tu cuenta, contraseñas y obtén ayuda rápida.
-        </Text>
-      </LinearGradient>
+        >
+          <View style={styles.heroRow}>
+            <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+              <Ionicons name="arrow-back" size={22} color="white" />
+            </TouchableOpacity>
+            <Text style={styles.heroTitle}>Configuración</Text>
+          </View>
+          <Text style={styles.heroSubtitle}>
+            Ajusta tu cuenta, contraseñas y obtén ayuda rápida.
+          </Text>
+        </LinearGradient>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollViewContent,
-          { paddingBottom: 24 + insets.bottom },
-        ]}
-        bounces
-        overScrollMode="always"
-      >
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <FontAwesome
-              name="user-circle"
-              size={24}
-              color={Colors.NAVY_BLUE}
-            />
-            <Text style={styles.sectionTitle}>Cuenta</Text>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollViewContent,
+            { paddingBottom: 24 + insets.bottom },
+          ]}
+          bounces
+          overScrollMode="always"
+        >
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <FontAwesome
+                name="user-circle"
+                size={24}
+                color={Colors.NAVY_BLUE}
+              />
+              <Text style={styles.sectionTitle}>Cuenta</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.settingItem, styles.settingItemButton]}
+              onPress={handleChangePasswordClick}
+            >
+              <View style={styles.settingItemContent}>
+                <FontAwesome name="lock" size={20} color={Colors.NAVY_BLUE} />
+                <Text style={styles.settingItemText}>Cambiar Contraseña</Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={Colors.NAVY_BLUE}
+              />
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[styles.settingItem, styles.settingItemButton]}
-            onPress={handleChangePasswordClick}
-          >
-            <View style={styles.settingItemContent}>
-              <FontAwesome name="lock" size={20} color={Colors.NAVY_BLUE} />
-              <Text style={styles.settingItemText}>Cambiar Contraseña</Text>
+          <View style={styles.helpSection}>
+            <MaterialIcons
+              name="headset-mic"
+              size={44}
+              color={Colors.NAVY_BLUE}
+            />
+            <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
+            <Text style={styles.helpDescription}>
+              Nuestro equipo está disponible 24/7 para ayudarte con cualquier
+              consulta sobre los Torneos Selectivos
+            </Text>
+            <View style={styles.helpButtonsContainer}>
+              <TouchableOpacity
+                style={styles.helpButton}
+                onPress={handleGetHelp}
+              >
+                <FontAwesome name="phone" size={20} color="#FFFFFF" />
+                <Text style={styles.getHelpButtonText}>Contactar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.helpButton, styles.secondaryButton]}
+                onPress={handleHelpSupport}
+              >
+                <FontAwesome
+                  name="question-circle"
+                  size={20}
+                  color={Colors.NAVY_BLUE}
+                />
+                <Text
+                  style={[
+                    styles.getHelpButtonText,
+                    { color: Colors.NAVY_BLUE },
+                  ]}
+                >
+                  FAQ
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.aboutButton} onPress={handleAbout}>
+            <View style={styles.aboutContent}>
+              <View>
+                <Text style={styles.aboutButtonText}>Acerca de Ciudad FC</Text>
+                <Text style={styles.aboutVersion}>Versión 1.1</Text>
+              </View>
             </View>
             <Ionicons
               name="chevron-forward"
@@ -129,71 +184,26 @@ export default function SettingsScreen() {
               color={Colors.NAVY_BLUE}
             />
           </TouchableOpacity>
-        </View>
+        </ScrollView>
 
-        <View style={styles.helpSection}>
-          <MaterialIcons
-            name="headset-mic"
-            size={44}
-            color={Colors.NAVY_BLUE}
-          />
-          <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
-          <Text style={styles.helpDescription}>
-            Nuestro equipo está disponible 24/7 para ayudarte con cualquier
-            consulta sobre los Torneos Selectivos
-          </Text>
-          <View style={styles.helpButtonsContainer}>
-            <TouchableOpacity style={styles.helpButton} onPress={handleGetHelp}>
-              <FontAwesome name="phone" size={20} color="#FFFFFF" />
-              <Text style={styles.getHelpButtonText}>Contactar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.helpButton, styles.secondaryButton]}
-              onPress={handleHelpSupport}
-            >
-              <FontAwesome
-                name="question-circle"
-                size={20}
-                color={Colors.NAVY_BLUE}
-              />
-              <Text
-                style={[styles.getHelpButtonText, { color: Colors.NAVY_BLUE }]}
-              >
-                FAQ
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <TouchableOpacity style={styles.aboutButton} onPress={handleAbout}>
-          <View style={styles.aboutContent}>
-            <View>
-              <Text style={styles.aboutButtonText}>Acerca de Ciudad FC</Text>
-              <Text style={styles.aboutVersion}>Versión 1.1</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.NAVY_BLUE} />
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Modals */}
-      <ChangePasswordModal
-        visible={isChangePasswordVisible}
-        onClose={() => setIsChangePasswordVisible(false)}
-        onSave={handleChangePassword}
-      />
-      <HelpSupportModal
-        visible={isHelpSupportVisible}
-        onClose={() => setIsHelpSupportVisible(false)}
-      />
-      <GetHelpModal
-        visible={isGetHelpVisible}
-        onClose={() => setIsGetHelpVisible(false)}
-      />
-      <AboutModal
-        visible={isAboutVisible}
-        onClose={() => setIsAboutVisible(false)}
-      />
+        {/* Modals */}
+        <ChangePasswordModal
+          visible={isChangePasswordVisible}
+          onClose={() => setIsChangePasswordVisible(false)}
+          onSave={handleChangePassword}
+        />
+        <HelpSupportModal
+          visible={isHelpSupportVisible}
+          onClose={() => setIsHelpSupportVisible(false)}
+        />
+        <GetHelpModal
+          visible={isGetHelpVisible}
+          onClose={() => setIsGetHelpVisible(false)}
+        />
+        <AboutModal
+          visible={isAboutVisible}
+          onClose={() => setIsAboutVisible(false)}
+        />
       </View>
     </SafeAreaView>
   );
