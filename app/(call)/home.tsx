@@ -141,10 +141,10 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.sectionCard}>
-            <View style={styles.sectionHeader}>
-              <View>
-                <Text style={styles.sectionTitle}>Noticias Ciudad FC</Text>
-              </View>
+              <View style={styles.sectionHeader}>
+                <View>
+                  <Text style={styles.sectionTitle}>Noticias Ciudad FC</Text>
+                </View>
                 <Text style={[styles.sectionPill, styles.pillNews]}>
                   Novedades
                 </Text>

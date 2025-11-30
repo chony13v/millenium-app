@@ -38,10 +38,14 @@ export const useSurveys = ({
   userId,
 }: UseSurveysParams) => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
-  const [surveyResponses, setSurveyResponses] = useState<Record<string, string>>({});
+  const [surveyResponses, setSurveyResponses] = useState<
+    Record<string, string>
+  >({});
   const [surveysLoading, setSurveysLoading] = useState(false);
   const [surveyError, setSurveyError] = useState<string | null>(null);
-  const [sendingSurvey, setSendingSurvey] = useState<Record<string, boolean>>({});
+  const [sendingSurvey, setSendingSurvey] = useState<Record<string, boolean>>(
+    {}
+  );
   const [knownSurveyLocation, setKnownSurveyLocation] =
     useState<Location.LocationObjectCoords | null>(null);
 
@@ -113,40 +117,45 @@ export const useSurveys = ({
     if (!userId) return null;
     if (knownSurveyLocation) return knownSurveyLocation;
 
-    return await new Promise<Location.LocationObjectCoords | null>((resolve) => {
-      Alert.alert(
-        "¿Compartes tu ubicación?",
-        "Ayúdanos a priorizar mejoras en los barrios compartiendo tu ubicación aproximada.",
-        [
-          {
-            text: "Ahora no",
-            style: "cancel",
-            onPress: () => resolve(null),
-          },
-          {
-            text: "Sí, compartir",
-            onPress: async () => {
-              try {
-                const result = await updateUserLocationBucket({
-                  userId,
-                  userEmail,
-                  cityId: selectedCity ?? null,
-                });
-                setKnownSurveyLocation(result.coords);
-                resolve(result.coords);
-              } catch (err) {
-                console.warn("No se pudo obtener ubicación para encuesta:", err);
-                Alert.alert(
-                  "Ubicación no disponible",
-                  "No pudimos obtener tu ubicación. Puedes intentar nuevamente desde Canchas."
-                );
-                resolve(null);
-              }
+    return await new Promise<Location.LocationObjectCoords | null>(
+      (resolve) => {
+        Alert.alert(
+          "¿Compartes tu ubicación?",
+          "Ayúdanos a priorizar mejoras en los barrios compartiendo tu ubicación aproximada.",
+          [
+            {
+              text: "Ahora no",
+              style: "cancel",
+              onPress: () => resolve(null),
             },
-          },
-        ]
-      );
-    });
+            {
+              text: "Sí, compartir",
+              onPress: async () => {
+                try {
+                  const result = await updateUserLocationBucket({
+                    userId,
+                    userEmail,
+                    cityId: selectedCity ?? null,
+                  });
+                  setKnownSurveyLocation(result.coords);
+                  resolve(result.coords);
+                } catch (err) {
+                  console.warn(
+                    "No se pudo obtener ubicación para encuesta:",
+                    err
+                  );
+                  Alert.alert(
+                    "Ubicación no disponible",
+                    "No pudimos obtener tu ubicación. Puedes intentar nuevamente desde Canchas."
+                  );
+                  resolve(null);
+                }
+              },
+            },
+          ]
+        );
+      }
+    );
   }, [knownSurveyLocation, selectedCity, userEmail, userId]);
 
   const ensurePollVoteAwarded = useCallback(
@@ -211,7 +220,10 @@ export const useSurveys = ({
 
       if (surveyResponses[surveyId]) {
         await ensurePollVoteAwarded(surveyId, surveyResponses[surveyId]);
-        Alert.alert("Gracias", "Ya registramos tu respuesta para esta encuesta.");
+        Alert.alert(
+          "Gracias",
+          "Ya registramos tu respuesta para esta encuesta."
+        );
         return;
       }
 

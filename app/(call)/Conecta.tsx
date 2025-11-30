@@ -1,5 +1,10 @@
 import React, { useMemo } from "react";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView } from "react-native";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+} from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { getStorage } from "firebase/storage";

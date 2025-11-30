@@ -165,6 +165,8 @@ export const conectaStyles = StyleSheet.create({
     backgroundColor: "#f8fafc",
     borderWidth: 1,
     borderColor: "#e2e8f0",
+    flexDirection: "row",
+    alignItems: "center",
   },
   optionButtonSelected: {
     backgroundColor: "#0ea5e9",
@@ -174,6 +176,10 @@ export const conectaStyles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "barlow-medium",
     color: "#0f172a",
+    lineHeight: 20,
+  },
+  optionCheck: {
+    marginRight: 8,
   },
   optionTextSelected: {
     color: "white",

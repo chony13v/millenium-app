@@ -20,7 +20,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import { getAuth, signInWithCustomToken } from "firebase/auth";
+
 import { db } from "@/config/FirebaseConfig";
 import { Colors } from "@/constants/colors";
 import { isAdmin } from "@/config/AdminConfig";
@@ -31,6 +31,7 @@ import {
 } from "react-native-safe-area-context";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { CITY_OPTIONS, type CityId, isCityId } from "@/constants/cities";
+import { linkClerkSessionToFirebase } from "@/services/auth/firebaseAuth";
 
 type MarkedDate = { marked: boolean; dotColor: string; isEvent: boolean };
 type EventDetail = {
@@ -39,8 +40,6 @@ type EventDetail = {
   time?: string;
   cityId?: CityId;
 };
-
-const auth = getAuth();
 
 LocaleConfig.locales["es"] = {
   monthNames: [
@@ -108,26 +107,19 @@ export default function CalendarScreen() {
     cityId: CityId;
   }>(null);
   const [firebaseReady, setFirebaseReady] = useState(false);
-
   useEffect(() => {
-    const checkAndSignIn = async () => {
-      if (!user?.primaryEmailAddress?.emailAddress) return;
+    if (!user?.primaryEmailAddress?.emailAddress) return;
 
-      try {
-        const token = await getToken({ template: "integration_firebase" });
-        if (!token) throw new Error("No se recibió token de Firebase");
-
-        await signInWithCustomToken(auth, token);
+    linkClerkSessionToFirebase(getToken)
+      .then(() => {
         setFirebaseReady(true);
 
-        const email = user.primaryEmailAddress.emailAddress;
-        if (isAdmin(email)) setIsAdminUser(true);
-      } catch (error) {
+        const email = user.primaryEmailAddress?.emailAddress;
+        if (email && isAdmin(email)) setIsAdminUser(true);
+      })
+      .catch((error) => {
         console.error("Error al autenticar con Firebase:", error);
-      }
-    };
-
-    checkAndSignIn();
+      });
   }, [getToken, user]);
 
   const parseDateTime = (dateTime: string): string | null => {

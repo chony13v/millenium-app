@@ -116,7 +116,8 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) + 12 : 12,
+    paddingTop:
+      Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) + 12 : 12,
     paddingBottom: 28,
     gap: 14,
   },

@@ -14,15 +14,11 @@ import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState, useCallback } from "react";
 import LoadingBall from "@/components/LoadingBall";
 import { CitySelectionProvider } from "@/hooks/useCitySelection";
-import {
-  registerForPushNotificationsAsync,
-  useNotificationListeners,
-} from "@/hooks/usePushNotifications";
-import { db } from "@/config/FirebaseConfig";
-import { doc, setDoc } from "firebase/firestore";
-import { getAuth, signInWithCustomToken } from "firebase/auth";
+import { useNotificationListeners } from "@/hooks/usePushNotifications";
 import { publishableKey, tokenCache } from "@/config/ClerkConfig";
-import { awardPointsEvent } from "@/services/points/awardPoints";
+import { usePushTokenSync } from "@/hooks/usePushTokenSync";
+import { useDailyAppOpenPoints } from "@/hooks/useDailyAppOpenPoints";
+import { linkClerkSessionToFirebase } from "@/services/auth/firebaseAuth";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,27 +29,11 @@ const FirebaseSync = () => {
   const { isSignedIn, getToken } = useAuth();
 
   useEffect(() => {
-    const link = async () => {
-      if (!isSignedIn) return;
+    if (!isSignedIn) return;
 
-      try {
-        const token = await getToken({ template: "integration_firebase" });
-        if (!token) {
-          console.log("⚠️ Clerk no devolvió token para Firebase");
-          return;
-        }
-
-        const auth = getAuth();
-        if (!auth.currentUser) {
-          await signInWithCustomToken(auth, token);
-          console.log("✅ Sesión Firebase enlazada con Clerk");
-        }
-      } catch (err) {
-        console.error("❌ Error enlazando Firebase →", err);
-      }
-    };
-
-    link();
+    linkClerkSessionToFirebase(getToken).catch((err) => {
+      console.error("❌ Error enlazando Firebase →", err);
+    });
   }, [isSignedIn, getToken]);
 
   return null;
@@ -77,35 +57,8 @@ const AfterClerkLoaded = () => {
   const { user } = useUser();
 
   useNotificationListeners();
-
-  useEffect(() => {
-    async function setupPush() {
-      const token = await registerForPushNotificationsAsync();
-      if (token && user?.id) {
-        await setDoc(
-          doc(db, "Participantes", user.id),
-          { expoPushToken: token },
-          { merge: true }
-        );
-        console.log("✅ Push token guardado en Firestore");
-      }
-    }
-
-    if (user?.id) {
-      setupPush();
-    }
-  }, [user?.id]);
-
-  useEffect(() => {
-    if (!user?.id) return;
-
-    awardPointsEvent({
-      userId: user.id,
-      eventType: "app_open_daily",
-    }).catch((error) => {
-      console.warn("No se pudo otorgar puntos diarios:", error);
-    });
-  }, [user?.id]);
+  usePushTokenSync(user?.id);
+  useDailyAppOpenPoints(user?.id);
 
   return (
     <>

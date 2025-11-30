@@ -39,7 +39,9 @@ export const SurveySection = ({
     {surveyError && <Text style={styles.errorText}>{surveyError}</Text>}
 
     {!surveysLoading && !surveys.length && !surveyError && (
-      <Text style={styles.infoText}>No hay encuestas activas en este momento.</Text>
+      <Text style={styles.infoText}>
+        No hay encuestas activas en este momento.
+      </Text>
     )}
 
     {surveys.map((survey) => (
@@ -62,13 +64,23 @@ export const SurveySection = ({
                 disabled={isSelected || isSending}
                 onPress={() => handleAnswerSurvey(survey.id, option)}
               >
+                {isSelected && (
+                  <Text
+                    style={[
+                      styles.optionText,
+                      styles.optionCheck,
+                      styles.optionTextSelected,
+                    ]}
+                  >
+                    ✔
+                  </Text>
+                )}
                 <Text
                   style={[
                     styles.optionText,
                     isSelected && styles.optionTextSelected,
                   ]}
                 >
-                  {isSelected ? "✔ " : ""}
                   {option}
                 </Text>
               </TouchableOpacity>

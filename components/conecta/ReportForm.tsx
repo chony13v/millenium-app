@@ -50,9 +50,9 @@ export const ReportForm = ({
       <Text style={[styles.sectionPill, styles.sectionPillOrange]}>Nuevo</Text>
     </View>
     <Text style={styles.sectionDescription}>
-      Cuéntanos qué ocurre en tu cancha o en los espacios deportivos cercanos. Tu
-      reporte ayuda al municipio a mantener y mejorar las zonas donde entrenamos
-      y jugamos.
+      Cuéntanos qué ocurre en tu cancha o en los espacios deportivos cercanos.
+      Tu reporte ayuda al municipio a mantener y mejorar las zonas donde
+      entrenamos y jugamos.
     </Text>
     <Text style={styles.hintText}>Peso máximo de la foto: 3 MB.</Text>
 
@@ -125,13 +125,18 @@ export const ReportForm = ({
 
     <View style={styles.photoRow}>
       <TouchableOpacity
-        style={[styles.secondaryButton, submittingReport && styles.buttonDisabled]}
+        style={[
+          styles.secondaryButton,
+          submittingReport && styles.buttonDisabled,
+        ]}
         onPress={pickPhoto}
         disabled={submittingReport}
       >
         <Text style={styles.secondaryButtonText}>Agregar foto (opcional)</Text>
       </TouchableOpacity>
-      {photoUri && <Image source={{ uri: photoUri }} style={styles.photoPreview} />}
+      {photoUri && (
+        <Image source={{ uri: photoUri }} style={styles.photoPreview} />
+      )}
     </View>
 
     <TouchableOpacity

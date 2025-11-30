@@ -19,7 +19,11 @@ interface UseReportFormParams {
   userId?: string;
 }
 
-export const useReportForm = ({ selectedCity, storage, userId }: UseReportFormParams) => {
+export const useReportForm = ({
+  selectedCity,
+  storage,
+  userId,
+}: UseReportFormParams) => {
   const [problemType, setProblemType] = useState<ProblemType | null>(null);
   const [description, setDescription] = useState("");
   const [locationText, setLocationText] = useState("");
@@ -39,7 +43,10 @@ export const useReportForm = ({ selectedCity, storage, userId }: UseReportFormPa
 
     const extension = photoUri.split(".").pop() ?? "jpg";
     const safeUser = userId ?? "anon";
-    const storageRef = ref(storage, `reports/${safeUser}/${Date.now()}.${extension}`);
+    const storageRef = ref(
+      storage,
+      `reports/${safeUser}/${Date.now()}.${extension}`
+    );
 
     await uploadBytes(storageRef, blob);
     const url = await getDownloadURL(storageRef);
@@ -224,7 +231,10 @@ export const useReportForm = ({ selectedCity, storage, userId }: UseReportFormPa
 
       resetForm();
 
-      Alert.alert("Reporte enviado", "Gracias por ayudarnos a mejorar la ciudad.");
+      Alert.alert(
+        "Reporte enviado",
+        "Gracias por ayudarnos a mejorar la ciudad."
+      );
     } catch (error) {
       console.error("Error enviando reporte", error);
       Alert.alert(
