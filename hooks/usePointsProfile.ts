@@ -8,10 +8,11 @@ import {
   query,
   Timestamp,
   type Unsubscribe,
-  where
+  where,
 } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
-import { getLevelProgress, type PointsEventType } from "@/constants/points";
+import { type PointsEventType } from "@/constants/points";
+import { isSameDay } from "@/utils/date";
 
 export type PointsProfile = {
   total: number;
@@ -55,12 +56,9 @@ const defaultProfile: PointsProfile = {
   lastSurveyIdVoted: null,
 };
 
-const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
-
-export const usePointsProfile = (userId?: string | null): UsePointsProfileResult => {
+export const usePointsProfile = (
+  userId?: string | null
+): UsePointsProfileResult => {
   const [profile, setProfile] = useState<PointsProfile>(defaultProfile);
   const [history, setHistory] = useState<PointsLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -94,7 +92,8 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
               lastEventAt: data.lastEventAt ?? prev.lastEventAt,
               lastDailyAwardAt: data.lastDailyAwardAt ?? prev.lastDailyAwardAt,
               lastCityReportAt: data.lastCityReportAt ?? prev.lastCityReportAt,
-              lastSurveyIdVoted: data.lastSurveyIdVoted ?? prev.lastSurveyIdVoted,
+              lastSurveyIdVoted:
+                data.lastSurveyIdVoted ?? prev.lastSurveyIdVoted,
               updatedAt: data.updatedAt ?? prev.updatedAt,
             }));
           } else {
@@ -154,11 +153,14 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
 
     const countInLastHours = (type: string, hours: number) => {
       const since = Date.now() - hours * 60 * 60 * 1000;
-      return (eventsByType[type] || []).filter((d) => d.getTime() >= since).length;
+      return (eventsByType[type] || []).filter((d) => d.getTime() >= since)
+        .length;
     };
 
     // app_open_daily
-    result.app_open_daily = hasEventToday("app_open_daily") ? "blocked" : "available";
+    result.app_open_daily = hasEventToday("app_open_daily")
+      ? "blocked"
+      : "available";
 
     // poll_vote: disponible si existe alguna encuesta activa que el usuario no haya votado
     if (activeSurveyIds.length > 0) {
@@ -180,9 +182,9 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
     const reportTodayFromProfile =
       profile.lastCityReportAt &&
       isSameDay(profile.lastCityReportAt.toDate(), now);
-    const reportTodayFromHistory = (eventsByType["city_report_created"] || []).some((d) =>
-      isSameDay(d, now)
-    );
+    const reportTodayFromHistory = (
+      eventsByType["city_report_created"] || []
+    ).some((d) => isSameDay(d, now));
     result.city_report_created =
       hasCityReportToday || reportTodayFromProfile || reportTodayFromHistory
         ? "blocked"
@@ -190,8 +192,9 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
 
     // social_follow once per platform
     result.social_follow =
-      Object.keys(eventsByType).some((key) => key.startsWith("social_follow")) ||
-      (eventsByType["social_follow"] || []).length > 0
+      Object.keys(eventsByType).some((key) =>
+        key.startsWith("social_follow")
+      ) || (eventsByType["social_follow"] || []).length > 0
         ? "blocked"
         : "available";
 
@@ -246,7 +249,10 @@ export const usePointsProfile = (userId?: string | null): UsePointsProfileResult
       (snap) => {
         const ids = snap.docs.map((docSnap) => docSnap.id);
         setActiveSurveyIds(ids);
-        console.log("[points] activeSurvey snapshot", ids.length ? ids : "none");
+        console.log(
+          "[points] activeSurvey snapshot",
+          ids.length ? ids : "none"
+        );
       },
       (err) => {
         console.warn("No se pudo leer encuesta activa:", err);

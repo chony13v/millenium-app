@@ -12,6 +12,7 @@ import {
   Timestamp,
   type Transaction,
 } from "firebase/firestore";
+import { isSameDay, isYesterday } from "@/utils/date";
 
 type PointsProfileDoc = {
   total?: number;
@@ -27,20 +28,6 @@ const DAILY_POINTS =
   POINT_ACTIONS.find((action) => action.eventType === "app_open_daily")
     ?.points ?? 5;
 const DAILY_EVENT_TYPE: PointsEventType = "app_open_daily";
-
-const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
-
-const isYesterday = (date: Date, now: Date) => {
-  const yesterday = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate() - 1
-  );
-  return isSameDay(date, yesterday);
-};
 
 export const hasEarnedDailyToday = (
   lastDailyAwardAt?: Timestamp | null,

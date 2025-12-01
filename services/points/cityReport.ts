@@ -12,6 +12,7 @@ import {
   type Transaction,
 } from "firebase/firestore";
 import { registerPointsTransaction } from "./dailyPoints";
+import { isSameDay } from "@/utils/date";
 
 const CITY_REPORT_EVENT: PointsEventType = "city_report_created";
 const CITY_REPORT_POINTS =
@@ -27,11 +28,6 @@ type PointsProfileDoc = {
   lastCityReportAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
 };
-
-const isSameDay = (a: Date, b: Date) =>
-  a.getFullYear() === b.getFullYear() &&
-  a.getMonth() === b.getMonth() &&
-  a.getDate() === b.getDate();
 
 export type AwardCityReportResult = {
   success: boolean;
