@@ -9,7 +9,13 @@ import {
   NativeScrollEvent,
   Alert,
 } from "react-native";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { collection, getDocs, query } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
 import YoutubePlayer from "react-native-youtube-iframe";
@@ -32,7 +38,8 @@ export default function Academy() {
   const [loading, setLoading] = useState<boolean>(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
-  const scrollX = new Animated.Value(0);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const isMountedRef = useRef(true);
   const [videoErrors, setVideoErrors] = useState<{ [key: string]: boolean }>(
     {}
   );
@@ -43,23 +50,24 @@ export default function Academy() {
     }
   }, []);
 
-  const onError = (error: string) => {
-    console.error("YouTube Player Error:", error);
-    setVideoErrors((prev) => ({ ...prev, [currentIndex]: true }));
-  };
+  const onError = useCallback(
+    (error: string) => {
+      console.error("YouTube Player Error:", error);
+      setVideoErrors((prev) => ({ ...prev, [currentIndex]: true }));
+    },
+    [currentIndex]
+  );
 
-  useEffect(() => {
-    getVideoList();
-  }, []);
-
-  const getVideoList = async () => {
+  const getVideoList = useCallback(async () => {
     try {
       const q = query(collection(db, "Academy"));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
         console.log("No videos found in Academy collection");
-        setVideoList([]);
+        if (isMountedRef.current) {
+          setVideoList([]);
+        }
         return;
       }
 
@@ -75,7 +83,9 @@ export default function Academy() {
           });
         }
       });
-      setVideoList(videos);
+      if (isMountedRef.current) {
+        setVideoList(videos);
+      }
     } catch (error) {
       console.error("Error fetching video data:", error);
       Alert.alert(
@@ -83,22 +93,41 @@ export default function Academy() {
         "No se pudieron cargar los videos. Por favor intente más tarde.",
         [{ text: "OK" }]
       );
-      setVideoList([]);
+      if (isMountedRef.current) {
+        setVideoList([]);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
-  const onScroll = Platform.select({
-    ios: Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], {
-      useNativeDriver: false,
-    }),
-    android: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = event.nativeEvent.contentOffset.x;
-      scrollX.setValue(offsetX);
-      setCurrentIndex(Math.round(offsetX / screenWidth));
-    },
-  });
+  useEffect(() => {
+    getVideoList();
+
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [getVideoList]);
+
+  const onScroll = useMemo(
+    () =>
+      Platform.select({
+        ios: Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          {
+            useNativeDriver: false,
+          }
+        ),
+        android: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          const offsetX = event.nativeEvent.contentOffset.x;
+          scrollX.setValue(offsetX);
+          setCurrentIndex(Math.round(offsetX / screenWidth));
+        },
+      }),
+    [scrollX]
+  );
 
   const renderVideoContent = (item: VideoItem, index: number) => {
     if (videoErrors[index]) {

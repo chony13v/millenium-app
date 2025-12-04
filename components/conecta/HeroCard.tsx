@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Text, View } from "react-native";
 
-import { conectaStyles as styles } from "@/app/(call)/Conecta.styles";
+import { conectaStyles as styles } from "@/styles/conectaStyles";
 
 export const HeroCard = () => (
   <LinearGradient

@@ -204,6 +204,12 @@ export const usePointsProfile = (
     // streak_bonus only when milestones reached; se controla server-side
     result.streak_bonus = profile.streakCount > 0 ? "available" : "blocked";
 
+    // weekly_event_attendance: se bloquea solo si ya hubo asistencia validada hoy
+    const hasWeeklyAttendanceToday = (
+      eventsByType["weekly_event_attendance"] || []
+    ).some((d) => isSameDay(d, now));
+    result.weekly_event_attendance = hasWeeklyAttendanceToday ? "blocked" : "available";
+
     return result;
   }, [
     history,

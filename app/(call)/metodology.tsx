@@ -42,7 +42,8 @@ export default function Metodology() {
   const handleActionPress = async (action: PointAction) => {
     if (
       action.eventType === "city_report_created" ||
-      action.eventType === "poll_vote"
+      action.eventType === "poll_vote" ||
+      action.eventType === "weekly_event_attendance"
     ) {
       router.push("/(call)/Conecta");
       return;
@@ -71,6 +72,8 @@ export default function Metodology() {
         return "Respuesta de encuesta";
       case "city_report_created":
         return "Reporte ciudadano";
+      case "weekly_event_attendance":
+        return "Asistencia a evento gratuito";
       case "social_follow":
         return "Sigue redes Ciudad FC";
       case "referral_signup":

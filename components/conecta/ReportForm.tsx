@@ -9,7 +9,7 @@ import {
 
 import { PROBLEM_TYPES } from "@/constants/reportProblems";
 import type { ProblemType } from "@/types/reports";
-import { conectaStyles as styles } from "@/app/(call)/Conecta.styles";
+import { conectaStyles as styles } from "@/styles/conectaStyles";
 
 interface ReportFormProps {
   coords: { latitude: number; longitude: number } | null;

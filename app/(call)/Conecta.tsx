@@ -9,14 +9,16 @@ import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import { getStorage } from "firebase/storage";
 
-import { conectaStyles as styles } from "./Conecta.styles";
+import { conectaStyles as styles } from "@/styles/conectaStyles";
 import { HeroCard } from "@/components/conecta/HeroCard";
 import { ReportForm } from "@/components/conecta/ReportForm";
 import { SurveySection } from "@/components/conecta/SurveySection";
+import { WeeklyEventsSection } from "@/components/events/WeeklyEventsSection";
 import { app } from "@/config/FirebaseConfig";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { useReportForm } from "@/hooks/conecta/useReportForm";
 import { useSurveys } from "@/hooks/conecta/useSurveys";
+import { useWeeklyEvents } from "@/hooks/events/useWeeklyEvents";
 
 export default function Conecta() {
   const { user } = useUser();
@@ -56,6 +58,20 @@ export default function Conecta() {
     submittingReport,
   } = useReportForm({ selectedCity, storage, userId: user?.id });
 
+  const {
+    attendance,
+    events,
+    eventsLoading,
+    error: eventsError,
+    handleRegisterAttendance,
+    submittingAttendance,
+  } = useWeeklyEvents({
+    hasHydrated,
+    selectedCity,
+    storage,
+    userId: user?.id,
+  });
+
   const handleCancelReport = () => {
     Alert.alert("Cancelar reporte", "¿Descartar y volver al inicio?", [
       { text: "Seguir aquí", style: "cancel" },
@@ -91,6 +107,15 @@ export default function Conecta() {
           surveyResponses={surveyResponses}
           surveys={surveys}
           surveysLoading={surveysLoading}
+        />
+
+        <WeeklyEventsSection
+          attendance={attendance}
+          error={eventsError}
+          events={events}
+          eventsLoading={eventsLoading}
+          onSubmitAttendance={handleRegisterAttendance}
+          submittingAttendance={submittingAttendance}
         />
 
         <ReportForm

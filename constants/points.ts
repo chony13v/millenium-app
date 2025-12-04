@@ -4,7 +4,8 @@ export type PointsEventType =
   | "social_follow"
   | "city_report_created"
   | "referral_signup"
-  | "streak_bonus";
+  | "streak_bonus"
+  | "weekly_event_attendance";
 
 export type PointAction = {
   id: string;
@@ -39,6 +40,14 @@ export const POINT_ACTIONS: PointAction[] = [
     points: 30,
     frequency: "Cada 6 horas",
     eventType: "city_report_created",
+  },
+  {
+    id: "weekly_event_attendance",
+    title: "Asistencia a eventos municipales gratuitos",
+    subtitle: "Registra tu participación en eventos semanales",
+    points: 50,
+    frequency: "1 vez por evento",
+    eventType: "weekly_event_attendance",
   },
   {
     id: "social_follow",

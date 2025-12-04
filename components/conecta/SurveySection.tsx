@@ -1,6 +1,6 @@
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 
-import { conectaStyles as styles } from "@/app/(call)/Conecta.styles";
+import { conectaStyles as styles } from "@/styles/conectaStyles";
 import type { Survey } from "@/hooks/conecta/useSurveys";
 
 interface SurveySectionProps {

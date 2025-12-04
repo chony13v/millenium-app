@@ -1,0 +1,297 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwnerUidOrEmail(userId) {
+      return request.auth != null &&
+        (request.auth.uid == userId ||
+         (request.auth.token.email != null && request.auth.token.email == userId));
+    }
+    function isNullableString(field) {
+      return field is string || field == null;
+    }
+    function hasValidCoords(coords) {
+      return coords is map &&
+        coords.keys().hasOnly(['latitude','longitude']) &&
+        coords.latitude is number &&
+        coords.longitude is number;
+    }
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email == "f13vasconez@gmail.com"; // ajusta si necesitas otro admin
+    }
+    function isNullableTimestamp(field) {
+      return field is timestamp || field == null;
+    }
+
+    // ── mensajesContacto ──
+    match /mensajesContacto/{docId} {
+      allow write: if
+        request.resource.data.keys().hasOnly(['nombre','email','mensaje','timestamp']) &&
+        request.resource.data.nombre is string &&
+        request.resource.data.email  is string &&
+        request.resource.data.mensaje is string &&
+        request.resource.data.nombre.size()  <= 80 &&
+        request.resource.data.email.size()   <= 120 &&
+        request.resource.data.mensaje.size() <= 2000;
+      allow read: if false;
+    }
+
+    /* ── GlobalEvents ── */
+    match /GlobalEvents/{eventId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
+
+    /* ── Participantes (abierto de prueba) ── */
+    match /Participantes/{userId} {
+      allow read:  if true;
+      allow write: if true;
+    }
+
+    /* ── Colecciones públicas de solo lectura ── */
+    match /Field/{doc}     { allow read: if true; }
+    match /Category/{doc}  { allow read: if true; }
+    match /News/{doc}      { allow read: if true; }
+    match /videoData/{doc} { allow read: if true; }
+    match /Academy/{doc}   { allow read: if true; }
+
+    /* ── Encuestas dinámicas ── */
+    match /surveys/{surveyId} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'title','question','options','cityId','isActive','createdAt','updatedAt'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.question is string
+        && request.resource.data.options is list
+        && request.resource.data.options.size() > 0
+        && request.resource.data.options[0] is string
+        && request.resource.data.cityId is string
+        && request.resource.data.isActive is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    /* ── Config encuesta activa (opcional) ── */
+    match /config/activeSurvey {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['surveyId','updatedAt'])
+        && request.resource.data.surveyId is string
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    /* ── Respuestas de encuestas ── */
+    match /surveyResponses/{responseId} {
+      allow read: if request.auth != null && isOwnerUidOrEmail(resource.data.userId);
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['surveyId','answer','userId','cityId','createdAt','coords'])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.surveyId is string
+        && request.resource.data.answer is string
+        && isNullableString(request.resource.data.cityId)
+        && request.resource.data.createdAt is timestamp
+        && (
+          !request.resource.data.keys().hasAny(['coords'])
+          || request.resource.data.coords == null
+          || hasValidCoords(request.resource.data.coords)
+        );
+      allow update, delete: if false;
+    }
+
+    /* ── Reportes ciudadanos ── */
+    match /cityReports/{reportId} {
+      allow read: if request.auth != null && isOwnerUidOrEmail(resource.data.userId);
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'problemType','description','locationText','coords',
+          'photoUrl','userId','cityId','status','createdAt'
+        ])
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.problemType is string
+        && request.resource.data.description is string
+        && request.resource.data.locationText is string
+        && hasValidCoords(request.resource.data.coords)
+        && isNullableString(request.resource.data.photoUrl)
+        && isNullableString(request.resource.data.cityId)
+        && request.resource.data.status == "pendiente"
+        && request.resource.data.createdAt is timestamp;
+      allow update, delete: if false;
+    }
+
+    /* ── Eventos semanales ── */
+    match /weeklyEvents/{eventId} {
+      allow read: if true;
+      allow write, delete: if isAdmin()
+        && request.resource.data.keys().hasOnly([
+          'title','description','cityId','isActive','weekRange','createdAt','updatedAt'
+        ])
+        && request.resource.data.title is string
+        && request.resource.data.description is string
+        && (isNullableString(request.resource.data.cityId))
+        && request.resource.data.isActive is bool
+        && (isNullableString(request.resource.data.weekRange))
+        && (isNullableTimestamp(request.resource.data.createdAt))
+        && (isNullableTimestamp(request.resource.data.updatedAt));
+    }
+
+    /* ── Asistencias a eventos semanales ── */
+    match /weeklyEventAttendance/{attendanceId} {
+      function isOwner() { return request.auth != null && request.auth.uid == resource.data.userId; }
+      allow read: if isOwner();
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'eventId','userId','cityId','coords','photoUrl','attendedAt','pointsStatus','createdAt'
+        ])
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.eventId is string
+        && request.resource.data.cityId is string
+        && hasValidCoords(request.resource.data.coords)
+        && isNullableString(request.resource.data.photoUrl)
+        && request.resource.data.pointsStatus in ['pending','awarded','failed']
+        && request.resource.data.attendedAt is timestamp
+        && request.resource.data.createdAt is timestamp;
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.userId
+        && request.resource.data.keys().hasOnly([
+          'eventId','userId','cityId','coords','photoUrl','attendedAt','pointsStatus','createdAt','updatedAt'
+        ])
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.eventId == resource.data.eventId
+        && request.resource.data.cityId == resource.data.cityId
+        && hasValidCoords(request.resource.data.coords)
+        && isNullableString(request.resource.data.photoUrl)
+        && request.resource.data.pointsStatus in ['pending','awarded','failed']
+        && isNullableTimestamp(request.resource.data.attendedAt)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if false;
+    }
+
+    /* ── Location buckets por usuario ── */
+    match /users/{userId}/locationBuckets/{bucketId} {
+      function isOwner() { return isOwnerUidOrEmail(userId); }
+      allow read: if isOwner();
+      allow write: if isOwner()
+        && request.resource.data.keys().hasOnly([
+          'bucketId','userId','userEmail','cityId','coords',
+          'geohash','platform','appVersion','createdAt'
+        ])
+        && request.resource.data.bucketId is string
+        && request.resource.data.bucketId == bucketId
+        && request.resource.data.userId is string
+        && isNullableString(request.resource.data.userEmail)
+        && isNullableString(request.resource.data.cityId)
+        && hasValidCoords(request.resource.data.coords)
+        && request.resource.data.geohash is string
+        && request.resource.data.platform is string
+        && request.resource.data.appVersion is string
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    /* ── Reporte de eventos por usuario (bloqueo de reenvío) ── */
+    match /users/{userId}/eventReports/{eventId} {
+      allow read: if isOwnerUidOrEmail(userId);
+      allow create, update: if isOwnerUidOrEmail(userId)
+        && request.resource.data.keys().hasOnly([
+          'eventId','userId','attendanceId','pointsAdded','verified','createdAt','updatedAt'
+        ])
+        && request.resource.data.userId == userId
+        && request.resource.data.eventId is string
+        && (request.resource.data.attendanceId is string || request.resource.data.attendanceId == null)
+        && (request.resource.data.pointsAdded is number || request.resource.data.pointsAdded == null)
+        && request.resource.data.verified is bool
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+      allow delete: if false;
+    }
+
+    /* ── Location buckets global ── */
+    match /locationBuckets/{docId} {
+      function isOwnerField(userId) { return isOwnerUidOrEmail(userId); }
+      allow read: if isOwnerField(resource.data.userId);
+      allow write: if request.resource != null && isOwnerField(request.resource.data.userId)
+        && request.resource.data.keys().hasOnly([
+          'userId','userEmail','coords','cityId','bucketId',
+          'geohash','platform','appVersion','createdAt'
+        ])
+        && request.resource.data.userId is string
+        && request.resource.data.bucketId is string
+        && isNullableString(request.resource.data.userEmail)
+        && isNullableString(request.resource.data.cityId)
+        && hasValidCoords(request.resource.data.coords)
+        && request.resource.data.geohash is string
+        && request.resource.data.platform is string
+        && request.resource.data.appVersion is string
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    /* ── locationEvents ── */
+    match /locationEvents/{docId} {
+      function hasValidEnrichedEvent(data) {
+        return data.keys().hasOnly([
+            'userId','userEmail','cityId','bucketId','coords',
+            'geohash','platform','appVersion','createdAt'
+          ])
+          && (data.userId is string)
+          && (data.bucketId is string)
+          && (isNullableString(data.userEmail))
+          && (isNullableString(data.cityId))
+          && (hasValidCoords(data.coords))
+          && (data.geohash is string && data.geohash.size() >= 5 && data.geohash.size() <= 12)
+          && (data.platform is string)
+          && (data.appVersion is string)
+          && (data.createdAt is timestamp);
+      }
+      allow write: if request.auth != null && hasValidEnrichedEvent(request.resource.data);
+      allow read: if false;
+    }
+
+    /* ── cellsDaily ── */
+    match /cellsDaily/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ── Perfil de puntos ──
+    match /users/{userId}/points_profile/{docId} {
+      allow read: if isOwnerUidOrEmail(userId);
+      allow write: if isOwnerUidOrEmail(userId)
+        && docId == "profile"
+        && request.resource.data.keys().hasOnly([
+          'total','level','xpToNext','streakCount',
+          'lastDailyAwardAt','lastCityReportAt','lastEventAt',
+          'updatedAt','lastSurveyIdVoted'
+        ])
+        && request.resource.data.total is number
+        && request.resource.data.level is number
+        && request.resource.data.xpToNext is number
+        && request.resource.data.streakCount is number
+        && (request.resource.data.lastDailyAwardAt is timestamp || request.resource.data.lastDailyAwardAt == null)
+        && (request.resource.data.lastCityReportAt is timestamp || request.resource.data.lastCityReportAt == null || !('lastCityReportAt' in request.resource.data))
+        && (request.resource.data.lastEventAt is timestamp || request.resource.data.lastEventAt == null)
+        && (request.resource.data.lastSurveyIdVoted is string || request.resource.data.lastSurveyIdVoted == null || !('lastSurveyIdVoted' in request.resource.data))
+        && (request.resource.data.updatedAt is timestamp || !('updatedAt' in request.resource.data));
+    }
+
+    /* ── Historial (ledger) de puntos ── */
+    match /users/{userId}/points_ledger/{entryId} {
+      allow read: if isOwnerUidOrEmail(userId);
+      allow write: if isOwnerUidOrEmail(userId)
+        && request.resource.data.keys().hasOnly([
+          'eventId','eventType','points','createdAt',
+          'awardedBy','metadata','lastUpdatedAt'
+        ])
+        && request.resource.data.eventId is string
+        && request.resource.data.eventType is string
+        && request.resource.data.points is number
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.awardedBy is string
+        && (request.resource.data.metadata is map || request.resource.data.metadata == null)
+        && request.resource.data.lastUpdatedAt is timestamp;
+    }
+  }
+}

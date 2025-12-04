@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -20,12 +20,35 @@ interface CategoryItem {
   link: string;
 }
 
+const CategoryCard = React.memo(
+  ({
+    item,
+    onPress,
+  }: {
+    item: CategoryItem;
+    onPress: (link: string) => void;
+  }) => (
+    <TouchableOpacity
+      style={styles.item}
+      onPress={() => onPress(item.link)}
+      activeOpacity={0.85}
+    >
+      <View style={styles.iconWrapper}>
+        <Image source={{ uri: item.icon }} style={styles.icon} />
+      </View>
+      <Text style={styles.name}>{item.name}</Text>
+    </TouchableOpacity>
+  )
+);
+
 export default function CategoryIcons() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
+    let isMounted = true;
+
     (async () => {
       try {
         const snapshot = await getDocs(collection(db, "Category"));
@@ -33,61 +56,74 @@ export default function CategoryIcons() {
         snapshot.forEach((doc) => {
           items.push({ ...doc.data(), id: doc.id } as CategoryItem);
         });
-        setCategories(items);
+        if (isMounted) {
+          setCategories(items);
+        }
       } catch (error) {
         console.error("Error fetching Category:", error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     })();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const handlePress = useCallback(
+    (link: string) => {
+      try {
+        if (!link || link.trim() === "") {
+          Alert.alert(
+            "Error",
+            "El link no está disponible. Por favor, inténtelo de nuevo más tarde.",
+            [{ text: "OK" }]
+          );
+          return;
+        }
+        router.push(link as any);
+      } catch (error) {
+        console.error("Navigation error:", error);
+        Alert.alert(
+          "Error",
+          "Ha ocurrido un error al intentar navegar. Por favor, inténtelo de nuevo más tarde.",
+          [{ text: "OK" }]
+        );
+      }
+    },
+    [router]
+  );
+
+  const renderItem = useCallback(
+    ({ item }: { item: CategoryItem }) => (
+      <CategoryCard item={item} onPress={handlePress} />
+    ),
+    [handlePress]
+  );
+
+  const contentContainerStyle = useMemo(
+    () => ({
+      ...styles.listContent,
+    }),
+    []
+  );
 
   if (loading) {
     return <LoadingBall text="Cargando categorías..." />;
   }
 
-  const handlePress = (link: string) => {
-    try {
-      if (!link || link.trim() === "") {
-        Alert.alert(
-          "Error",
-          "El link no está disponible. Por favor, inténtelo de nuevo más tarde.",
-          [{ text: "OK" }]
-        );
-        return;
-      }
-      router.push(link as any);
-    } catch (error) {
-      console.error("Navigation error:", error);
-      Alert.alert(
-        "Error",
-        "Ha ocurrido un error al intentar navegar. Por favor, inténtelo de nuevo más tarde.",
-        [{ text: "OK" }]
-      );
-    }
-  };
-
   return (
     <View style={styles.container}>
-
       <FlatList
         horizontal
         data={categories}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.item}
-            onPress={() => handlePress(item.link)}
-            activeOpacity={0.85}
-          >
-            <View style={styles.iconWrapper}>
-              <Image source={{ uri: item.icon }} style={styles.icon} />
-            </View>
-            <Text style={styles.name}>{item.name}</Text>
-          </TouchableOpacity>
-        )}
+        renderItem={renderItem}
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={contentContainerStyle}
       />
     </View>
   );
