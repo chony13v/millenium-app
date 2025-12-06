@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  TextInput,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,14 +21,25 @@ import {
 } from "@/constants/points";
 import { usePointsProfile } from "@/hooks/usePointsProfile";
 import { awardPointsEvent } from "@/services/points/awardPoints";
+import {
+  ensureReferralCode,
+  fetchReferralCode,
+  redeemReferralCode,
+} from "@/services/referrals";
 
 export default function Metodology() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useUser();
+  const scrollRef = useRef<ScrollView | null>(null);
   const { profile, history, loading, availability } = usePointsProfile(
     user?.id
   );
+  const [referralCode, setReferralCode] = React.useState<string | null>(null);
+  const [loadingCode, setLoadingCode] = React.useState(false);
+  const [redeemInput, setRedeemInput] = React.useState("");
+  const [redeeming, setRedeeming] = React.useState(false);
+  const [referralSectionY, setReferralSectionY] = React.useState(0);
 
   const greeting = user?.firstName || user?.fullName || "Jugador de Ciudad FC";
 
@@ -39,27 +51,48 @@ export default function Metodology() {
   const xpToNext = profile.xpToNext ?? progress.xpToNext;
   const progressValue = progress.progress ?? 0;
 
-  const handleActionPress = async (action: PointAction) => {
-    if (
-      action.eventType === "city_report_created" ||
-      action.eventType === "poll_vote" ||
-      action.eventType === "weekly_event_attendance"
-    ) {
-      router.push("/(call)/Conecta");
-      return;
-    }
+  React.useEffect(() => {
+    const loadCode = async () => {
+      try {
+        const code = await fetchReferralCode(user?.id);
+        if (code) {
+          setReferralCode(code);
+          return;
+        }
+        const ensured = await ensureReferralCode();
+        setReferralCode(ensured);
+      } catch {
+        setReferralCode(null);
+      }
+    };
 
+    loadCode();
+  }, [user?.id]);
+
+  const handleGenerateCode = async () => {
+    if (loadingCode) return;
+    setLoadingCode(true);
     try {
-      await awardPointsEvent({ eventType: action.eventType, userId: user?.id });
-      Alert.alert(
-        "Enviado",
-        "Registramos tu intento. El backend validará elegibilidad y sumará puntos si corresponde."
-      );
-    } catch (error) {
+      const ensured = await ensureReferralCode();
+      if (ensured) {
+        setReferralCode(ensured);
+        return;
+      }
+      const fetched = await fetchReferralCode(user?.id);
+      setReferralCode(fetched);
+      if (!fetched) {
+        Alert.alert(
+          "No disponible",
+          "No pudimos generar tu código ahora. Intenta nuevamente."
+        );
+      }
+    } catch (error: any) {
       Alert.alert(
         "No disponible",
-        "Aún no conectamos esta acción al backend de puntos."
+        "El servicio de referidos no está disponible ahora. Inténtalo más tarde."
       );
+    } finally {
+      setLoadingCode(false);
     }
   };
 
@@ -93,6 +126,67 @@ export default function Metodology() {
     })}`;
   };
 
+  const handleRedeem = async () => {
+    if (!redeemInput.trim()) {
+      Alert.alert("Código requerido", "Ingresa un código para canjearlo.");
+      return;
+    }
+    setRedeeming(true);
+    try {
+      const result = await redeemReferralCode(redeemInput.trim());
+      if (result.alreadyRedeemed) {
+        Alert.alert(
+          "Ya canjeado",
+          `Ya usaste un código (${result.codeUsed ?? redeemInput.trim()}).`
+        );
+      } else if (result.success) {
+        Alert.alert(
+          "Éxito",
+          `Sumaste ${result.redeemerPoints ?? 25} pts. El referente ganó ${result.referrerPoints ?? 100} pts.`
+        );
+      } else {
+        Alert.alert("No disponible", result.message ?? "No se pudo canjear.");
+      }
+    } catch (error: any) {
+      const message =
+        error?.message ??
+        error?.code ??
+        "No se pudo canjear el código ahora. Intenta de nuevo.";
+      Alert.alert("Error", message);
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
+  const handleActionPress = async (action: PointAction) => {
+    if (
+      action.eventType === "city_report_created" ||
+      action.eventType === "poll_vote" ||
+      action.eventType === "weekly_event_attendance"
+    ) {
+      router.push("/(call)/Conecta");
+      return;
+    }
+
+    if (action.eventType === "referral_signup") {
+      scrollRef.current?.scrollTo({ y: referralSectionY, animated: true });
+      return;
+    }
+
+    try {
+      await awardPointsEvent({ eventType: action.eventType, userId: user?.id });
+      Alert.alert(
+        "Enviado",
+        "Registramos tu intento. El backend validará elegibilidad y sumará puntos si corresponde."
+      );
+    } catch (error) {
+      Alert.alert(
+        "No disponible",
+        "Aún no conectamos esta acción al backend de puntos."
+      );
+    }
+  };
+
   return (
     <ScrollView
       style={styles.container}
@@ -101,6 +195,7 @@ export default function Metodology() {
         { paddingBottom: insets.bottom + 20 },
       ]}
       showsVerticalScrollIndicator={false}
+      ref={scrollRef}
     >
       <LinearGradient
         colors={["#1e3a8a", "#1e3a8a"]}
@@ -147,6 +242,63 @@ export default function Metodology() {
           Nivel {levelDisplay} · quedan {xpToNext} puntos
         </Text>
       </LinearGradient>
+
+      <View
+        style={styles.sectionCard}
+        onLayout={(e) => setReferralSectionY(e.nativeEvent.layout.y)}
+      >
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Invita amigos</Text>
+          <Text style={styles.sectionPill}>Referidos</Text>
+        </View>
+        <Text style={styles.sectionSubtitle}>
+          Comparte tu código y ambos reciben puntos cuando lo usen.
+        </Text>
+        <View style={styles.referralRow}>
+          <View style={styles.referralCodeBox}>
+            <Text style={styles.referralCodeLabel}>Tu código</Text>
+            <Text style={styles.referralCodeValue}>
+              {referralCode ?? "Toca \"Obtener código\""}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.generateButton,
+              loadingCode && styles.actionCardDisabled,
+            ]}
+            onPress={handleGenerateCode}
+            disabled={loadingCode}
+          >
+            <Text style={styles.generateButtonText}>
+              {loadingCode ? "Generando..." : "Obtener código"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.redeemContainer}>
+          <Text style={styles.referralCodeLabel}>Canjear código</Text>
+          <View style={styles.redeemRow}>
+            <TextInput
+              style={styles.redeemInput}
+              placeholder="ABC12345"
+              autoCapitalize="characters"
+              value={redeemInput}
+              onChangeText={setRedeemInput}
+            />
+            <TouchableOpacity
+              style={[
+                styles.redeemButton,
+                (redeeming || !redeemInput.trim()) && styles.actionCardDisabled,
+              ]}
+              disabled={redeeming || !redeemInput.trim()}
+              onPress={handleRedeem}
+            >
+              <Text style={styles.redeemButtonText}>
+                {redeeming ? "Enviando..." : "Canjear"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
 
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
@@ -394,6 +546,72 @@ const styles = StyleSheet.create({
   },
   actionCardDisabled: {
     opacity: 0.7,
+  },
+  referralRow: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: "#f8fafc",
+    gap: 10,
+  },
+  referralCodeBox: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  referralCodeLabel: {
+    color: "#6b7280",
+    fontFamily: "barlow-medium",
+  },
+  referralCodeValue: {
+    fontSize: 18,
+    fontFamily: "barlow-semibold",
+    color: Colors.PRIMARY,
+    letterSpacing: 1,
+  },
+  generateButton: {
+    alignSelf: "flex-end",
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  generateButtonText: {
+    color: "#fff",
+    fontFamily: "barlow-semibold",
+    fontSize: 13,
+  },
+  redeemContainer: {
+    marginTop: 16,
+    gap: 6,
+  },
+  redeemRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  redeemInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "#fff",
+    fontFamily: "barlow-semibold",
+    letterSpacing: 1,
+  },
+  redeemButton: {
+    backgroundColor: Colors.PRIMARY,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  redeemButtonText: {
+    color: "#fff",
+    fontFamily: "barlow-semibold",
   },
   actionHeader: {
     flexDirection: "row",

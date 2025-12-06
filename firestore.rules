@@ -256,22 +256,76 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /* ── Perfil público (solo lectura) ── */
+    match /users/{userId}/public_profile/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    /* ── Metadatos de referidos por usuario ── */
+    match /users/{userId}/referral_meta/{docId} {
+      allow read: if isOwnerUidOrEmail(userId);
+      allow write: if false;
+    }
+
+    /* ── Códigos de referidos ── */
+    match /referralCodes/{code} {
+      allow read: if resource.data.keys().hasOnly([
+        'referrerUid','active','createdAt','redeemedCount','maxRedemptions','expiresAt','lastRedeemedAt'
+      ]);
+      allow write: if false;
+    }
+
+    /* ── Canjes de referidos ── */
+    match /referralRedemptions/{redemptionId} {
+      allow read: if request.auth != null
+        && (resource.data.referrerUid == request.auth.uid || resource.data.redeemerUid == request.auth.uid);
+      allow write: if false;
+    }
+
+    /* ── Estadísticas de referidos ── */
+    match /referral_stats/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
     // ── Perfil de puntos ──
     match /users/{userId}/points_profile/{docId} {
-      // El usuario puede leer su perfil de puntos
       allow read: if isOwnerUidOrEmail(userId);
-
-      // Ningún write desde cliente: lo maneja solo el backend/Admin SDK
-      allow write: if false;
+      allow write: if isOwnerUidOrEmail(userId)
+        && docId == "profile"
+        && request.resource.data.keys().hasOnly([
+          'total','level','xpToNext','streakCount','email',
+          'lastDailyAwardAt','lastCityReportAt','lastEventAt',
+          'updatedAt','lastSurveyIdVoted'
+        ])
+        && request.resource.data.total is number
+        && request.resource.data.level is number
+        && request.resource.data.xpToNext is number
+        && request.resource.data.streakCount is number
+        && (request.resource.data.email is string || request.resource.data.email == null || !('email' in request.resource.data))
+        && (request.resource.data.lastDailyAwardAt is timestamp || request.resource.data.lastDailyAwardAt == null)
+        && (request.resource.data.lastCityReportAt is timestamp || request.resource.data.lastCityReportAt == null || !('lastCityReportAt' in request.resource.data))
+        && (request.resource.data.lastEventAt is timestamp || request.resource.data.lastEventAt == null)
+        && (request.resource.data.lastSurveyIdVoted is string || request.resource.data.lastSurveyIdVoted == null || !('lastSurveyIdVoted' in request.resource.data))
+        && (request.resource.data.updatedAt is timestamp || !('updatedAt' in request.resource.data));
     }
 
     /* ── Historial (ledger) de puntos ── */
     match /users/{userId}/points_ledger/{entryId} {
-      // El usuario puede leer su historial
       allow read: if isOwnerUidOrEmail(userId);
-
-      // Ningún write desde cliente: solo backend
-      allow write: if false;
+      allow write: if isOwnerUidOrEmail(userId)
+        && request.resource.data.keys().hasOnly([
+          'eventId','eventType','points','createdAt',
+          'awardedBy','metadata','lastUpdatedAt'
+        ])
+        && request.resource.data.eventId is string
+        && request.resource.data.eventType is string
+        && request.resource.data.points is number
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.awardedBy is string
+        && (request.resource.data.metadata is map || request.resource.data.metadata == null)
+        && request.resource.data.lastUpdatedAt is timestamp;
     }
   }
 }

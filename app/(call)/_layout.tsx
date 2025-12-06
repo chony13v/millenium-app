@@ -6,7 +6,6 @@ import {
   StatusBar,
   Keyboard,
   Text,
-  Pressable,
   ActivityIndicator,
 } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
