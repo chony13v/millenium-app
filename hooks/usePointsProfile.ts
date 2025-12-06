@@ -19,6 +19,7 @@ export type PointsProfile = {
   level: number;
   xpToNext: number;
   streakCount: number;
+  email?: string | null;
   lastEventAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
   lastDailyAwardAt?: Timestamp | null;
@@ -49,6 +50,7 @@ const defaultProfile: PointsProfile = {
   level: 1,
   xpToNext: 100,
   streakCount: 0,
+  email: null,
   lastEventAt: null,
   updatedAt: null,
   lastDailyAwardAt: null,
@@ -89,6 +91,7 @@ export const usePointsProfile = (
               level: data.level ?? prev.level,
               xpToNext: data.xpToNext ?? prev.xpToNext,
               streakCount: data.streakCount ?? prev.streakCount,
+              email: data.email ?? prev.email ?? null,
               lastEventAt: data.lastEventAt ?? prev.lastEventAt,
               lastDailyAwardAt: data.lastDailyAwardAt ?? prev.lastDailyAwardAt,
               lastCityReportAt: data.lastCityReportAt ?? prev.lastCityReportAt,
