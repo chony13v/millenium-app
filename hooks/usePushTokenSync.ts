@@ -7,10 +7,14 @@ import { registerForPushNotificationsAsync } from "@/hooks/usePushNotifications"
 export function usePushTokenSync(userId?: string) {
   useEffect(() => {
     if (!userId) return;
+    let syncing = false;
+    let cancelled = false;
 
     let isActive = true;
 
     const syncPushToken = async () => {
+      if (syncing) return;
+      syncing = true;
       const token = await registerForPushNotificationsAsync();
       if (!isActive || !token) return;
 

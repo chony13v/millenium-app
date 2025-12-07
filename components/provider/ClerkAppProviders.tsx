@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { Stack } from "expo-router";
 import { useAuth, useUser } from "@clerk/clerk-expo";
@@ -9,17 +9,48 @@ import { useDailyAppOpenPoints } from "@/hooks/useDailyAppOpenPoints";
 import { usePushTokenSync } from "@/hooks/usePushTokenSync";
 import { useNotificationListeners } from "@/hooks/usePushNotifications";
 import { linkClerkSessionToFirebase } from "@/services/auth/firebaseAuth";
+import { useFirebaseUid } from "@/hooks/useFirebaseUid";
+import { auth } from "@/config/FirebaseConfig";
+import { signOut as firebaseSignOut } from "firebase/auth";
 
 const FirebaseSync = () => {
   const { isSignedIn, getToken } = useAuth();
+  const { user } = useUser();
+  const linkedUidRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isSignedIn) return;
+    let cancelled = false;
 
-    linkClerkSessionToFirebase(getToken).catch((err) => {
-      console.error("❌ Error enlazando Firebase →", err);
-    });
-  }, [isSignedIn, getToken]);
+    if (!isSignedIn || !user) {
+      linkedUidRef.current = null;
+      firebaseSignOut(auth).catch(() => {});
+      return;
+    }
+
+    const targetUid = user.id;
+    const currentFirebaseUid = auth.currentUser?.uid ?? null;
+    const alreadyLinked =
+      linkedUidRef.current === targetUid && currentFirebaseUid === targetUid;
+
+    if (alreadyLinked) return;
+
+    linkedUidRef.current = targetUid;
+
+    linkClerkSessionToFirebase(getToken)
+      .then((currentUser) => {
+        if (cancelled) return;
+        linkedUidRef.current = currentUser?.uid ?? targetUid;
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.error("❌ Error enlazando Firebase →", err);
+        linkedUidRef.current = null;
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getToken, isSignedIn, user?.id]);
 
   return null;
 };
@@ -36,10 +67,11 @@ const HideSplashScreen = () => {
 
 export const ClerkAppProviders = () => {
   const { user } = useUser();
+  const { firebaseUid } = useFirebaseUid();
 
   useNotificationListeners();
-  usePushTokenSync(user?.id);
-  useDailyAppOpenPoints(user?.id);
+  usePushTokenSync(firebaseUid ?? undefined);
+  useDailyAppOpenPoints(firebaseUid ?? undefined);
 
   return (
     <>

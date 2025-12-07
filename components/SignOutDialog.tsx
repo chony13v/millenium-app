@@ -1,6 +1,8 @@
 import React from "react";
 import Dialog from "react-native-dialog";
 import { useAuth } from "@clerk/clerk-expo";
+import { signOut as firebaseSignOut } from "firebase/auth";
+import { auth } from "@/config/FirebaseConfig";
 
 interface SignOutDialogProps {
   visible: boolean;
@@ -21,6 +23,7 @@ export default function SignOutDialog({
       <Dialog.Button
         label="Salir"
         onPress={async () => {
+          await firebaseSignOut(auth).catch(() => {});
           await signOut();
           onClose();
         }}

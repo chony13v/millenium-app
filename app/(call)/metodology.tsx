@@ -8,12 +8,16 @@ import {
   Alert,
   Image,
   TextInput,
+  Platform,
+  Share,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useUser } from "@clerk/clerk-expo";
+import * as Clipboard from "expo-clipboard";
 import { Colors } from "@/constants/colors";
+import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 import {
   POINT_ACTIONS,
   getLevelProgress,
@@ -27,19 +31,41 @@ import {
   redeemReferralCode,
 } from "@/services/referrals";
 
+const PLAY_STORE_URL =
+  process.env.EXPO_PUBLIC_PLAY_STORE_URL ||
+  process.env.PLAY_STORE_URL ||
+  "";
+const APP_STORE_URL =
+  process.env.EXPO_PUBLIC_APP_STORE_URL ||
+  process.env.APP_STORE_URL ||
+  "";
+const APP_DL_BASE_URL =
+  process.env.EXPO_PUBLIC_APP_DL_BASE_URL ||
+  process.env.APP_DL_BASE_URL ||
+  "";
+const REFERRER_REWARD_POINTS =
+  Number(process.env.EXPO_PUBLIC_REFERRER_REWARD_POINTS) || 200;
+const REDEEMER_REWARD_POINTS =
+  Number(process.env.EXPO_PUBLIC_REDEEMER_REWARD_POINTS) || 100;
+
 export default function Metodology() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useUser();
+  const { firebaseUid } = useFirebaseUid();
   const scrollRef = useRef<ScrollView | null>(null);
-  const { profile, history, loading, availability } = usePointsProfile(
-    user?.id
-  );
+  const { profile, history, loading, availability, refreshFromServer } =
+    usePointsProfile(
+      firebaseUid,
+      user?.primaryEmailAddress?.emailAddress ?? null
+    );
   const [referralCode, setReferralCode] = React.useState<string | null>(null);
   const [loadingCode, setLoadingCode] = React.useState(false);
+  const [sharing, setSharing] = React.useState(false);
   const [redeemInput, setRedeemInput] = React.useState("");
   const [redeeming, setRedeeming] = React.useState(false);
   const [referralSectionY, setReferralSectionY] = React.useState(0);
+  const [ensureTried, setEnsureTried] = React.useState(false);
 
   const greeting = user?.firstName || user?.fullName || "Jugador de Ciudad FC";
 
@@ -54,33 +80,56 @@ export default function Metodology() {
   React.useEffect(() => {
     const loadCode = async () => {
       try {
-        const code = await fetchReferralCode(user?.id);
+        const code = await fetchReferralCode(firebaseUid);
         if (code) {
           setReferralCode(code);
+          console.log("[referral] referral_code_cached", {
+            source: "firestore",
+            referralCode: code,
+          });
           return;
         }
-        const ensured = await ensureReferralCode();
-        setReferralCode(ensured);
-      } catch {
-        setReferralCode(null);
+      } catch (err) {
+        console.warn("[referral] no referral code cached", err);
       }
     };
 
     loadCode();
-  }, [user?.id]);
+  }, [firebaseUid]);
 
   const handleGenerateCode = async () => {
     if (loadingCode) return;
+    if (referralCode) {
+      console.log("[referral] referral_code_cached", {
+        source: "state",
+        referralCode,
+      });
+      return;
+    }
+    if (ensureTried) {
+      Alert.alert(
+        "No disponible",
+        "No se pudo obtener tu código. Intenta nuevamente más tarde."
+      );
+      return;
+    }
     setLoadingCode(true);
     try {
+      console.log("[referral] referral_code_requested");
       const ensured = await ensureReferralCode();
+      setEnsureTried(true);
       if (ensured) {
         setReferralCode(ensured);
         return;
       }
-      const fetched = await fetchReferralCode(user?.id);
-      setReferralCode(fetched);
-      if (!fetched) {
+      const fetched = await fetchReferralCode(firebaseUid);
+      if (fetched) {
+        setReferralCode(fetched);
+        console.log("[referral] referral_code_cached", {
+          source: "firestore_after_ensure",
+          referralCode: fetched,
+        });
+      } else {
         Alert.alert(
           "No disponible",
           "No pudimos generar tu código ahora. Intenta nuevamente."
@@ -93,6 +142,92 @@ export default function Metodology() {
       );
     } finally {
       setLoadingCode(false);
+    }
+  };
+
+  const buildReferralLink = (code: string) => {
+    const base =
+      Platform.OS === "android"
+        ? PLAY_STORE_URL || APP_DL_BASE_URL
+        : APP_STORE_URL || APP_DL_BASE_URL || PLAY_STORE_URL;
+    const safeBase = base || APP_DL_BASE_URL || "https://ciudadfc.app";
+    const linkType =
+      safeBase === PLAY_STORE_URL || safeBase === APP_STORE_URL ? "store" : "dynamic";
+    const separator = safeBase.includes("?") ? "&" : "?";
+    const url = `${safeBase}${separator}utm_source=share&utm_medium=referral&utm_campaign=referral_code&utm_content=${encodeURIComponent(
+      code
+    )}`;
+    return { url, linkType };
+  };
+
+  const handleShareCode = async () => {
+    if (sharing || loadingCode) return;
+    setSharing(true);
+    let code = referralCode;
+    try {
+      console.log("[referral] referral_share_tapped", {
+        platform: Platform.OS,
+        referralCode: code,
+      });
+      if (!code) {
+        const ensured = await ensureReferralCode();
+        setEnsureTried(true);
+        code = ensured ?? code;
+        if (!code) {
+          const fetched = await fetchReferralCode(firebaseUid);
+          code = fetched ?? null;
+        }
+        if (code) {
+          console.log("[referral] referral_code_cached", {
+            source: "share_flow_fetch",
+            referralCode: code,
+          });
+        }
+        setReferralCode(code);
+      }
+      if (!code) {
+        Alert.alert("Generando tu código...", "Intenta nuevamente en unos segundos.");
+        return;
+      }
+
+      const { url: link, linkType } = buildReferralLink(code);
+      const points = REDEEMER_REWARD_POINTS || 100;
+      const title = "Únete a Ciudad FC";
+      const message = `Descarga la app y canjea mi código ${code} para ganar ${points} puntos de bienvenida 🎉\n${link}`;
+
+      const result = await Share.share({
+        title,
+        message,
+      });
+
+      if (result.action === Share.sharedAction) {
+        console.log("[referral] referral_share_success", {
+          platform: Platform.OS,
+          referralCode: code,
+          utmIncluded: true,
+          linkType,
+        });
+      }
+    } catch (error) {
+      console.warn("[referral] share failed, copying fallback", error);
+      try {
+        const code = referralCode ?? "MI_CODIGO";
+        const { url: link } = buildReferralLink(code);
+        const points = REDEEMER_REWARD_POINTS || 100;
+        const message = `Descarga la app y canjea mi código ${code} para ganar ${points} puntos de bienvenida 🎉\n${link}`;
+        await Clipboard.setStringAsync(message);
+        Alert.alert("Texto copiado", "Pega el mensaje donde quieras compartirlo.");
+        console.log("[referral] referral_share_copied", {
+          platform: Platform.OS,
+          referralCode: code,
+          utmIncluded: true,
+          linkType: "dynamic",
+        });
+      } catch (copyError) {
+        Alert.alert("No se pudo compartir. Inténtalo nuevamente.");
+      }
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -111,6 +246,10 @@ export default function Metodology() {
         return "Sigue redes Ciudad FC";
       case "referral_signup":
         return "Invitación aprobada";
+      case "referral_reward":
+        return "Recompensa por referido";
+      case "referral_redeem":
+        return "Canje de referido";
       case "streak_bonus":
         return "Bono por racha";
       default:
@@ -132,27 +271,41 @@ export default function Metodology() {
       return;
     }
     setRedeeming(true);
+    const codeTrimmed = redeemInput.trim();
+    console.log("[referral] referral_code_requested", {
+      code: codeTrimmed,
+    });
     try {
-      const result = await redeemReferralCode(redeemInput.trim());
+      const result = await redeemReferralCode(codeTrimmed);
       if (result.alreadyRedeemed) {
         Alert.alert(
-          "Ya canjeado",
-          `Ya usaste un código (${result.codeUsed ?? redeemInput.trim()}).`
+          result.message ?? "✅ Código ya canjeado anteriormente",
+          `Código registrado: ${result.codeUsed ?? codeTrimmed}`
         );
       } else if (result.success) {
         Alert.alert(
-          "Éxito",
-          `Sumaste ${result.redeemerPoints ?? 25} pts. El referente ganó ${result.referrerPoints ?? 100} pts.`
+          result.message ?? "✅ Canje realizado",
+          `Sumaste ${result.redeemerPoints ?? 100} pts. El referente ganó ${result.referrerPoints ?? 200} pts.`
         );
       } else {
         Alert.alert("No disponible", result.message ?? "No se pudo canjear.");
       }
+      if (result.success) {
+        await refreshFromServer();
+      }
     } catch (error: any) {
-      const message =
-        error?.message ??
-        error?.code ??
+      const errorCode =
+        typeof error?.code === "string"
+          ? (error.code as string).replace("functions/", "")
+          : null;
+      const rawMessage =
+        (typeof error?.message === "string" && error.message) ||
         "No se pudo canjear el código ahora. Intenta de nuevo.";
-      Alert.alert("Error", message);
+      const cleanMessage =
+        rawMessage.replace(/^functions\/[a-z-]+:\s*/i, "").trim() ||
+        errorCode ||
+        "No se pudo canjear el código ahora. Intenta de nuevo.";
+      Alert.alert("No disponible", cleanMessage);
     } finally {
       setRedeeming(false);
     }
@@ -174,7 +327,7 @@ export default function Metodology() {
     }
 
     try {
-      await awardPointsEvent({ eventType: action.eventType, userId: user?.id });
+      await awardPointsEvent({ eventType: action.eventType, userId: firebaseUid });
       Alert.alert(
         "Enviado",
         "Registramos tu intento. El backend validará elegibilidad y sumará puntos si corresponde."
@@ -257,22 +410,49 @@ export default function Metodology() {
         <View style={styles.referralRow}>
           <View style={styles.referralCodeBox}>
             <Text style={styles.referralCodeLabel}>Tu código</Text>
-            <Text style={styles.referralCodeValue}>
-              {referralCode ?? "Toca \"Obtener código\""}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={styles.referralCodeValue}>
+                {referralCode ?? "Toca \"Obtener código\""}
+              </Text>
+              {referralCode ? (
+                <View style={styles.referralActiveBadge}>
+                  <Text style={styles.referralActiveText}>Activo</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.generateButton,
-              loadingCode && styles.actionCardDisabled,
-            ]}
-            onPress={handleGenerateCode}
-            disabled={loadingCode}
-          >
-            <Text style={styles.generateButtonText}>
-              {loadingCode ? "Generando..." : "Obtener código"}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.referralButtons}>
+            <TouchableOpacity
+              style={[
+                styles.generateButton,
+                (loadingCode || referralCode) && styles.actionCardDisabled,
+              ]}
+              onPress={handleGenerateCode}
+              disabled={loadingCode || !!referralCode}
+            >
+              <Text style={styles.generateButtonText}>
+                {referralCode
+                  ? `Código activo`
+                  : loadingCode
+                  ? "Generando..."
+                  : "Obtener código"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.shareButton,
+                (sharing || loadingCode) && styles.actionCardDisabled,
+              ]}
+              onPress={handleShareCode}
+              disabled={sharing || loadingCode}
+              accessibilityLabel="Compartir código de referido"
+              testID="share-referral-button"
+            >
+              <Text style={styles.shareButtonText}>
+                {sharing ? "Compartiendo..." : "Compartir"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.redeemContainer}>
           <Text style={styles.referralCodeLabel}>Canjear código</Text>
@@ -571,6 +751,18 @@ const styles = StyleSheet.create({
     color: Colors.PRIMARY,
     letterSpacing: 1,
   },
+  referralActiveBadge: {
+    marginLeft: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "rgba(34,197,94,0.14)",
+    borderRadius: 10,
+  },
+  referralActiveText: {
+    color: "#15803d",
+    fontFamily: "barlow-semibold",
+    fontSize: 12,
+  },
   generateButton: {
     alignSelf: "flex-end",
     backgroundColor: Colors.PRIMARY,
@@ -579,6 +771,23 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   generateButtonText: {
+    color: "#fff",
+    fontFamily: "barlow-semibold",
+    fontSize: 13,
+  },
+  referralButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  shareButton: {
+    backgroundColor: "#0f172a",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  shareButtonText: {
     color: "#fff",
     fontFamily: "barlow-semibold",
     fontSize: 13,

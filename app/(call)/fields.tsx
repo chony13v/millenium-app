@@ -17,11 +17,13 @@ import FieldCard from "@/components/fields/FieldCard";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { CITY_OPTIONS } from "@/constants/cities";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 
 export default function Field() {
   const { selectedCity, hasHydrated } = useCitySelection();
   const { user } = useUser();
   const { getToken } = useAuth();
+  const { firebaseUid } = useFirebaseUid();
   const [isUpdatingLocation, setIsUpdatingLocation] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -57,7 +59,7 @@ export default function Field() {
   }, [getToken]);
 
   const handleUpdateLocationBucket = async () => {
-    if (!user?.id) {
+    if (!firebaseUid) {
       Alert.alert(
         "Inicia sesión",
         "Necesitas iniciar sesión para actualizar tu ubicación."
@@ -77,8 +79,8 @@ export default function Field() {
       setIsUpdatingLocation(true);
       await ensureFirebaseSession();
       const result = await updateUserLocationBucket({
-        userId: user.id,
-        userEmail: user.primaryEmailAddress?.emailAddress,
+        userId: firebaseUid,
+        userEmail: user?.primaryEmailAddress?.emailAddress,
         cityId: selectedCity,
       });
 

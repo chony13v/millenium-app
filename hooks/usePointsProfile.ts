@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   collection,
   doc,
+  getDocFromServer,
   limit,
   onSnapshot,
   orderBy,
@@ -13,6 +14,7 @@ import {
 import { db } from "@/config/FirebaseConfig";
 import { type PointsEventType } from "@/constants/points";
 import { isSameDay } from "@/utils/date";
+import { ensurePointsProfile } from "@/services/points/pointsProfile";
 
 export type PointsProfile = {
   total: number;
@@ -43,6 +45,7 @@ type UsePointsProfileResult = {
   loading: boolean;
   error: string | null;
   availability: Record<string, "available" | "blocked">;
+  refreshFromServer: () => Promise<void>;
 };
 
 const defaultProfile: PointsProfile = {
@@ -59,7 +62,8 @@ const defaultProfile: PointsProfile = {
 };
 
 export const usePointsProfile = (
-  userId?: string | null
+  userId?: string | null,
+  email?: string | null
 ): UsePointsProfileResult => {
   const [profile, setProfile] = useState<PointsProfile>(defaultProfile);
   const [history, setHistory] = useState<PointsLedgerEntry[]>([]);
@@ -67,6 +71,41 @@ export const usePointsProfile = (
   const [error, setError] = useState<string | null>(null);
   const [hasCityReportToday, setHasCityReportToday] = useState(false);
   const [activeSurveyIds, setActiveSurveyIds] = useState<string[]>([]);
+
+  const refreshFromServer = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const profileRef = doc(db, "users", userId, "points_profile", "profile");
+      const snap = await getDocFromServer(profileRef);
+      if (snap.exists()) {
+        const data = snap.data() as Partial<PointsProfile>;
+        setProfile((prev) => ({
+          ...prev,
+          ...data,
+          total: data.total ?? prev.total,
+          level: data.level ?? prev.level,
+          xpToNext: data.xpToNext ?? prev.xpToNext,
+          streakCount: data.streakCount ?? prev.streakCount,
+          email: data.email ?? prev.email ?? null,
+          lastEventAt: data.lastEventAt ?? prev.lastEventAt,
+          lastDailyAwardAt: data.lastDailyAwardAt ?? prev.lastDailyAwardAt,
+          lastCityReportAt: data.lastCityReportAt ?? prev.lastCityReportAt,
+          lastSurveyIdVoted: data.lastSurveyIdVoted ?? prev.lastSurveyIdVoted,
+          updatedAt: data.updatedAt ?? prev.updatedAt,
+        }));
+      }
+    } catch (err: any) {
+      setError(err?.message ?? "No se pudo refrescar el perfil de puntos");
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    ensurePointsProfile(userId, email).catch((err) =>
+      console.warn("No se pudo inicializar el perfil de puntos:", err)
+    );
+  }, [userId, email]);
 
   useEffect(() => {
     if (!userId) return;
@@ -100,7 +139,10 @@ export const usePointsProfile = (
               updatedAt: data.updatedAt ?? prev.updatedAt,
             }));
           } else {
-            setProfile(defaultProfile);
+            setProfile((prev) => ({
+              ...defaultProfile,
+              email: email ?? prev.email ?? null,
+            }));
           }
         },
         (err) => setError(err.message)
@@ -133,7 +175,7 @@ export const usePointsProfile = (
       unsubProfile?.();
       unsubHistory?.();
     };
-  }, [userId]);
+  }, [userId, email]);
 
   const availability = useMemo(() => {
     const result: Record<string, "available" | "blocked"> = {};
@@ -286,5 +328,6 @@ export const usePointsProfile = (
     loading,
     error,
     availability,
+    refreshFromServer,
   };
 };

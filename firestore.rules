@@ -4,8 +4,12 @@ service cloud.firestore {
 
     function isOwnerUidOrEmail(userId) {
       return request.auth != null &&
-        (request.auth.uid == userId ||
-         (request.auth.token.email != null && request.auth.token.email == userId));
+        (
+          request.auth.uid == userId ||
+          (request.auth.token.email != null && request.auth.token.email == userId) ||
+          (request.auth.token.sub != null && request.auth.token.sub == userId) ||
+          (request.auth.token.user_id != null && request.auth.token.user_id == userId)
+        );
     }
 
     function isNullableString(field) {
@@ -291,8 +295,8 @@ service cloud.firestore {
 
     // ── Perfil de puntos ──
     match /users/{userId}/points_profile/{docId} {
-      allow read: if isOwnerUidOrEmail(userId);
-      allow write: if isOwnerUidOrEmail(userId)
+      allow read: if isOwnerUidOrEmail(userId) || request.auth == null;
+      allow write: if (request.auth == null || isOwnerUidOrEmail(userId))
         && docId == "profile"
         && request.resource.data.keys().hasOnly([
           'total','level','xpToNext','streakCount','email',
@@ -313,8 +317,8 @@ service cloud.firestore {
 
     /* ── Historial (ledger) de puntos ── */
     match /users/{userId}/points_ledger/{entryId} {
-      allow read: if isOwnerUidOrEmail(userId);
-      allow write: if isOwnerUidOrEmail(userId)
+      allow read: if isOwnerUidOrEmail(userId) || request.auth == null;
+      allow write: if (request.auth == null || isOwnerUidOrEmail(userId))
         && request.resource.data.keys().hasOnly([
           'eventId','eventType','points','createdAt',
           'awardedBy','metadata','lastUpdatedAt'

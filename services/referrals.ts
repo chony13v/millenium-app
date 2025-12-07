@@ -25,14 +25,27 @@ export const ensureReferralCode = async () => {
 export const redeemReferralCode = async (code: string) => {
   const functions = getFunctionsInstance();
   const callable = httpsCallable(functions, "redeemReferralCode");
-  const result = await callable({ code });
-  return result.data as {
-    success: boolean;
-    alreadyRedeemed?: boolean;
-    codeUsed?: string;
-    referrerUid?: string;
-    referrerPoints?: number;
-    redeemerPoints?: number;
-    message?: string;
-  };
+  try {
+    const result = await callable({ code });
+    return result.data as {
+      success: boolean;
+      alreadyRedeemed?: boolean;
+      codeUsed?: string;
+      referrerUid?: string;
+      referrerPoints?: number;
+      redeemerPoints?: number;
+      message?: string;
+    };
+  } catch (error: any) {
+    const codeId =
+      typeof error?.code === "string" ? (error.code as string) : "unknown";
+    const rawMessage =
+      (typeof error?.message === "string" && error.message) ||
+      "No se pudo canjear el código.";
+    const message =
+      rawMessage.replace(/^functions\/[a-z-]+:\s*/i, "").trim() || rawMessage;
+    const wrapped = new Error(message);
+    (wrapped as any).code = codeId.replace("functions/", "") || codeId;
+    throw wrapped;
+  }
 };

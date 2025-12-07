@@ -29,6 +29,8 @@ import {
   showExistingRegistrationAlert,
   showTutorReminderAlert,
 } from "@/services/profile/profilePersistence";
+import { useFirebaseUid } from "@/hooks/useFirebaseUid";
+import { ensurePointsProfile } from "@/services/points/pointsProfile";
 
 type RootStackParamList = {
   "(call)": undefined;
@@ -43,6 +45,7 @@ export default function Profile() {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [currentSection, setCurrentSection] = useState(1);
   const insets = useSafeAreaInsets();
+  const { firebaseUid } = useFirebaseUid();
 
   const section1 = useSection1Form();
   const section2 = useSection2Form();
@@ -146,9 +149,12 @@ export default function Profile() {
     }
 
     try {
+      const userEmail = user.primaryEmailAddress?.emailAddress ?? null;
+      const pointsProfileId =
+        firebaseUid ?? user.id ?? userEmail ?? "";
       await saveProfile(user.id, {
         fullName: section1.nombreCompleto,
-        email: user.primaryEmailAddress?.emailAddress,
+        email: userEmail ?? undefined,
         idNumber: section1.idNumber,
         birthDate: section1.birthDate,
         edad: section1.calculateAge(section1.birthDate),
@@ -168,6 +174,11 @@ export default function Profile() {
         esRiobambeno: section3.esRiobambeno,
         registrationDate: new Date().toISOString(),
       });
+      if (pointsProfileId) {
+        await ensurePointsProfile(pointsProfileId, userEmail);
+      } else {
+        console.warn("No se pudo crear el perfil de puntos: sin identificador");
+      }
       Alert.alert("¡Registro exitoso!", "Te contactaremos pronto.");
       navigation.reset({ index: 0, routes: [{ name: "(call)" }] });
     } catch (e) {

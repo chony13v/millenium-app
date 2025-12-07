@@ -14,8 +14,8 @@ const WEEKLY_EVENT_POINTS = 50;
 const EVENT_TYPE = "weekly_event_attendance";
 const REFERRAL_CODE_LENGTH = 8;
 const REFERRAL_CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
-const REFERRER_REWARD_POINTS = 100;
-const REDEEMER_REWARD_POINTS = 25;
+const REFERRER_REWARD_POINTS = 200;
+const REDEEMER_REWARD_POINTS = 100;
 const REFERRER_MONTHLY_CAP = 50;
 const REFERRAL_MAX_REDEMPTIONS_PER_CODE = 500;
 
@@ -164,9 +164,56 @@ export const redeemReferralCode = functions
 
     let response: any = null;
 
+    const logInvalid = (reason: string) =>
+      functions.logger.warn("referral_code_invalid", {
+        reason,
+        code,
+        redeemerUid,
+      });
+
     await db.runTransaction(async (tx) => {
+      const markerSnap = await tx.get(redeemerMarkerRef);
+      if (markerSnap.exists) {
+        const markerData = markerSnap.data() as {
+          code?: string;
+          redeemedAt?: admin.firestore.Timestamp;
+          referrerUid?: string;
+        };
+
+        if (markerData.code === code) {
+          functions.logger.info("[referrals] marker hit same code", {
+            redeemerUid,
+            codeIntentado: code,
+            markerPath: redeemerMarkerRef.path,
+            markerData,
+          });
+          response = {
+            success: true,
+            alreadyRedeemed: true,
+            codeUsed: markerData.code ?? code,
+            referrerUid: markerData.referrerUid,
+            redeemedAt: markerData.redeemedAt,
+            message: "✅ Código ya canjeado anteriormente",
+          };
+        return;
+      }
+
+        functions.logger.info("[referrals] marker hit other code", {
+          redeemerUid,
+          codeIntentado: code,
+          markerPath: redeemerMarkerRef.path,
+          markerData,
+        });
+        logInvalid("already_redeemed_other_code");
+        throw new functions.https.HttpsError(
+          "failed-precondition",
+          "⚠️ Ya canjeaste un código de registro previamente"
+        );
+      }
+
       const codeSnap = await tx.get(codeRef);
       if (!codeSnap.exists) {
+        logInvalid("code_not_found");
         throw new functions.https.HttpsError("not-found", "Código no existe.");
       }
 
@@ -180,6 +227,7 @@ export const redeemReferralCode = functions
 
       const referrerUid = codeData.referrerUid;
       if (!referrerUid) {
+        logInvalid("missing_referrer");
         throw new functions.https.HttpsError(
           "failed-precondition",
           "Código inválido."
@@ -187,6 +235,7 @@ export const redeemReferralCode = functions
       }
 
       if (referrerUid === redeemerUid) {
+        logInvalid("self_redeem");
         throw new functions.https.HttpsError(
           "failed-precondition",
           "No puedes usar tu propio código."
@@ -194,6 +243,7 @@ export const redeemReferralCode = functions
       }
 
       if (codeData.active === false) {
+        logInvalid("inactive");
         throw new functions.https.HttpsError(
           "failed-precondition",
           "Código inactivo."
@@ -201,6 +251,7 @@ export const redeemReferralCode = functions
       }
 
       if (codeData.expiresAt && codeData.expiresAt.toMillis() <= nowTs.toMillis()) {
+        logInvalid("expired");
         throw new functions.https.HttpsError(
           "failed-precondition",
           "Código expirado."
@@ -211,25 +262,11 @@ export const redeemReferralCode = functions
       const maxRedemptions =
         codeData.maxRedemptions ?? REFERRAL_MAX_REDEMPTIONS_PER_CODE;
       if (redeemedCount >= maxRedemptions) {
+        logInvalid("max_redemptions_reached");
         throw new functions.https.HttpsError(
           "resource-exhausted",
           "Este código alcanzó su máximo de usos."
         );
-      }
-
-      const markerSnap = await tx.get(redeemerMarkerRef);
-      if (markerSnap.exists) {
-        const markerData = markerSnap.data() as {
-          code?: string;
-          redeemedAt?: admin.firestore.Timestamp;
-        };
-        response = {
-          success: true,
-          alreadyRedeemed: true,
-          codeUsed: markerData.code ?? code,
-          redeemedAt: markerData.redeemedAt,
-        };
-        return;
       }
 
       const referrerProfileRef = db
@@ -253,6 +290,7 @@ export const redeemReferralCode = functions
       const monthCount = currentMonth === monthKey ? stats.count ?? 0 : 0;
       const monthCap = stats.maxPerMonth ?? REFERRER_MONTHLY_CAP;
       if (monthCount >= monthCap) {
+        logInvalid("referrer_monthly_cap");
         throw new functions.https.HttpsError(
           "resource-exhausted",
           "El referente alcanzó su límite mensual."
@@ -334,7 +372,7 @@ export const redeemReferralCode = functions
 
       tx.set(refLedgerRef, {
         eventId: refLedgerRef.id,
-        eventType: "referral_signup",
+        eventType: "referral_reward",
         points: REFERRER_REWARD_POINTS,
         createdAt: nowTs,
         awardedBy: "cloud_function",
@@ -402,6 +440,7 @@ export const redeemReferralCode = functions
         code,
         referrerPoints: REFERRER_REWARD_POINTS,
         redeemerPoints: REDEEMER_REWARD_POINTS,
+        message: "✅ Canje realizado",
       };
     });
 
@@ -412,10 +451,22 @@ export const redeemReferralCode = functions
       );
     }
 
+    const awardedReferrerPoints = response?.alreadyRedeemed
+      ? 0
+      : REFERRER_REWARD_POINTS;
+    const awardedRedeemerPoints = response?.alreadyRedeemed
+      ? 0
+      : REDEEMER_REWARD_POINTS;
+
     functions.logger.info("[referrals] Resultado canje", {
       redeemerUid,
       code,
       alreadyRedeemed: !!response?.alreadyRedeemed,
+      event: "referral_code_redeemed",
+      referrerUid: response?.referrerUid,
+      pointsGivenReferrer: awardedReferrerPoints,
+      pointsGivenRedeemer: awardedRedeemerPoints,
+      timestamp: admin.firestore.Timestamp.now().toMillis(),
     });
 
     return response;

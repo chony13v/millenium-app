@@ -20,18 +20,20 @@ import { fetchProfile, Profile } from "@/services/profile/profileScreenData";
 import { useProfileImage } from "@/hooks/profile/useProfileImage";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCitySelection } from "@/hooks/useCitySelection";
+import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 
 export default function ProfileScreen() {
   const { user } = useUser();
   const navigation = useNavigation();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const { firebaseUid, loadingFirebaseUid } = useFirebaseUid();
   // Align with safe areas and selected city for visuals
   const insets = useSafeAreaInsets();
   const { selectedCity } = useCitySelection();
 
   const { isImageLoading, handleChangeImage } = useProfileImage({
-    userId: user?.id,
+    userId: firebaseUid ?? user?.id,
     onProfileUpdated: (updatedProfile) => setProfile(updatedProfile),
   });
 
@@ -42,8 +44,18 @@ export default function ProfileScreen() {
         return;
       }
 
+      if (loadingFirebaseUid) {
+        return;
+      }
+
+      setIsLoading(true);
       try {
-        const fetchedProfile = await fetchProfile(user.id);
+        const uid = firebaseUid ?? user.id;
+        if (!uid) {
+          setIsLoading(false);
+          return;
+        }
+        const fetchedProfile = await fetchProfile(uid);
         setProfile(fetchedProfile);
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -53,7 +65,7 @@ export default function ProfileScreen() {
     };
 
     loadProfile();
-  }, [user]);
+  }, [user, firebaseUid, loadingFirebaseUid]);
 
   if (isLoading) {
     return (
