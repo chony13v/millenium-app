@@ -307,5 +307,23 @@ service cloud.firestore {
       // Ningún cliente escribe aquí; solo Cloud Functions con Admin SDK
       allow write: if false;
     }
+
+    /* ── Marcadores diarios de social engagement ── */
+    match /users/{userId}/social_meta/{docId} {
+      allow read: if isOwnerUidOrEmail(userId);
+      allow write: if false;
+    }
+
+    /* ── (Opcional) Log de clics en redes oficiales ── */
+    match /users/{userId}/social_clicks/{docId} {
+      allow read: if isOwnerUidOrEmail(userId);
+      allow create: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['linkId','platform','createdAt'])
+        && request.resource.data.linkId is string
+        && request.resource.data.platform in ['instagram','tiktok','youtube','facebook']
+        && request.resource.data.createdAt is timestamp;
+      allow update, delete: if false;
+    }
   }
 }

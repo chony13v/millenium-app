@@ -54,7 +54,7 @@ export const POINT_ACTIONS: PointAction[] = [
     title: "Seguir redes oficiales",
     subtitle: "Apoya a Ciudad FC en cada plataforma",
     points: 20,
-    frequency: "1 vez por plataforma",
+    frequency: "1 vez por día y plataforma",
     eventType: "social_follow",
   },
   {

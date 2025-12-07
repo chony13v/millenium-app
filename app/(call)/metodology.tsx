@@ -10,6 +10,9 @@ import {
   TextInput,
   Platform,
   Share,
+  Linking,
+  Modal,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,13 +26,26 @@ import {
   getLevelProgress,
   type PointAction,
 } from "@/constants/points";
+import {
+  SOCIAL_PLATFORM_LABELS,
+  SOCIAL_PLATFORMS,
+  type SocialPlatform,
+} from "@/constants/social";
 import { usePointsProfile } from "@/hooks/usePointsProfile";
 import { awardPointsEvent } from "@/services/points/awardPoints";
+import {
+  awardSocialEngagement,
+  logSocialClick,
+} from "@/services/points/socialEngagement";
 import {
   ensureReferralCode,
   fetchReferralCode,
   redeemReferralCode,
 } from "@/services/referrals";
+import {
+  type OfficialSocialLink,
+  useOfficialSocialLinks,
+} from "@/hooks/useOfficialSocialLinks";
 
 const PLAY_STORE_URL =
   process.env.EXPO_PUBLIC_PLAY_STORE_URL ||
@@ -54,11 +70,19 @@ export default function Metodology() {
   const { user } = useUser();
   const { firebaseUid } = useFirebaseUid();
   const scrollRef = useRef<ScrollView | null>(null);
-  const { profile, history, loading, availability, refreshFromServer } =
-    usePointsProfile(
-      firebaseUid,
-      user?.primaryEmailAddress?.emailAddress ?? null
-    );
+  const {
+    profile,
+    history,
+    loading,
+    availability,
+    socialAvailability,
+    loadingSocialAvailability,
+    refreshFromServer,
+    refreshSocialAvailability,
+  } = usePointsProfile(
+    firebaseUid,
+    user?.primaryEmailAddress?.emailAddress ?? null
+  );
   const [referralCode, setReferralCode] = React.useState<string | null>(null);
   const [loadingCode, setLoadingCode] = React.useState(false);
   const [sharing, setSharing] = React.useState(false);
@@ -66,6 +90,21 @@ export default function Metodology() {
   const [redeeming, setRedeeming] = React.useState(false);
   const [referralSectionY, setReferralSectionY] = React.useState(0);
   const [ensureTried, setEnsureTried] = React.useState(false);
+  const [socialModalVisible, setSocialModalVisible] = React.useState(false);
+  const [processingPlatform, setProcessingPlatform] =
+    React.useState<SocialPlatform | null>(null);
+  const [hasAwardToday, setHasAwardToday] =
+    React.useState<Record<SocialPlatform, "available" | "blocked">>(socialAvailability);
+  const {
+    links: officialSocialLinks,
+    loading: loadingSocialLinks,
+    error: socialLinksError,
+    refresh: refreshSocialLinks,
+  } = useOfficialSocialLinks();
+
+  React.useEffect(() => {
+    setHasAwardToday(socialAvailability);
+  }, [socialAvailability]);
 
   const greeting = user?.firstName || user?.fullName || "Jugador de Ciudad FC";
 
@@ -96,6 +135,20 @@ export default function Metodology() {
 
     loadCode();
   }, [firebaseUid]);
+
+  React.useEffect(() => {
+    if (socialLinksError) {
+      console.warn("[social] No se pudieron cargar las redes oficiales", {
+        socialLinksError,
+      });
+    }
+  }, [socialLinksError]);
+
+  React.useEffect(() => {
+    if (!socialModalVisible) return;
+    refreshSocialLinks();
+    refreshSocialAvailability();
+  }, [socialModalVisible, refreshSocialLinks, refreshSocialAvailability]);
 
   const handleGenerateCode = async () => {
     if (loadingCode) return;
@@ -159,6 +212,9 @@ export default function Metodology() {
     )}`;
     return { url, linkType };
   };
+
+  const platformLabel = (platform: SocialPlatform) =>
+    SOCIAL_PLATFORM_LABELS[platform] || platform;
 
   const handleShareCode = async () => {
     if (sharing || loadingCode) return;
@@ -311,6 +367,102 @@ export default function Metodology() {
     }
   };
 
+  const handleSocialLinkPress = async (link: OfficialSocialLink) => {
+    const label = platformLabel(link.platform);
+    if (!firebaseUid) {
+      Alert.alert(
+        "No disponible",
+        "Inicia sesión para ganar puntos por redes sociales."
+      );
+      return;
+    }
+    if (hasAwardToday[link.platform] === "blocked") {
+      Alert.alert(
+        "No disponible",
+        `Recompensa de hoy ya acreditada para ${label}.`
+      );
+      return;
+    }
+
+    setProcessingPlatform(link.platform);
+
+    let awarded = false;
+
+    try {
+      console.log("[social] calling awardSocialEngagement", {
+        linkId: link.linkId,
+        platform: link.platform,
+        url: link.link,
+        source: "Category.tsx",
+      });
+      try {
+        await logSocialClick(firebaseUid, link.linkId, link.platform);
+      } catch {
+        // best effort
+      }
+
+      const result = await awardSocialEngagement({
+        linkId: link.linkId,
+        platform: link.platform,
+      });
+
+      awarded = result?.success === true;
+      if (!awarded) {
+        throw new Error("awardSocialEngagement failed");
+      }
+
+      if (result.alreadyAwarded) {
+        Alert.alert(
+          "Ya acreditado",
+          `Ya obtuviste la recompensa de hoy para ${label}.`
+        );
+      }
+
+      try {
+        const supported = await Linking.canOpenURL(link.link);
+        if (supported) {
+          await Linking.openURL(link.link);
+        } else {
+          Alert.alert(
+            "No se pudo abrir",
+            "No pudimos abrir el enlace seleccionado en este dispositivo."
+          );
+        }
+      } catch (error) {
+        console.warn("[social] open url failed", error);
+        Alert.alert(
+          "No se pudo abrir",
+          "Verifica tu conexión o intenta nuevamente."
+        );
+      }
+
+      setHasAwardToday((prev) => ({
+        ...prev,
+        [link.platform]: "blocked",
+      }));
+
+      try {
+        await Promise.all([refreshFromServer(), refreshSocialAvailability()]);
+      } catch (refreshError) {
+        console.warn("[social] refresh after award failed", refreshError);
+      }
+    } catch (error: any) {
+      console.error("[social] award failed", error);
+      if (!awarded) {
+        setHasAwardToday((prev) => ({
+          ...prev,
+          [link.platform]: socialAvailability[link.platform] ?? "available",
+        }));
+      }
+      Alert.alert(
+        "No pudimos registrar tu visita",
+        "No pudimos registrar tu visita. Intenta nuevamente."
+      );
+    } finally {
+      setProcessingPlatform(null);
+    }
+  };
+
   const handleActionPress = async (action: PointAction) => {
     if (
       action.eventType === "city_report_created" ||
@@ -323,6 +475,26 @@ export default function Metodology() {
 
     if (action.eventType === "referral_signup") {
       scrollRef.current?.scrollTo({ y: referralSectionY, animated: true });
+      return;
+    }
+
+    if (action.eventType === "social_follow") {
+      if (!firebaseUid) {
+        Alert.alert(
+          "No disponible",
+          "Necesitas iniciar sesión para ganar puntos por redes sociales."
+        );
+        return;
+      }
+      try {
+        await Promise.all([
+          refreshSocialLinks(),
+          refreshSocialAvailability(),
+        ]);
+      } catch {
+        // best effort; modal seguirá mostrando el estado actual
+      }
+      setSocialModalVisible(true);
       return;
     }
 
@@ -341,15 +513,16 @@ export default function Metodology() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={[
-        styles.content,
-        { paddingBottom: insets.bottom + 20 },
-      ]}
-      showsVerticalScrollIndicator={false}
-      ref={scrollRef}
-    >
+    <>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 20 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        ref={scrollRef}
+      >
       <LinearGradient
         colors={["#1e3a8a", "#1e3a8a"]}
         start={[0, 0]}
@@ -491,7 +664,13 @@ export default function Metodology() {
         </Text>
 
         {POINT_ACTIONS.map((action) => {
-          const isBlocked = availability[action.eventType] === "blocked";
+          const isSocialAction = action.eventType === "social_follow";
+          const isSocialBlocked = SOCIAL_PLATFORMS.every(
+            (platform) => hasAwardToday[platform] === "blocked"
+          );
+          const isBlocked = isSocialAction
+            ? isSocialBlocked
+            : availability[action.eventType] === "blocked";
           return (
             <TouchableOpacity
               key={action.id}
@@ -499,7 +678,11 @@ export default function Metodology() {
                 styles.actionCard,
                 isBlocked && styles.actionCardDisabled,
               ]}
-              disabled={loading || isBlocked}
+              disabled={
+                loading ||
+                isBlocked ||
+                (isSocialAction && loadingSocialAvailability)
+              }
               onPress={() => handleActionPress(action)}
             >
               <View style={styles.actionHeader}>
@@ -564,6 +747,81 @@ export default function Metodology() {
         ))}
       </View>
     </ScrollView>
+
+    <Modal
+      visible={socialModalVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setSocialModalVisible(false)}
+    >
+      <TouchableWithoutFeedback onPress={() => setSocialModalVisible(false)}>
+        <View style={styles.modalOverlay} />
+      </TouchableWithoutFeedback>
+
+      <View style={styles.modalCard}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Redes oficiales</Text>
+          <Text style={styles.modalSubtitle}>
+            Abre el enlace oficial para sumar una vez por día y plataforma.
+          </Text>
+        </View>
+
+        {loadingSocialLinks || loadingSocialAvailability ? (
+          <Text style={styles.mutedText}>Cargando redes...</Text>
+        ) : officialSocialLinks.length === 0 ? (
+          <Text style={styles.mutedText}>
+            No encontramos redes oficiales activas.
+          </Text>
+        ) : (
+          officialSocialLinks.map((link) => {
+            const isBlocked = hasAwardToday[link.platform] === "blocked";
+            const isProcessing = processingPlatform === link.platform;
+            return (
+              <TouchableOpacity
+                key={link.id}
+                style={[
+                  styles.socialItem,
+                  (isBlocked || isProcessing) && styles.actionCardDisabled,
+                ]}
+                onPress={() => handleSocialLinkPress(link)}
+                disabled={isBlocked || isProcessing}
+              >
+                <View style={styles.socialTextCol}>
+                  <Text style={styles.actionTitle}>
+                    {link.title || platformLabel(link.platform)}
+                  </Text>
+                  <Text style={styles.socialSubtitle}>{platformLabel(link.platform)}</Text>
+                  <Text style={styles.socialLinkLabel} numberOfLines={1}>
+                    {link.link}
+                  </Text>
+                </View>
+                <View style={styles.socialStatusCol}>
+                  <Text
+                    style={[
+                      styles.statusBadge,
+                      isBlocked ? styles.badgeBlocked : styles.badgeAvailable,
+                    ]}
+                  >
+                    {isBlocked ? "No disponible" : "Disponible"}
+                  </Text>
+                  {isProcessing ? (
+                    <Text style={styles.processingText}>Enviando...</Text>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
+
+        <TouchableOpacity
+          style={styles.modalCloseBtn}
+          onPress={() => setSocialModalVisible(false)}
+        >
+          <Text style={styles.modalCloseText}>Cerrar</Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+    </>
   );
 }
 
@@ -902,5 +1160,87 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontFamily: "barlow-regular",
     fontSize: 13,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.35)",
+  },
+  modalCard: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#fff",
+    padding: 16,
+    paddingBottom: 20,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    gap: 12,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 8,
+  },
+  modalHeader: {
+    gap: 4,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: "barlow-semibold",
+    color: "#0f172a",
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    fontFamily: "barlow-regular",
+    color: "#475569",
+  },
+  modalCloseBtn: {
+    alignSelf: "flex-end",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#0f172a",
+  },
+  modalCloseText: {
+    color: "#fff",
+    fontFamily: "barlow-semibold",
+    fontSize: 13,
+  },
+  socialItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: "#f8fafc",
+    marginBottom: 10,
+    gap: 10,
+  },
+  socialTextCol: {
+    flex: 1,
+    gap: 4,
+  },
+  socialStatusCol: {
+    alignItems: "flex-end",
+    gap: 4,
+  },
+  socialSubtitle: {
+    fontSize: 12,
+    fontFamily: "barlow-medium",
+    color: "#0f172a",
+  },
+  socialLinkLabel: {
+    fontSize: 11,
+    fontFamily: "barlow-regular",
+    color: "#475569",
+    maxWidth: 200,
+  },
+  processingText: {
+    fontSize: 11,
+    fontFamily: "barlow-medium",
+    color: "#0ea5e9",
   },
 });

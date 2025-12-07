@@ -18,6 +18,20 @@ const REFERRER_REWARD_POINTS = 200;
 const REDEEMER_REWARD_POINTS = 100;
 const REFERRER_MONTHLY_CAP = 50;
 const REFERRAL_MAX_REDEMPTIONS_PER_CODE = 500;
+const SOCIAL_ENGAGEMENT_POINTS = 20;
+
+const SOCIAL_PLATFORMS = ["instagram", "tiktok", "youtube", "facebook"] as const;
+type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
+
+const SOCIAL_LINK_WHITELIST: Record<
+  string,
+  { platform: SocialPlatform; title: string }
+> = {
+  instagram: { platform: "instagram", title: "Instagram oficial" },
+  tiktok: { platform: "tiktok", title: "TikTok oficial" },
+  youtube: { platform: "youtube", title: "YouTube oficial" },
+  facebook: { platform: "facebook", title: "Facebook oficial" },
+};
 
 const getLevelProgress = (total: number) => {
   const levelIndex = LEVEL_THRESHOLDS.findIndex(
@@ -55,6 +69,16 @@ const haversineDistanceMeters = (from: Coords, to: Coords) => {
 
 const formatMonthKey = (date: Date) =>
   `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+
+const formatDateKeyUTC = (date: Date) =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getUTCDate()).padStart(2, "0")}`;
+
+const isSocialPlatform = (value: unknown): value is SocialPlatform =>
+  typeof value === "string" &&
+  SOCIAL_PLATFORMS.includes(value.toLowerCase() as SocialPlatform);
 
 const generateReferralCode = () => {
   let code = "";
@@ -538,6 +562,120 @@ export const ensureReferralCode = functions
     ]);
 
     return { code };
+  });
+
+// PATCH START social_follow (versión completa: auth + whitelist + 1 vez/día + puntos)
+export const awardSocialEngagement = functions
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    // 1) Requiere sesión
+    if (!context.auth) {
+      throw new functions.https.HttpsError("unauthenticated", "Requiere sesión.");
+    }
+
+    const uid = context.auth.uid;
+    const linkId = String(data?.linkId ?? "").trim().toLowerCase();
+    const platform = String(data?.platform ?? "").trim().toLowerCase();
+
+    functions.logger.info("[social] awardSocialEngagement called", { uid, linkId, platform });
+
+    // 2) Validación contra whitelist
+    const cfg = SOCIAL_LINK_WHITELIST[linkId];
+    if (!cfg) {
+      throw new functions.https.HttpsError("invalid-argument", "linkId no permitido");
+    }
+    if (cfg.platform !== platform) {
+      throw new functions.https.HttpsError("invalid-argument", "platform no coincide con linkId");
+    }
+
+    // 3) Idempotencia diaria (una vez por plataforma al día, en UTC)
+    const todayKey = formatDateKeyUTC(new Date()); // YYYY-MM-DD
+    const metaRef = db.collection("users").doc(uid).collection("social_meta").doc(todayKey);
+    const profileRef = db.collection("users").doc(uid).collection("points_profile").doc("profile");
+    const ledgerRef = db.collection("users").doc(uid).collection("points_ledger").doc();
+
+    let alreadyAwarded = false;
+    let pointsAdded = 0;
+
+    await db.runTransaction(async (tx) => {
+      // Meta de hoy: marcamos plataforma para no repetir
+      const metaSnap = await tx.get(metaRef);
+      const meta = (metaSnap.exists ? metaSnap.data() : {}) as Partial<Record<SocialPlatform, boolean>>;
+
+      if (meta[platform as SocialPlatform]) {
+        alreadyAwarded = true;
+        return; // ya premiado hoy para esta plataforma
+      }
+
+      // Perfil actual
+      const profSnap = await tx.get(profileRef);
+      const prof = (profSnap.exists ? profSnap.data() : {}) as {
+        total?: number;
+        level?: number;
+        xpToNext?: number;
+        streakCount?: number;
+        lastDailyAwardAt?: admin.firestore.Timestamp | null;
+        lastCityReportAt?: admin.firestore.Timestamp | null;
+        lastEventAt?: admin.firestore.Timestamp | null;
+        lastSurveyIdVoted?: string | null;
+      };
+
+      // 4) Sumar puntos y recalcular nivel
+      const now = admin.firestore.Timestamp.now();
+      const newTotal = (prof.total ?? 0) + SOCIAL_ENGAGEMENT_POINTS;
+      const { level, xpToNext } = getLevelProgress(newTotal);
+
+      tx.set(
+        profileRef,
+        {
+          total: newTotal,
+          level,
+          xpToNext,
+          lastEventAt: now,
+          streakCount: prof.streakCount ?? 0,
+          lastDailyAwardAt: prof.lastDailyAwardAt ?? null,
+          lastCityReportAt: prof.lastCityReportAt ?? null,
+          lastSurveyIdVoted: prof.lastSurveyIdVoted ?? null,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // 5) Registrar en ledger
+      tx.set(ledgerRef, {
+        eventId: ledgerRef.id,
+        eventType: "social_follow",
+        points: SOCIAL_ENGAGEMENT_POINTS,
+        createdAt: now,
+        awardedBy: "cloud_function",
+        metadata: { linkId, platform, day: todayKey },
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 6) Marcar plataforma del día como otorgada
+      tx.set(
+        metaRef,
+        { [platform]: true, updatedAt: admin.firestore.FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+
+      pointsAdded = SOCIAL_ENGAGEMENT_POINTS;
+    });
+
+    functions.logger.info("[social] award result", {
+      uid,
+      platform,
+      linkId,
+      alreadyAwarded,
+      pointsAdded,
+    });
+
+    return {
+      success: true,
+      alreadyAwarded,
+      awardedToday: !alreadyAwarded,
+      points: pointsAdded,
+    };
   });
 
 export const verifyWeeklyEventAttendance = functions

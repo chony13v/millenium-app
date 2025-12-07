@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   collection,
   doc,
+  getDoc,
   getDocFromServer,
   limit,
   onSnapshot,
@@ -13,6 +14,10 @@ import {
 } from "firebase/firestore";
 import { db } from "@/config/FirebaseConfig";
 import { type PointsEventType } from "@/constants/points";
+import {
+  SOCIAL_PLATFORMS,
+  type SocialPlatform,
+} from "@/constants/social";
 import { isSameDay } from "@/utils/date";
 import { ensurePointsProfile } from "@/services/points/pointsProfile";
 
@@ -45,7 +50,10 @@ type UsePointsProfileResult = {
   loading: boolean;
   error: string | null;
   availability: Record<string, "available" | "blocked">;
+  socialAvailability: Record<SocialPlatform, "available" | "blocked">;
+  loadingSocialAvailability: boolean;
   refreshFromServer: () => Promise<void>;
+  refreshSocialAvailability: () => Promise<void>;
 };
 
 const defaultProfile: PointsProfile = {
@@ -71,6 +79,16 @@ export const usePointsProfile = (
   const [error, setError] = useState<string | null>(null);
   const [hasCityReportToday, setHasCityReportToday] = useState(false);
   const [activeSurveyIds, setActiveSurveyIds] = useState<string[]>([]);
+  const [socialAvailability, setSocialAvailability] = useState<
+    Record<SocialPlatform, "available" | "blocked">
+  >(() =>
+    SOCIAL_PLATFORMS.reduce((acc, platform) => {
+      acc[platform] = "available";
+      return acc;
+    }, {} as Record<SocialPlatform, "available" | "blocked">)
+  );
+  const [loadingSocialAvailability, setLoadingSocialAvailability] =
+    useState(false);
 
   const refreshFromServer = useCallback(async () => {
     if (!userId) return;
@@ -99,6 +117,45 @@ export const usePointsProfile = (
     }
   }, [userId]);
 
+  const refreshSocialAvailability = useCallback(async () => {
+    if (!userId) return;
+    setLoadingSocialAvailability(true);
+    const dateKey = new Date().toISOString().slice(0, 10);
+
+    try {
+      const markers = await Promise.all(
+        SOCIAL_PLATFORMS.map(async (platform) => {
+          const markerRef = doc(
+            db,
+            "users",
+            userId,
+            "social_meta",
+            `daily_${dateKey}_${platform}`
+          );
+          const snap = await getDoc(markerRef);
+          return { platform, awarded: snap.exists() };
+        })
+      );
+
+      const base = SOCIAL_PLATFORMS.reduce(
+        (acc, platform) => {
+          acc[platform] = "available";
+          return acc;
+        },
+        {} as Record<SocialPlatform, "available" | "blocked">
+      );
+      markers.forEach(({ platform, awarded }) => {
+        base[platform] = awarded ? "blocked" : "available";
+      });
+
+      setSocialAvailability(base);
+    } catch (err) {
+      console.warn("[points] No se pudo leer social_meta diaria", err);
+    } finally {
+      setLoadingSocialAvailability(false);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) return;
 
@@ -106,6 +163,11 @@ export const usePointsProfile = (
       console.warn("No se pudo inicializar el perfil de puntos:", err)
     );
   }, [userId, email]);
+
+  useEffect(() => {
+    if (!userId) return;
+    refreshSocialAvailability();
+  }, [userId, refreshSocialAvailability]);
 
   useEffect(() => {
     if (!userId) return;
@@ -235,13 +297,11 @@ export const usePointsProfile = (
         ? "blocked"
         : "available";
 
-    // social_follow once per platform
-    result.social_follow =
-      Object.keys(eventsByType).some((key) =>
-        key.startsWith("social_follow")
-      ) || (eventsByType["social_follow"] || []).length > 0
-        ? "blocked"
-        : "available";
+    // social_follow: disponible si al menos una plataforma no está premiada hoy
+    const socialAnyAvailable = SOCIAL_PLATFORMS.some(
+      (platform) => socialAvailability[platform] !== "blocked"
+    );
+    result.social_follow = socialAnyAvailable ? "available" : "blocked";
 
     // referral_signup always available (server valida)
     result.referral_signup = "available";
@@ -263,6 +323,7 @@ export const usePointsProfile = (
     profile.lastCityReportAt,
     activeSurveyIds,
     profile.lastSurveyIdVoted,
+    socialAvailability,
   ]);
 
   useEffect(() => {
@@ -328,6 +389,9 @@ export const usePointsProfile = (
     loading,
     error,
     availability,
+    socialAvailability,
+    loadingSocialAvailability,
     refreshFromServer,
+    refreshSocialAvailability,
   };
 };
