@@ -160,7 +160,7 @@ export default function News() {
         if (!result.alreadyAwarded) {
           Alert.alert(
             "¡Puntos ganados!",
-            `Ganaste ${result.points ?? 10} puntos por leer esta noticia.`
+            `Ganaste ${result.points ?? 5} puntos por leer esta noticia.`
           );
         }
       } else {

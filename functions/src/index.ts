@@ -19,7 +19,7 @@ const REDEEMER_REWARD_POINTS = 100;
 const REFERRER_MONTHLY_CAP = 50;
 const REFERRAL_MAX_REDEMPTIONS_PER_CODE = 500;
 const SOCIAL_ENGAGEMENT_POINTS = 20;
-const NEWS_CLICK_POINTS = 10;
+const NEWS_CLICK_POINTS = 5;
 
 const SOCIAL_PLATFORMS = ["instagram", "tiktok", "youtube", "facebook"] as const;
 type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
@@ -735,9 +735,11 @@ export const awardNewsClick = functions
       .doc(uid)
       .collection("points_ledger")
       .doc(`news_click_${todayKey}`);
+    const clickLogRef = metaRef.collection("clicks").doc();
 
     const now = admin.firestore.Timestamp.now();
     let alreadyAwarded = false;
+    let awardedNow = false;
 
     await db.runTransaction(async (tx) => {
       const [metaSnap, profileSnap] = await Promise.all([
@@ -749,6 +751,7 @@ export const awardNewsClick = functions
         alreadyAwarded = true;
         return;
       }
+      awardedNow = true;
 
       const profileData = (profileSnap.exists ? profileSnap.data() : {}) as {
         total?: number;
@@ -795,6 +798,14 @@ export const awardNewsClick = functions
         },
         { merge: true }
       );
+    });
+
+    // Registrar clic siempre, indicando si otorgó puntos
+    await clickLogRef.set({
+      newsId,
+      newsTitle: title,
+      clickedAt: admin.firestore.FieldValue.serverTimestamp(),
+      awarded: awardedNow && !alreadyAwarded,
     });
 
     if (alreadyAwarded) {
