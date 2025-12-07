@@ -24,7 +24,7 @@ export default function AboutModal({ visible, onClose }: Props) {
             {"\n"}• Estadísticas en tiempo real
             {"\n"}• Notificaciones personalizadas
             {"\n\n"}Desarrollado por Ciudad FC
-            {"\n"}© 2025 Ciudad FC. Todos los derechos reservados.
+            {"\n"}© 2026 Ciudad FC. Todos los derechos reservados.
             {"\n\n"}Contáctanos:
             {"\n"}ciudadfc.com
             {"\n"}www.ciudadfc.com

@@ -124,7 +124,7 @@ export default function AddEventModal({
     if (!isoDate) {
       Alert.alert(
         "Fecha inválida",
-        "Usa el formato DD/MM/AAAA (p. ej. 01/04/2025)."
+        "Usa el formato DD/MM/AAAA (p. ej. 01/04/2026)."
       );
       return;
     }

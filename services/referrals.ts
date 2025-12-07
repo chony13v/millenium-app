@@ -9,7 +9,10 @@ export const fetchReferralCode = async (userId?: string | null) => {
   const profileRef = doc(db, "users", userId, "public_profile", "profile");
   const snap = await getDoc(profileRef);
   if (!snap.exists()) return null;
-  const data = snap.data() as { referralCode?: string | null; referralCodeActive?: boolean };
+  const data = snap.data() as {
+    referralCode?: string | null;
+    referralCodeActive?: boolean;
+  };
   if (data.referralCodeActive === false) return null;
   return data.referralCode ?? null;
 };

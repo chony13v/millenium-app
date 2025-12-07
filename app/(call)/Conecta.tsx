@@ -18,7 +18,7 @@ import { app } from "@/config/FirebaseConfig";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { useReportForm } from "@/hooks/conecta/useReportForm";
 import { useSurveys } from "@/hooks/conecta/useSurveys";
-import { useWeeklyEvents } from "@/hooks/events/useWeeklyEvents";
+import { useWeeklyEvents } from "@/hooks/events";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 
 export default function Conecta() {
@@ -40,7 +40,7 @@ export default function Conecta() {
     hasHydrated,
     selectedCity,
     userEmail: user?.primaryEmailAddress?.emailAddress ?? null,
-    userId: firebaseUid,
+    userId: firebaseUid ?? undefined,
   });
 
   const {
@@ -58,7 +58,11 @@ export default function Conecta() {
     setLocationText,
     setProblemType,
     submittingReport,
-  } = useReportForm({ selectedCity, storage, userId: firebaseUid });
+  } = useReportForm({
+    selectedCity,
+    storage,
+    userId: firebaseUid ?? undefined,
+  });
 
   const {
     attendance,
@@ -71,7 +75,7 @@ export default function Conecta() {
     hasHydrated,
     selectedCity,
     storage,
-    userId: firebaseUid,
+    userId: firebaseUid ?? undefined,
   });
 
   const handleCancelReport = () => {

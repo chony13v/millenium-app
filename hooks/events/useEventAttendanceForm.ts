@@ -3,7 +3,7 @@ import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
-import { processReportPhoto } from "@/services/report/processReportPhoto";
+import { useEventPhoto } from "./useEventPhoto";
 import type { AttendanceCoords } from "@/services/events/types";
 
 type UseEventAttendanceFormParams = {
@@ -16,8 +16,9 @@ export const useEventAttendanceForm = ({
   const [coords, setCoords] = useState<AttendanceCoords | null>(
     initialCoords ?? null
   );
-  const [photoUri, setPhotoUri] = useState<string | null>(null);
+
   const [locationLoading, setLocationLoading] = useState(false);
+  const { photoUri, pickPhoto, resetPhoto, setPhotoUri } = useEventPhoto();
 
   useEffect(() => {
     setCoords(initialCoords ?? null);
@@ -62,64 +63,10 @@ export const useEventAttendanceForm = ({
     }
   }, []);
 
-  const pickFromLibrary = useCallback(async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso requerido",
-        "Necesitamos acceso a tus fotos para adjuntar una imagen."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      const processed = await processReportPhoto(result.assets[0].uri);
-      if (processed) {
-        setPhotoUri(processed);
-      }
-    }
-  }, []);
-
-  const takePhoto = useCallback(async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso de cámara",
-        "Autoriza la cámara para tomar una foto."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      const processed = await processReportPhoto(result.assets[0].uri);
-      if (processed) {
-        setPhotoUri(processed);
-      }
-    }
-  }, []);
-
-  const pickPhoto = useCallback(() => {
-    Alert.alert("Adjuntar foto", "Elige cómo agregar la imagen", [
-      { text: "Cámara", onPress: () => void takePhoto() },
-      { text: "Galería", onPress: () => void pickFromLibrary() },
-      { text: "Cancelar", style: "cancel" },
-    ]);
-  }, [pickFromLibrary, takePhoto]);
-
   const resetProof = useCallback(() => {
     setCoords(initialCoords ?? null);
-    setPhotoUri(null);
-  }, [initialCoords]);
+    resetPhoto();
+  }, [initialCoords, resetPhoto]);
 
   return {
     coords,
