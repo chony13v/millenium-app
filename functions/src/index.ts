@@ -19,6 +19,7 @@ const REDEEMER_REWARD_POINTS = 100;
 const REFERRER_MONTHLY_CAP = 50;
 const REFERRAL_MAX_REDEMPTIONS_PER_CODE = 500;
 const SOCIAL_ENGAGEMENT_POINTS = 20;
+const NEWS_CLICK_POINTS = 10;
 
 const SOCIAL_PLATFORMS = ["instagram", "tiktok", "youtube", "facebook"] as const;
 type SocialPlatform = (typeof SOCIAL_PLATFORMS)[number];
@@ -675,6 +676,157 @@ export const awardSocialEngagement = functions
       alreadyAwarded,
       awardedToday: !alreadyAwarded,
       points: pointsAdded,
+    };
+  });
+
+export const awardNewsClick = functions
+  .region("us-central1")
+  .https.onCall(async (data, context) => {
+    functions.logger.info("[news] award request", {
+      uid: context.auth?.uid,
+      newsId: data?.newsId,
+    });
+
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Requiere sesión."
+      );
+    }
+
+    const rawNewsId = data?.newsId;
+    if (typeof rawNewsId !== "string" || !rawNewsId.trim()) {
+      throw new functions.https.HttpsError(
+        "invalid-argument",
+        "newsId requerido"
+      );
+    }
+    const newsId = rawNewsId.trim();
+
+    const newsRef = db.collection("News").doc(newsId);
+    const newsSnap = await newsRef.get();
+    if (!newsSnap.exists) {
+      throw new functions.https.HttpsError(
+        "not-found",
+        "Noticia no encontrada."
+      );
+    }
+
+    const newsData = newsSnap.data() ?? {};
+    const title =
+      typeof newsData.title === "string" && newsData.title
+        ? newsData.title
+        : null;
+
+    const uid = context.auth.uid;
+    const todayKey = formatDateKeyUTC(new Date()); // YYYY-MM-DD
+    const metaRef = db
+      .collection("users")
+      .doc(uid)
+      .collection("news_meta")
+      .doc(todayKey);
+    const profileRef = db
+      .collection("users")
+      .doc(uid)
+      .collection("points_profile")
+      .doc("profile");
+    const ledgerRef = db
+      .collection("users")
+      .doc(uid)
+      .collection("points_ledger")
+      .doc(`news_click_${todayKey}`);
+
+    const now = admin.firestore.Timestamp.now();
+    let alreadyAwarded = false;
+
+    await db.runTransaction(async (tx) => {
+      const [metaSnap, profileSnap] = await Promise.all([
+        tx.get(metaRef),
+        tx.get(profileRef),
+      ]);
+
+      if (metaSnap.exists && metaSnap.data()?.clicked === true) {
+        alreadyAwarded = true;
+        return;
+      }
+
+      const profileData = (profileSnap.exists ? profileSnap.data() : {}) as {
+        total?: number;
+        level?: number;
+        xpToNext?: number;
+        streakCount?: number;
+      };
+
+      const newTotal = (profileData.total ?? 0) + NEWS_CLICK_POINTS;
+      const { level, xpToNext } = getLevelProgress(newTotal);
+
+      tx.set(
+        profileRef,
+        {
+          total: newTotal,
+          level,
+          xpToNext,
+          streakCount: profileData.streakCount ?? 0,
+          lastEventAt: now,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      tx.set(ledgerRef, {
+        eventId: `news_click_${todayKey}`,
+        eventType: "news_click",
+        points: NEWS_CLICK_POINTS,
+        createdAt: now,
+        awardedBy: "cloud_function",
+        metadata: { newsId, newsTitle: title, day: todayKey },
+        lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      tx.set(
+        metaRef,
+        {
+          clicked: true,
+          newsId,
+          newsTitle: title,
+          day: todayKey,
+          createdAt: now,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    if (alreadyAwarded) {
+      functions.logger.info("[news] already awarded today", {
+        uid,
+        newsId,
+        title,
+        day: todayKey,
+      });
+      return {
+        success: true,
+        alreadyAwarded: true,
+        points: 0,
+        newsId,
+        title,
+      };
+    }
+
+    functions.logger.info("[news] awarded news click", {
+      uid,
+      newsId,
+      title,
+      points: NEWS_CLICK_POINTS,
+      day: todayKey,
+    });
+
+    return {
+      success: true,
+      alreadyAwarded: false,
+      points: NEWS_CLICK_POINTS,
+      newsId,
+      title,
     };
   });
 

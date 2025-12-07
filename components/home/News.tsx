@@ -8,12 +8,14 @@ import {
   ActivityIndicator,
   Linking,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import { db } from "@/config/FirebaseConfig";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import LoadingBall from "@/components/LoadingBall";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import type { CityId } from "@/constants/cities";
+import { awardNewsClick } from "@/services/news/awardNewsClick";
 
 interface NewsItem {
   id: string;
@@ -26,12 +28,22 @@ interface NewsItem {
   cityId?: CityId;
 }
 
-const NewsCard = React.memo(({ item }: { item: NewsItem }) => {
+const NewsCard = React.memo(
+  ({
+    item,
+    onPress,
+    disabled,
+  }: {
+    item: NewsItem;
+    onPress: (item: NewsItem) => void;
+    disabled: boolean;
+  }) => {
   const [imageLoading, setImageLoading] = useState(true);
 
   return (
     <TouchableOpacity
-      onPress={() => (item.url ? Linking.openURL(item.url) : null)}
+      onPress={() => onPress(item)}
+      disabled={disabled}
       activeOpacity={0.7}
     >
       <View style={styles.card}>
@@ -66,11 +78,13 @@ const NewsCard = React.memo(({ item }: { item: NewsItem }) => {
       </View>
     </TouchableOpacity>
   );
-});
+}
+);
 
 export default function News() {
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const { selectedCity, hasHydrated } = useCitySelection();
 
   useEffect(() => {
@@ -135,6 +149,54 @@ export default function News() {
     };
   }, [selectedCity, hasHydrated]);
 
+  const handlePressNews = async (item: NewsItem) => {
+    if (!item.url) return;
+
+    setProcessingId(item.id);
+    try {
+      console.log("[news] calling awardNewsClick", { newsId: item.id });
+      const result = await awardNewsClick(item.id);
+      if (result?.success) {
+        if (!result.alreadyAwarded) {
+          Alert.alert(
+            "¡Puntos ganados!",
+            `Ganaste ${result.points ?? 10} puntos por leer esta noticia.`
+          );
+        }
+      } else {
+        Alert.alert(
+          "No pudimos registrar tu visita",
+          "Intenta nuevamente."
+        );
+      }
+    } catch (error) {
+      console.error("[news] award failed", error);
+      Alert.alert(
+        "No pudimos registrar tu visita",
+        "Intenta nuevamente."
+      );
+    } finally {
+      setProcessingId(null);
+      try {
+        const supported = await Linking.canOpenURL(item.url);
+        if (supported) {
+          await Linking.openURL(item.url);
+        } else {
+          Alert.alert(
+            "No se pudo abrir",
+            "No pudimos abrir la noticia en este dispositivo."
+          );
+        }
+      } catch (openError) {
+        console.warn("[news] open url failed", openError);
+        Alert.alert(
+          "No se pudo abrir",
+          "Verifica tu conexión o intenta nuevamente."
+        );
+      }
+    }
+  };
+
   if (!hasHydrated) {
     return <LoadingBall text="Cargando ciudades..." />;
   }
@@ -173,7 +235,13 @@ export default function News() {
         data={newsItems}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
-        renderItem={({ item }) => <NewsCard item={item} />}
+        renderItem={({ item }) => (
+          <NewsCard
+            item={item}
+            onPress={handlePressNews}
+            disabled={processingId === item.id}
+          />
+        )}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         scrollEnabled={false}
         showsVerticalScrollIndicator={false}
