@@ -274,9 +274,8 @@ service cloud.firestore {
 
     /* ── Códigos de referidos ── */
     match /referralCodes/{code} {
-      allow read: if resource.data.keys().hasOnly([
-        'referrerUid','active','createdAt','redeemedCount','maxRedemptions','expiresAt','lastRedeemedAt'
-      ]);
+      // No se permite lectura ni escritura desde el cliente
+      allow read: if false;
       allow write: if false;
     }
 
@@ -295,41 +294,18 @@ service cloud.firestore {
 
     // ── Perfil de puntos ──
     match /users/{userId}/points_profile/{docId} {
-      allow read: if isOwnerUidOrEmail(userId) || request.auth == null;
-      allow write: if (request.auth == null || isOwnerUidOrEmail(userId))
-        && docId == "profile"
-        && request.resource.data.keys().hasOnly([
-          'total','level','xpToNext','streakCount','email',
-          'lastDailyAwardAt','lastCityReportAt','lastEventAt',
-          'updatedAt','lastSurveyIdVoted'
-        ])
-        && request.resource.data.total is number
-        && request.resource.data.level is number
-        && request.resource.data.xpToNext is number
-        && request.resource.data.streakCount is number
-        && (request.resource.data.email is string || request.resource.data.email == null || !('email' in request.resource.data))
-        && (request.resource.data.lastDailyAwardAt is timestamp || request.resource.data.lastDailyAwardAt == null)
-        && (request.resource.data.lastCityReportAt is timestamp || request.resource.data.lastCityReportAt == null || !('lastCityReportAt' in request.resource.data))
-        && (request.resource.data.lastEventAt is timestamp || request.resource.data.lastEventAt == null)
-        && (request.resource.data.lastSurveyIdVoted is string || request.resource.data.lastSurveyIdVoted == null || !('lastSurveyIdVoted' in request.resource.data))
-        && (request.resource.data.updatedAt is timestamp || !('updatedAt' in request.resource.data));
+      // Solo el dueño puede leer su perfil de puntos
+      allow read: if isOwnerUidOrEmail(userId);
+      // Ningún cliente escribe aquí; solo Cloud Functions con Admin SDK
+      allow write: if false;
     }
 
     /* ── Historial (ledger) de puntos ── */
     match /users/{userId}/points_ledger/{entryId} {
-      allow read: if isOwnerUidOrEmail(userId) || request.auth == null;
-      allow write: if (request.auth == null || isOwnerUidOrEmail(userId))
-        && request.resource.data.keys().hasOnly([
-          'eventId','eventType','points','createdAt',
-          'awardedBy','metadata','lastUpdatedAt'
-        ])
-        && request.resource.data.eventId is string
-        && request.resource.data.eventType is string
-        && request.resource.data.points is number
-        && request.resource.data.createdAt is timestamp
-        && request.resource.data.awardedBy is string
-        && (request.resource.data.metadata is map || request.resource.data.metadata == null)
-        && request.resource.data.lastUpdatedAt is timestamp;
+      // Solo el dueño puede leer su historial
+      allow read: if isOwnerUidOrEmail(userId);
+      // Ningún cliente escribe aquí; solo Cloud Functions con Admin SDK
+      allow write: if false;
     }
   }
 }

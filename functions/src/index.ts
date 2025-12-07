@@ -48,10 +48,7 @@ const haversineDistanceMeters = (from: Coords, to: Coords) => {
 
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.sin(dLon / 2) *
-      Math.sin(dLon / 2) *
-      Math.cos(lat1) *
-      Math.cos(lat2);
+    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -128,7 +125,10 @@ export const redeemReferralCode = functions
   .region("us-central1")
   .https.onCall(async (data, context) => {
     if (!context.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "Requiere sesión.");
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Requiere sesión."
+      );
     }
 
     const rawCode = data?.code;
@@ -195,8 +195,8 @@ export const redeemReferralCode = functions
             redeemedAt: markerData.redeemedAt,
             message: "✅ Código ya canjeado anteriormente",
           };
-        return;
-      }
+          return;
+        }
 
         functions.logger.info("[referrals] marker hit other code", {
           redeemerUid,
@@ -250,7 +250,10 @@ export const redeemReferralCode = functions
         );
       }
 
-      if (codeData.expiresAt && codeData.expiresAt.toMillis() <= nowTs.toMillis()) {
+      if (
+        codeData.expiresAt &&
+        codeData.expiresAt.toMillis() <= nowTs.toMillis()
+      ) {
         logInvalid("expired");
         throw new functions.https.HttpsError(
           "failed-precondition",
@@ -274,9 +277,7 @@ export const redeemReferralCode = functions
         .doc(referrerUid)
         .collection("points_profile")
         .doc("profile");
-      const referrerStatsRef = db
-        .collection("referral_stats")
-        .doc(referrerUid);
+      const referrerStatsRef = db.collection("referral_stats").doc(referrerUid);
       const referrerProfileSnap = await tx.get(referrerProfileRef);
       const redeemerProfileSnap = await tx.get(redeemerProfileRef);
       const statsSnap = await tx.get(referrerStatsRef);
@@ -297,9 +298,9 @@ export const redeemReferralCode = functions
         );
       }
 
-      const refProfile = (referrerProfileSnap.exists
-        ? referrerProfileSnap.data()
-        : {}) as {
+      const refProfile = (
+        referrerProfileSnap.exists ? referrerProfileSnap.data() : {}
+      ) as {
         total?: number;
         xpToNext?: number;
         level?: number;
@@ -308,9 +309,9 @@ export const redeemReferralCode = functions
         lastCityReportAt?: admin.firestore.Timestamp | null;
         lastSurveyIdVoted?: string | null;
       };
-      const redeemerProfile = (redeemerProfileSnap.exists
-        ? redeemerProfileSnap.data()
-        : {}) as {
+      const redeemerProfile = (
+        redeemerProfileSnap.exists ? redeemerProfileSnap.data() : {}
+      ) as {
         total?: number;
         xpToNext?: number;
         level?: number;
@@ -476,7 +477,10 @@ export const ensureReferralCode = functions
   .region("us-central1")
   .https.onCall(async (_data, context) => {
     if (!context.auth) {
-      throw new functions.https.HttpsError("unauthenticated", "Requiere sesión.");
+      throw new functions.https.HttpsError(
+        "unauthenticated",
+        "Requiere sesión."
+      );
     }
 
     const uid = context.auth.uid;
@@ -569,7 +573,9 @@ export const verifyWeeklyEventAttendance = functions
       );
     }
 
-    const attendanceRef = db.collection("weeklyEventAttendance").doc(attendanceId);
+    const attendanceRef = db
+      .collection("weeklyEventAttendance")
+      .doc(attendanceId);
     const eventRef = db.collection("weeklyEvents").doc(eventId);
     const profileRef = db
       .collection("users")
