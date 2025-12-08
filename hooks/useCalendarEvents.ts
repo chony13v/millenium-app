@@ -57,7 +57,8 @@ const parseDateTime = (dateTime: string): string | null => {
 
 export function useCalendarEvents(
   selectedCity: CityId | null | undefined,
-  hasHydrated: boolean
+  hasHydrated: boolean,
+  firebaseReady: boolean
 ) {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -68,15 +69,12 @@ export function useCalendarEvents(
   >({});
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminUser, setIsAdminUser] = useState(false);
-  const [firebaseReady, setFirebaseReady] = useState(false);
 
   useEffect(() => {
     if (!user?.primaryEmailAddress?.emailAddress) return;
 
     linkClerkSessionToFirebase(getToken)
       .then(() => {
-        setFirebaseReady(true);
-
         const email = user.primaryEmailAddress?.emailAddress;
         if (email && isAdmin(email)) setIsAdminUser(true);
       })
@@ -87,7 +85,7 @@ export function useCalendarEvents(
 
   const loadCityEvents = useCallback(
     async (cityId: CityId) => {
-      if (!user) {
+      if (!user || !firebaseReady) {
         return;
       }
 
@@ -149,18 +147,17 @@ export function useCalendarEvents(
         setIsLoading(false);
       }
     },
-    [user]
+    [firebaseReady, user]
   );
 
   useEffect(() => {
-    if (!firebaseReady || !hasHydrated) {
-      return;
-    }
-
-    if (!selectedCity) {
-      setMarkedDates({});
-      setEventDetails({});
-      setIsLoading(false);
+    if (!firebaseReady || !hasHydrated || !selectedCity) {
+      if (!firebaseReady || !hasHydrated) return;
+      if (!selectedCity) {
+        setMarkedDates({});
+        setEventDetails({});
+        setIsLoading(false);
+      }
       return;
     }
 

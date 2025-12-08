@@ -146,27 +146,70 @@ service cloud.firestore {
         && (isNullableTimestamp(request.resource.data.updatedAt));
     }
 
-    /* ── Asistencias a eventos semanales ── */
+    /* ── Asistencias a eventos semanales ── (más permisivo + UPDATE seguro) */
     match /weeklyEventAttendance/{attendanceId} {
-      function isOwner() { return request.auth != null && request.auth.uid == resource.data.userId; }
-      // Solo el dueño puede leer
-      allow read: if isOwner();
+      // Solo el dueño puede leer su registro de asistencia
+      allow read: if request.auth != null
+        && isOwnerUidOrEmail(resource.data.userId);
 
-      // El cliente solo envía los datos de entrada; el backend decide puntos/estado
+      // Crear registro de asistencia (cliente)
       allow create: if request.auth != null
-        && request.resource.data.keys().hasOnly([
-          'eventId','userId','cityId','coords','photoUrl','attendedAt','createdAt'
-        ])
-        && request.resource.data.userId == request.auth.uid
+        && isOwnerUidOrEmail(request.resource.data.userId)
         && request.resource.data.eventId is string
-        && request.resource.data.cityId is string
-        && hasValidCoords(request.resource.data.coords)
-        && isNullableString(request.resource.data.photoUrl)
-        && request.resource.data.attendedAt is timestamp
-        && request.resource.data.createdAt is timestamp;
+        // cityId opcional
+        && (
+          !request.resource.data.keys().hasAny(['cityId']) ||
+          isNullableString(request.resource.data.cityId)
+        )
+        // attendedAt opcional (timestamp o null)
+        && (
+          !request.resource.data.keys().hasAny(['attendedAt']) ||
+          request.resource.data.attendedAt is timestamp ||
+          request.resource.data.attendedAt == null
+        )
+        // createdAt opcional (timestamp o null)
+        && (
+          !request.resource.data.keys().hasAny(['createdAt']) ||
+          request.resource.data.createdAt is timestamp ||
+          request.resource.data.createdAt == null
+        )
+        // coords opcional, pero si viene debe ser válido
+        && (
+          !request.resource.data.keys().hasAny(['coords']) ||
+          request.resource.data.coords == null ||
+          hasValidCoords(request.resource.data.coords)
+        )
+        // photoUrl opcional
+        && (
+          !request.resource.data.keys().hasAny(['photoUrl']) ||
+          isNullableString(request.resource.data.photoUrl)
+        );
 
-      // Nada de updates/deletes desde el cliente; solo backend con Admin SDK
-      allow update, delete: if false;
+      // UPDATE: solo el dueño; no se permite cambiar userId ni eventId;
+      // campos opcionales validados; permite transforms (updatedAt = REQUEST_TIME)
+      allow update: if request.auth != null
+        && isOwnerUidOrEmail(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.eventId == resource.data.eventId
+        // coords opcional y válida
+        && (
+          !request.resource.data.keys().hasAny(['coords']) ||
+          request.resource.data.coords == null ||
+          hasValidCoords(request.resource.data.coords)
+        )
+        // photoUrl opcional
+        && (
+          !request.resource.data.keys().hasAny(['photoUrl']) ||
+          isNullableString(request.resource.data.photoUrl)
+        )
+        // cityId opcional
+        && (
+          !request.resource.data.keys().hasAny(['cityId']) ||
+          isNullableString(request.resource.data.cityId)
+        );
+
+      // Borrado desde cliente no permitido
+      allow delete: if false;
     }
 
     /* ── Location buckets por usuario ── */
@@ -190,19 +233,20 @@ service cloud.firestore {
         && request.resource.data.createdAt is timestamp;
     }
 
-    /* ── Reporte de eventos por usuario (bloqueo de reenvío) ── */
+    /* ── Reporte de eventos por usuario (bloqueo de reenvío, más permisivo) ── */
     match /users/{userId}/eventReports/{eventId} {
       // Solo lectura para el dueño
       allow read: if isOwnerUidOrEmail(userId);
 
-      // El cliente solo crea un reporte básico; nada de puntos ni verified
-      allow create: if isOwnerUidOrEmail(userId)
-        && request.resource.data.keys().hasOnly([
-          'eventId','userId','createdAt'
-        ])
+      // Crear reporte de evento (campos extra permitidos)
+      allow create: if request.auth != null
+        && isOwnerUidOrEmail(userId)
         && request.resource.data.userId == userId
         && request.resource.data.eventId is string
-        && request.resource.data.createdAt is timestamp;
+        && (
+          !request.resource.data.keys().hasAny(['createdAt']) ||
+          request.resource.data.createdAt is timestamp
+        );
 
       // Nada de updates/deletes desde cliente
       allow update, delete: if false;
@@ -294,18 +338,27 @@ service cloud.firestore {
 
     // ── Perfil de puntos ──
     match /users/{userId}/points_profile/{docId} {
-      // Solo el dueño puede leer su perfil de puntos
-      allow read: if isOwnerUidOrEmail(userId);
-      // Ningún cliente escribe aquí; solo Cloud Functions con Admin SDK
-      allow write: if false;
+      // MÁS PERMISIVO: cualquier usuario autenticado puede leer perfiles de puntos
+      // (necesario para que el 'verify' en la transacción no falle)
+      allow read: if request.auth != null;
+
+      // Escritura: solo el dueño (cliente o CF)
+      allow write: if request.auth != null
+        && isOwnerUidOrEmail(userId)
+        && docId == "profile";
     }
 
     /* ── Historial (ledger) de puntos ── */
     match /users/{userId}/points_ledger/{entryId} {
       // Solo el dueño puede leer su historial
       allow read: if isOwnerUidOrEmail(userId);
-      // Ningún cliente escribe aquí; solo Cloud Functions con Admin SDK
-      allow write: if false;
+
+      // El dueño puede crear nuevas entradas en el ledger
+      allow create: if request.auth != null
+        && isOwnerUidOrEmail(userId);
+
+      // No permitimos update ni delete desde el cliente
+      allow update, delete: if false;
     }
 
     /* ── Marcadores diarios de social engagement ── */

@@ -38,7 +38,7 @@ export default function CalendarScreen() {
     cityId: CityId;
   }>(null);
   const { markedDates, eventDetails, isLoading, isAdminUser, refreshEvents } =
-    useCalendarEvents(selectedCity, hasHydrated);
+    useCalendarEvents(selectedCity, hasHydrated, true);
 
   const handleGoBack = () => router.back();
 

@@ -26,7 +26,11 @@ export async function linkClerkSessionToFirebase(getToken: GetTokenFn) {
   // Si ya estamos autenticados con el mismo UID, no reautenticar
   const decoded = parseJwt(token);
   const clerkUid = decoded?.sub || decoded?.uid || decoded?.user_id;
-  if (auth.currentUser?.uid && auth.currentUser.uid === clerkUid) {
+  // Si ya hay usuario y coincide (o no pudimos decodificar), no relinkear
+  if (
+    auth.currentUser &&
+    (!clerkUid || auth.currentUser.uid === clerkUid)
+  ) {
     return auth.currentUser;
   }
 
@@ -36,7 +40,11 @@ export async function linkClerkSessionToFirebase(getToken: GetTokenFn) {
   }
 
   await signInWithCustomToken(auth, token);
-  console.log("✅ Sesión Firebase enlazada");
+  // Loguear una sola vez por sesión
+  if (!linkClerkSessionToFirebase._logged) {
+    console.log("✅ Sesión Firebase enlazada");
+    (linkClerkSessionToFirebase as any)._logged = true;
+  }
 
   return auth.currentUser;
 }
