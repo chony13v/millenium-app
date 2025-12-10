@@ -122,7 +122,11 @@ service cloud.firestore {
         && request.resource.data.problemType is string
         && request.resource.data.description is string
         && request.resource.data.locationText is string
-        && hasValidCoords(request.resource.data.coords)
+        && (
+          !request.resource.data.keys().hasAny(['coords']) ||
+          request.resource.data.coords == null ||
+          hasValidCoords(request.resource.data.coords)
+        )
         && isNullableString(request.resource.data.photoUrl)
         && isNullableString(request.resource.data.cityId)
         && request.resource.data.status == "pendiente"

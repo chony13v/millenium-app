@@ -471,12 +471,12 @@ export const useMetodologyLogic = () => {
       await awardActionEvent(action, firebaseUid);
       Alert.alert(
         "Enviado",
-        "Registramos tu intento. El backend validará elegibilidad y sumará puntos si corresponde."
+        "Registramos tu intento. Se validará elegibilidad y sumará puntos si corresponde."
       );
     } catch (error) {
       Alert.alert(
         "No disponible",
-        "Aún no conectamos esta acción al backend de puntos."
+        "Aún no conectamos esta acción a puntos."
       );
     }
   };

@@ -53,7 +53,8 @@ export const useEventAttendanceForm = ({
         longitude: position.coords.longitude,
       });
     } catch (error) {
-      console.error("Error obteniendo coordenadas", error);
+      // No romper la UI cuando el GPS falla; mostramos alerta y registramos advertencia.
+      console.warn("Error obteniendo coordenadas", error);
       Alert.alert(
         "Ubicación no disponible",
         "No pudimos obtener tu ubicación. Intenta de nuevo."

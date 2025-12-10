@@ -127,7 +127,8 @@ export const useReportForm = ({
         });
       }
     } catch (error) {
-      console.error("Error obteniendo coordenadas", error);
+      // Evita red screen cuando falla la ubicación; solo avisamos al usuario.
+      console.warn("Error obteniendo coordenadas", error);
       Alert.alert(
         "Ubicación no disponible",
         "No pudimos obtener tu ubicación. Intenta de nuevo."

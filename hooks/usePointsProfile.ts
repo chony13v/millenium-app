@@ -4,10 +4,10 @@ import {
   doc,
   getDoc,
   getDocFromServer,
-  limit,
   onSnapshot,
   orderBy,
   query,
+  limit,
   Timestamp,
   type Unsubscribe,
   where,
@@ -237,8 +237,7 @@ export const usePointsProfile = (
 
       const historyRef = query(
         collection(db, "users", userId, "points_ledger"),
-        orderBy("createdAt", "desc"),
-        limit(20)
+        orderBy("createdAt", "desc")
       );
       unsubHistory = onSnapshot(
         historyRef,

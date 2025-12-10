@@ -20,7 +20,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
   <View style={styles.sectionCard}>
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Historial reciente</Text>
-      <Text style={[styles.sectionPill, styles.pillMuted]}>Últimos 20</Text>
+      <Text style={[styles.sectionPill, styles.pillMuted]}>Últimos 5</Text>
     </View>
 
     {loading && <Text style={styles.mutedText}>Cargando puntos...</Text>}
@@ -31,7 +31,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
       </Text>
     )}
 
-    {history.map((entry) => (
+    {history.slice(0, 5).map((entry) => (
       <View key={entry.id} style={styles.historyRow}>
         <View>
           <Text style={styles.historyTitle}>
