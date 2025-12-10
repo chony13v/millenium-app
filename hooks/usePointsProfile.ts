@@ -20,6 +20,7 @@ import {
 } from "@/constants/social";
 import { isSameDay } from "@/utils/date";
 import { ensurePointsProfile } from "@/services/points/pointsProfile";
+import { auth } from "@/config/FirebaseConfig";
 
 export type PointsProfile = {
   total: number;
@@ -73,6 +74,7 @@ export const usePointsProfile = (
   userId?: string | null,
   email?: string | null
 ): UsePointsProfileResult => {
+  const authMatchesUser = !!userId && auth.currentUser?.uid === userId;
   const [profile, setProfile] = useState<PointsProfile>(defaultProfile);
   const [history, setHistory] = useState<PointsLedgerEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,8 +92,21 @@ export const usePointsProfile = (
   const [loadingSocialAvailability, setLoadingSocialAvailability] =
     useState(false);
 
+  const ensureAuthReady = useCallback(async () => {
+    if (!userId || !authMatchesUser || !auth.currentUser) return false;
+    try {
+      await auth.currentUser.getIdToken();
+      return true;
+    } catch {
+      setError("Sesión inválida, vuelve a iniciar sesión.");
+      return false;
+    }
+  }, [authMatchesUser, userId]);
+
   const refreshFromServer = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !authMatchesUser) return;
+    const ready = await ensureAuthReady();
+    if (!ready) return;
     try {
       const profileRef = doc(db, "users", userId, "points_profile", "profile");
       const snap = await getDocFromServer(profileRef);
@@ -115,10 +130,12 @@ export const usePointsProfile = (
     } catch (err: any) {
       setError(err?.message ?? "No se pudo refrescar el perfil de puntos");
     }
-  }, [userId]);
+  }, [userId, authMatchesUser, ensureAuthReady]);
 
   const refreshSocialAvailability = useCallback(async () => {
-    if (!userId) return;
+    if (!userId || !authMatchesUser) return;
+    const ready = await ensureAuthReady();
+    if (!ready) return;
     setLoadingSocialAvailability(true);
     const dateKey = new Date().toISOString().slice(0, 10);
 
@@ -154,23 +171,30 @@ export const usePointsProfile = (
     } finally {
       setLoadingSocialAvailability(false);
     }
-  }, [userId]);
+  }, [userId, authMatchesUser, ensureAuthReady]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !authMatchesUser) return;
 
     ensurePointsProfile(userId, email).catch((err) =>
       console.warn("No se pudo inicializar el perfil de puntos:", err)
     );
-  }, [userId, email]);
+  }, [userId, email, authMatchesUser]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !authMatchesUser) return;
     refreshSocialAvailability();
-  }, [userId, refreshSocialAvailability]);
+  }, [userId, refreshSocialAvailability, authMatchesUser]);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !authMatchesUser) {
+      setLoading(false);
+      return;
+    }
+
+    ensureAuthReady().then((ready) => {
+      if (!ready) setLoading(false);
+    });
 
     let unsubProfile: Unsubscribe | null = null;
     let unsubHistory: Unsubscribe | null = null;
@@ -237,7 +261,7 @@ export const usePointsProfile = (
       unsubProfile?.();
       unsubHistory?.();
     };
-  }, [userId, email]);
+  }, [userId, email, authMatchesUser]);
 
   const availability = useMemo(() => {
     const result: Record<string, "available" | "blocked"> = {};

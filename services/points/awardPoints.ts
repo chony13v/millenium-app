@@ -1,5 +1,5 @@
 import { getFunctions, httpsCallable } from "firebase/functions";
-import { app } from "@/config/FirebaseConfig";
+import { app, auth } from "@/config/FirebaseConfig";
 import type { PointsEventType } from "@/constants/points";
 import { awardDailyAppOpen } from "./dailyPoints";
 import { awardPollVote } from "./pollVote";
@@ -25,29 +25,56 @@ export type AwardPointsResponse = {
 export const awardPointsEvent = async (
   payload: AwardPointsPayload
 ): Promise<AwardPointsResponse> => {
+  const currentUid = auth.currentUser?.uid ?? null;
+  const resolvedUserId = payload.userId ?? currentUid;
+
+  if (!resolvedUserId || !currentUid) {
+    return {
+      success: false,
+      message: "Inicia sesión para otorgar puntos.",
+    };
+  }
+
+  if (auth.currentUser && auth.currentUser.uid !== resolvedUserId) {
+    return {
+      success: false,
+      message: "La sesión no coincide con el usuario. Inicia sesión nuevamente.",
+    };
+  }
+
+  // Fuerza token fresco antes de tocar Firestore/Functions para evitar permisos inválidos
+  try {
+    await auth.currentUser.getIdToken(true);
+  } catch (err) {
+    return {
+      success: false,
+      message: "No se pudo validar la sesión. Intenta iniciar sesión otra vez.",
+    };
+  }
+
   if (payload.eventType === "app_open_daily") {
-    if (!payload.userId) {
+    if (!resolvedUserId) {
       return {
         success: false,
         message: "userId es obligatorio para otorgar puntos diarios.",
       };
     }
 
-    return awardDailyAppOpen(payload.userId, {
+    return awardDailyAppOpen(resolvedUserId, {
       eventId: payload.eventId,
       metadata: payload.metadata,
     });
   }
 
   if (payload.eventType === "poll_vote") {
-    if (!payload.userId) {
+    if (!resolvedUserId) {
       return {
         success: false,
         message: "userId es obligatorio para otorgar puntos por encuesta.",
       };
     }
 
-    return awardPollVote(payload.userId, {
+    return awardPollVote(resolvedUserId, {
       eventId: payload.eventId,
       metadata: payload.metadata,
       surveyId: (payload.metadata?.surveyId as string | undefined) ?? undefined,
@@ -55,14 +82,14 @@ export const awardPointsEvent = async (
   }
 
   if (payload.eventType === "city_report_created") {
-    if (!payload.userId) {
+    if (!resolvedUserId) {
       return {
         success: false,
         message: "userId es obligatorio para otorgar puntos por reporte.",
       };
     }
 
-    return awardCityReport(payload.userId, {
+    return awardCityReport(resolvedUserId, {
       eventId: payload.eventId,
       metadata: payload.metadata,
     });

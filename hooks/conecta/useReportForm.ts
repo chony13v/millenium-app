@@ -85,10 +85,47 @@ export const useReportForm = ({
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
-      setCoords({
+      const nextCoords = {
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
-      });
+      };
+
+      setCoords(nextCoords);
+
+      try {
+        const [address] = await Location.reverseGeocodeAsync(nextCoords);
+        const streetLine =
+          address?.street && address?.streetNumber
+            ? `${address.street} ${address.streetNumber}`
+            : address?.street ?? null;
+        const cityOrRegion =
+          address?.city ??
+          address?.district ??
+          address?.subregion ??
+          address?.region ??
+          null;
+        const nameLine =
+          address?.name && address?.name !== streetLine ? address.name : null;
+
+        const parts = [nameLine, streetLine, cityOrRegion]
+          .map((part) => (typeof part === "string" ? part.trim() : ""))
+          .filter(Boolean);
+        const formatted = parts.filter((p, idx) => parts.indexOf(p) === idx).join(", ");
+
+        setLocationText((prev) => {
+          const hasPrev = typeof prev === "string" && prev.trim().length > 0;
+          if (formatted) return formatted;
+          if (hasPrev) return prev;
+          return `${nextCoords.latitude.toFixed(4)}, ${nextCoords.longitude.toFixed(4)}`;
+        });
+      } catch (geoError) {
+        console.warn("No se pudo convertir coordenadas a texto", geoError);
+        setLocationText((prev) => {
+          const hasPrev = typeof prev === "string" && prev.trim().length > 0;
+          if (hasPrev) return prev;
+          return `${nextCoords.latitude.toFixed(4)}, ${nextCoords.longitude.toFixed(4)}`;
+        });
+      }
     } catch (error) {
       console.error("Error obteniendo coordenadas", error);
       Alert.alert(
@@ -180,14 +217,6 @@ export const useReportForm = ({
       Alert.alert(
         "Completa los campos",
         "Por favor completa todos los campos y asegúrate de que tu mensaje sea claro y respetuoso."
-      );
-      return;
-    }
-
-    if (!coords) {
-      Alert.alert(
-        "Ubicación requerida",
-        "Obtén tu ubicación antes de enviar para guardar las coordenadas."
       );
       return;
     }
