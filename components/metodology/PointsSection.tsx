@@ -12,6 +12,7 @@ export type PointsSectionProps = {
   loadingSocialAvailability: boolean;
   hasAwardToday: UseMetodologyLogicReturn["hasAwardToday"];
   onActionPress: (action: PointAction) => void;
+  onCatalogPress?: () => void;
 };
 
 export const PointsSection: React.FC<PointsSectionProps> = ({
@@ -21,11 +22,14 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
   loadingSocialAvailability,
   hasAwardToday,
   onActionPress,
+  onCatalogPress,
 }) => (
   <View style={styles.sectionCard}>
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Cómo ganar puntos</Text>
-      <Text style={styles.sectionPill}>Catálogo</Text>
+      <TouchableOpacity onPress={onCatalogPress} activeOpacity={0.8}>
+        <Text style={styles.sectionPill}>Catálogo</Text>
+      </TouchableOpacity>
     </View>
     <Text style={styles.sectionSubtitle}>
       Acciones disponibles y su elegibilidad. La validación final la hace el

@@ -28,11 +28,13 @@ export const redeemCode = (code: string) => redeemReferralCode(code.trim());
 
 export const awardActionEvent = async (
   action: PointAction,
-  userId: string | null
+  userId: string | null,
+  metadata?: Record<string, unknown>
 ) =>
   awardPointsEvent({
     eventType: action.eventType,
     userId: userId ?? undefined,
+    metadata,
   });
 
 export const recordSocialClick = async (

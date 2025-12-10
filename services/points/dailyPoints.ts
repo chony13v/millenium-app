@@ -22,6 +22,7 @@ type PointsProfileDoc = {
   lastDailyAwardAt?: Timestamp | null;
   lastEventAt?: Timestamp | null;
   updatedAt?: Timestamp | null;
+  streakBonusHistory?: { awardedAt: Timestamp; points: number }[];
 };
 
 const DAILY_POINTS =
@@ -46,6 +47,18 @@ export const getNextStreakCount = (
   if (isSameDay(lastDailyAwardAt, now)) return currentStreak;
   if (isYesterday(lastDailyAwardAt, now)) return (currentStreak || 0) + 1;
   return 1;
+};
+
+const STREAK_MILESTONES = [7, 15, 23, 30];
+const MAX_STREAK_BONUS_PER_30DAYS = 100;
+const STREAK_BONUS_POINTS = 25;
+
+const pruneBonusHistory = (
+  history: { awardedAt: Timestamp; points: number }[],
+  now: Date
+) => {
+  const cutoff = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+  return history.filter((entry) => entry.awardedAt.toDate().getTime() >= cutoff);
 };
 
 export const registerPointsTransaction = (
@@ -114,7 +127,24 @@ export const awardDailyAppOpen = async (
       now
     );
 
-    const newTotal = (profile.total ?? 0) + DAILY_POINTS;
+    const cleanedHistory = pruneBonusHistory(profile.streakBonusHistory ?? [], now);
+    const awardedLast30 = cleanedHistory.reduce(
+      (sum, entry) => sum + (entry.points || 0),
+      0
+    );
+    let streakBonusAwarded = 0;
+    let milestoneAwarded: number | null = null;
+
+    if (
+      STREAK_MILESTONES.includes(nextStreak) &&
+      awardedLast30 < MAX_STREAK_BONUS_PER_30DAYS
+    ) {
+      const remaining = MAX_STREAK_BONUS_PER_30DAYS - awardedLast30;
+      streakBonusAwarded = Math.min(STREAK_BONUS_POINTS, remaining);
+      milestoneAwarded = nextStreak;
+    }
+
+    const newTotal = (profile.total ?? 0) + DAILY_POINTS + streakBonusAwarded;
     const { level, xpToNext } = getLevelProgress(newTotal);
 
     tx.set(
@@ -127,6 +157,13 @@ export const awardDailyAppOpen = async (
         lastDailyAwardAt: Timestamp.fromDate(now),
         lastEventAt: Timestamp.fromDate(now),
         updatedAt: serverTimestamp(),
+        streakBonusHistory:
+          streakBonusAwarded > 0
+            ? [
+                ...cleanedHistory,
+                { awardedAt: Timestamp.fromDate(now), points: streakBonusAwarded },
+              ]
+            : cleanedHistory,
       },
       { merge: true }
     );
@@ -138,6 +175,20 @@ export const awardDailyAppOpen = async (
       metadata: options?.metadata,
       now,
     });
+
+    if (streakBonusAwarded > 0) {
+      registerPointsTransaction(tx, userId, {
+        eventType: "streak_bonus",
+        points: streakBonusAwarded,
+        metadata: {
+          milestone: milestoneAwarded,
+          streakCount: nextStreak,
+          window: "30d",
+          awardedLast30,
+        },
+        now,
+      });
+    }
 
     return {
       success: true,

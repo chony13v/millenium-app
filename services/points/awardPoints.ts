@@ -44,6 +44,12 @@ export const awardPointsEvent = async (
 
   // Fuerza token fresco antes de tocar Firestore/Functions para evitar permisos inválidos
   try {
+    if (!auth.currentUser) {
+      return {
+        success: false,
+        message: "No se pudo validar la sesión. Intenta iniciar sesión otra vez.",
+      };
+    }
     await auth.currentUser.getIdToken(true);
   } catch (err) {
     return {

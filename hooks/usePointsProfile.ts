@@ -33,6 +33,7 @@ export type PointsProfile = {
   lastDailyAwardAt?: Timestamp | null;
   lastCityReportAt?: Timestamp | null;
   lastSurveyIdVoted?: string | null;
+  streakBonusHistory?: { awardedAt: Timestamp; points: number }[];
 };
 
 export type PointsLedgerEntry = {

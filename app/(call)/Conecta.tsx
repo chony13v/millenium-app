@@ -1,9 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  View,
 } from "react-native";
 import { useUser } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
@@ -20,12 +21,13 @@ import { useReportForm } from "@/hooks/conecta/useReportForm";
 import { useSurveys } from "@/hooks/conecta/useSurveys";
 import { useWeeklyEvents } from "@/hooks/events";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
-
 export default function Conecta() {
   const { user } = useUser();
   const { selectedCity, hasHydrated } = useCitySelection();
   const { firebaseUid } = useFirebaseUid();
   const router = useRouter();
+  const scrollRef = useRef<ScrollView | null>(null);
+  const sectionY = useRef<{ survey?: number; community?: number; reports?: number }>({});
 
   const storage = useMemo(() => getStorage(app), []);
 
@@ -99,47 +101,82 @@ export default function Conecta() {
       keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <HeroCard />
-
-        <SurveySection
-          handleAnswerSurvey={handleAnswerSurvey}
-          sendingSurvey={sendingSurvey}
-          surveyError={surveyError}
-          surveyResponses={surveyResponses}
-          surveys={surveys}
-          surveysLoading={surveysLoading}
+        <HeroCard
+          onPressSurvey={() => {
+            if (sectionY.current.survey != null) {
+              scrollRef.current?.scrollTo({ y: sectionY.current.survey, animated: true });
+            }
+          }}
+          onPressCommunity={() => {
+            if (sectionY.current.community != null) {
+              scrollRef.current?.scrollTo({ y: sectionY.current.community, animated: true });
+            }
+          }}
+          onPressReports={() => {
+            if (sectionY.current.reports != null) {
+              scrollRef.current?.scrollTo({ y: sectionY.current.reports, animated: true });
+            }
+          }}
         />
 
-        <WeeklyEventsSection
-          attendance={attendance}
-          error={eventsError}
-          events={events}
-          eventsLoading={eventsLoading}
-          onSubmitAttendance={handleRegisterAttendance}
-          submittingAttendance={submittingAttendance}
-        />
+        <View
+          onLayout={(e) => {
+            sectionY.current.survey = e.nativeEvent.layout.y;
+          }}
+        >
+          <SurveySection
+            handleAnswerSurvey={handleAnswerSurvey}
+            sendingSurvey={sendingSurvey}
+            surveyError={surveyError}
+            surveyResponses={surveyResponses}
+            surveys={surveys}
+            surveysLoading={surveysLoading}
+          />
+        </View>
 
-        <ReportForm
-          coords={coords}
-          description={description}
-          handleCancelReport={handleCancelReport}
-          handleSubmitReport={handleSubmitReport}
-          locationLoading={locationLoading}
-          locationText={locationText}
-          pickPhoto={pickPhoto}
-          photoUri={photoUri}
-          problemType={problemType}
-          requestCoords={requestCoords}
-          setDescription={setDescription}
-          setLocationText={setLocationText}
-          setProblemType={(value) => setProblemType(value)}
-          submittingReport={submittingReport}
-        />
+        <View
+          onLayout={(e) => {
+            sectionY.current.community = e.nativeEvent.layout.y;
+          }}
+        >
+          <WeeklyEventsSection
+            attendance={attendance}
+            error={eventsError}
+            events={events}
+            eventsLoading={eventsLoading}
+            onSubmitAttendance={handleRegisterAttendance}
+            submittingAttendance={submittingAttendance}
+          />
+        </View>
+
+        <View
+          onLayout={(e) => {
+            sectionY.current.reports = e.nativeEvent.layout.y;
+          }}
+        >
+          <ReportForm
+            coords={coords}
+            description={description}
+            handleCancelReport={handleCancelReport}
+            handleSubmitReport={handleSubmitReport}
+            locationLoading={locationLoading}
+            locationText={locationText}
+            pickPhoto={pickPhoto}
+            photoUri={photoUri}
+            problemType={problemType}
+            requestCoords={requestCoords}
+            setDescription={setDescription}
+            setLocationText={setLocationText}
+            setProblemType={(value) => setProblemType(value)}
+            submittingReport={submittingReport}
+          />
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );

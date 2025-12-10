@@ -17,6 +17,7 @@ export type PointsProfileDoc = {
   lastDailyAwardAt?: Timestamp | null;
   lastCityReportAt?: Timestamp | null;
   lastSurveyIdVoted?: string | null;
+  streakBonusHistory?: { awardedAt: Timestamp; points: number }[];
   updatedAt?: Timestamp | ReturnType<typeof serverTimestamp> | null;
 };
 
@@ -60,6 +61,7 @@ export const ensurePointsProfile = async (
     lastCityReportAt: null,
     lastEventAt: null,
     lastSurveyIdVoted: null,
+    streakBonusHistory: [],
     updatedAt: serverTimestamp(),
   };
 

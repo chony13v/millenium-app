@@ -70,7 +70,7 @@ export const POINT_ACTIONS: PointAction[] = [
     title: "Bonos por racha",
     subtitle: "Recompensa extra al llegar a hitos",
     points: 0,
-    frequency: "Hitos 3, 7, 14, 30 días",
+    frequency: "Se otorgan bonos por racha de 7, 14, 23 y 30 consecutivos, y después cada 30 días adicionales",
     eventType: "streak_bonus",
   },
 ];

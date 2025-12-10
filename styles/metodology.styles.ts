@@ -282,12 +282,14 @@ export const metodologyStyles = StyleSheet.create({
   actionFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
+    gap: 8,
   },
   actionFrequency: {
     fontSize: 12,
     fontFamily: "barlow-medium",
     color: "#0f172a",
+    flex: 1,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -295,6 +297,7 @@ export const metodologyStyles = StyleSheet.create({
     borderRadius: 999,
     fontFamily: "barlow-semibold",
     fontSize: 12,
+    alignSelf: "flex-start",
   },
   badgeAvailable: {
     backgroundColor: "rgba(34,197,94,0.15)",
