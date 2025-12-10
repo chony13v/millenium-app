@@ -20,6 +20,12 @@ const CitySelectionScreen = () => {
     null
   );
 
+    const selectableCities = React.useMemo(
+    () => CITY_OPTIONS.filter((option) => option.id !== "manabi"),
+    []
+  );
+
+
   const handleSelect = React.useCallback(
     async (cityId: CityId) => {
       setHighlightedCity(cityId);
@@ -59,7 +65,7 @@ const CitySelectionScreen = () => {
         </View>
 
         <View style={styles.list}>
-          {CITY_OPTIONS.map((option) => {
+         {selectableCities.map((option) => {
             const isActive = highlightedCity === option.id;
             return (
               <Pressable

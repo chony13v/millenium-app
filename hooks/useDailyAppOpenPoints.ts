@@ -1,10 +1,14 @@
 import { useEffect } from "react";
 
 import { awardPointsEvent } from "@/services/points/awardPoints";
+import { auth } from "@/config/FirebaseConfig";
 
 export function useDailyAppOpenPoints(userId?: string | null) {
   useEffect(() => {
     if (!userId) return;
+    // No disparamos si Firebase aún no tiene sesión o si el UID no coincide
+    if (!auth.currentUser || auth.currentUser.uid !== userId) return;
+
     let cancelled = false;
 
     awardPointsEvent({

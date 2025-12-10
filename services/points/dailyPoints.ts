@@ -7,12 +7,12 @@ import {
 import {
   collection,
   doc,
-  runTransaction,
   serverTimestamp,
   Timestamp,
   type Transaction,
 } from "firebase/firestore";
 import { isSameDay, isYesterday } from "@/utils/date";
+import { runTransactionWithRetry } from "./transactionUtils";
 
 type PointsProfileDoc = {
   total?: number;
@@ -91,7 +91,7 @@ export const awardDailyAppOpen = async (
   const now = options?.now ?? new Date();
   const profileRef = doc(db, "users", userId, "points_profile", "profile");
 
-  return runTransaction(db, async (tx) => {
+  return runTransactionWithRetry(db, async (tx: Transaction) => {
     const snap = await tx.get(profileRef);
     const profile = (snap.exists() ? snap.data() : {}) as PointsProfileDoc;
     const lastDailyAwardAt = profile.lastDailyAwardAt ?? null;

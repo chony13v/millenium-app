@@ -2,13 +2,13 @@ export const CITY_OPTIONS = [
   {
     id: "bgr",
     title: "BGR",
-    description: "Talento emergente listo para brillar en cada torneo.",
+    description: "Firmer contigo",
     gradient: ["#1d4ed8", "#38bdf8"],
   },
   {
     id: "riobamba",
     title: "Riobamba",
-    description: "La ciudad jardín que vibra con el fútbol formativo.",
+    description: "La Alcaldía de la Gente",
     gradient: ["#7c3aed", "#a855f7"],
   },
   {

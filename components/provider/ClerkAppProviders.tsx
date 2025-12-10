@@ -68,6 +68,7 @@ const HideSplashScreen = () => {
 export const ClerkAppProviders = () => {
   const { user } = useUser();
   const { firebaseUid } = useFirebaseUid();
+  const cityIdentityKey = firebaseUid ?? user?.id ?? null;
 
   useNotificationListeners();
   usePushTokenSync(firebaseUid ?? undefined);
@@ -77,7 +78,7 @@ export const ClerkAppProviders = () => {
     <>
       <HideSplashScreen />
       <FirebaseSync />
-      <CitySelectionProvider>
+      <CitySelectionProvider identityKey={cityIdentityKey}>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(call)" options={{ headerShown: false }} />

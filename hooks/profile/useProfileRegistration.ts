@@ -24,7 +24,7 @@ type RootStackParamList = {
 export const useProfileRegistration = () => {
   const { user } = useUser();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-  const { firebaseUid } = useFirebaseUid();
+  const { firebaseUid, loadingFirebaseUid } = useFirebaseUid();
 
   const section1 = useSection1Form();
   const section2 = useSection2Form();
@@ -120,9 +120,17 @@ export const useProfileRegistration = () => {
       return;
     }
 
+    if (loadingFirebaseUid || !firebaseUid) {
+      Alert.alert(
+        "Conectando",
+        "Estamos terminando de enlazar tu sesión. Intenta nuevamente en unos segundos."
+      );
+      return;
+    }
+
     try {
       const userEmail = user.primaryEmailAddress?.emailAddress ?? null;
-      const pointsProfileId = firebaseUid ?? user.id ?? userEmail ?? "";
+      const pointsProfileId = firebaseUid;
       await saveProfile(user.id, {
         fullName: section1.nombreCompleto,
         email: userEmail ?? undefined,
@@ -145,11 +153,7 @@ export const useProfileRegistration = () => {
         esRiobambeno: section3.esRiobambeno,
         registrationDate: new Date().toISOString(),
       });
-      if (pointsProfileId) {
-        await ensurePointsProfile(pointsProfileId, userEmail);
-      } else {
-        console.warn("No se pudo crear el perfil de puntos: sin identificador");
-      }
+      await ensurePointsProfile(pointsProfileId, userEmail);
       Alert.alert("¡Registro exitoso!", "Te contactaremos pronto.");
       navigation.reset({ index: 0, routes: [{ name: "(call)" }] });
     } catch (e) {

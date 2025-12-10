@@ -1,5 +1,3 @@
-+12 - 7;
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   createContext,
@@ -28,23 +26,34 @@ const CitySelectionContext = createContext<
 
 type CityProviderProps = {
   children: ReactNode;
+  identityKey?: string | null;
 };
+
+const getStorageKey = (identityKey?: string | null) =>
+  identityKey
+    ? `@millenium:selected-city:${identityKey}`
+    : "@millenium:selected-city";
 
 export const CitySelectionProvider = ({
   children,
+  identityKey,
 }: CityProviderProps): ReactElement => {
   const [selectedCity, setSelectedCity] = useState<CityId | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasHydrated, setHasHydrated] = useState(false);
+  const storageKey = useMemo(() => getStorageKey(identityKey), [identityKey]);
 
   useEffect(() => {
     let isMounted = true;
 
+    // Al cambiar de usuario limpiamos el estado local y recargamos desde su clave
+    setSelectedCity(null);
+    setIsLoading(true);
+    setHasHydrated(false);
+
     const loadStoredCity = async () => {
       try {
-        const storedCity = await AsyncStorage.getItem(
-          "@millenium:selected-city"
-        );
+        const storedCity = await AsyncStorage.getItem(storageKey);
 
         if (storedCity && isMounted) {
           if (isCityId(storedCity)) {
@@ -54,7 +63,7 @@ export const CitySelectionProvider = ({
               "Valor de ciudad almacenado inválido, limpiando preferencia",
               storedCity
             );
-            await AsyncStorage.removeItem("@millenium:selected-city");
+            await AsyncStorage.removeItem(storageKey);
           }
         }
       } catch (error) {
@@ -72,26 +81,29 @@ export const CitySelectionProvider = ({
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [storageKey]);
 
-  const selectCity = useCallback(async (city: CityId) => {
-    setSelectedCity(city);
+  const selectCity = useCallback(
+    async (city: CityId) => {
+      setSelectedCity(city);
 
-    try {
-      await AsyncStorage.setItem("@millenium:selected-city", city);
-    } catch (error) {
-      console.warn("No se pudo guardar la ciudad seleccionada", error);
-    }
-  }, []);
+      try {
+        await AsyncStorage.setItem(storageKey, city);
+      } catch (error) {
+        console.warn("No se pudo guardar la ciudad seleccionada", error);
+      }
+    },
+    [storageKey]
+  );
 
   const clearCity = useCallback(async () => {
     setSelectedCity(null);
     try {
-      await AsyncStorage.removeItem("@millenium:selected-city");
+      await AsyncStorage.removeItem(storageKey);
     } catch (error) {
       console.warn("No se pudo limpiar la ciudad almacenada", error);
     }
-  }, []);
+  }, [storageKey]);
 
   const value = useMemo(
     () => ({
