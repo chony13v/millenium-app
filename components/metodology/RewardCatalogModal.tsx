@@ -21,8 +21,8 @@ export const RewardCatalogModal: React.FC<Props> = ({
   onClose,
   rewards,
 }) => (
-  <Modal visible={visible} animationType="slide" transparent>
-    <View style={styles.modalOverlay} />
+  <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose} />
     <View style={styles.modalCard}>
       <View style={styles.modalHeader}>
         <Text style={styles.modalTitle}>Catálogo de recompensas</Text>
@@ -34,7 +34,7 @@ export const RewardCatalogModal: React.FC<Props> = ({
       <FlatList
         data={rewards}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ gap: 10 }}
+        contentContainerStyle={{ gap: 10, paddingBottom: 12 }}
         renderItem={({ item }) => (
           <View style={styles.socialItem}>
             <View style={styles.socialTextCol}>

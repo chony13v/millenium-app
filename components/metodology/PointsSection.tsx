@@ -27,8 +27,12 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
   <View style={styles.sectionCard}>
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Cómo ganar puntos</Text>
-      <TouchableOpacity onPress={onCatalogPress} activeOpacity={0.8}>
-        <Text style={styles.sectionPill}>Catálogo</Text>
+      <TouchableOpacity
+        onPress={onCatalogPress}
+        activeOpacity={0.9}
+        style={styles.catalogPillButton}
+      >
+        <Text style={styles.catalogPill}>🎁 Catálogo</Text>
       </TouchableOpacity>
     </View>
     <Text style={styles.sectionSubtitle}>

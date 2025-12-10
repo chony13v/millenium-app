@@ -146,6 +146,24 @@ export const metodologyStyles = StyleSheet.create({
     fontFamily: "barlow-medium",
     fontSize: 12,
   },
+  catalogPillButton: {
+    shadowColor: "#f97316",
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+    borderRadius: 14,
+  },
+  catalogPill: {
+    backgroundColor: "#f97316",
+    color: "#fff",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    fontFamily: "barlow-semibold",
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
   pillMuted: {
     backgroundColor: "#e2e8f0",
     color: "#0f172a",
@@ -360,6 +378,7 @@ export const metodologyStyles = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: -4 },
     elevation: 8,
+    maxHeight: "70%",
   },
   modalHeader: {
     gap: 4,
