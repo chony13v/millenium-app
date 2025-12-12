@@ -63,6 +63,10 @@ service cloud.firestore {
     match /News/{doc}      { allow read: if true; }
     match /videoData/{doc} { allow read: if true; }
     match /Academy/{doc}   { allow read: if true; }
+    match /rewards/{rewardId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
+    }
 
     /* ── Encuestas dinámicas ── */
     match /surveys/{surveyId} {
@@ -327,6 +331,36 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    /* ── Canjes de recompensas ── */
+    match /redemptions/{redemptionId} {
+      // Lectura:
+      // - get: pública para que /canje?id=... pueda consultar el cupón por ID
+      // - list: bloqueada para evitar enumerar cupones
+      allow get: if true;
+      allow list: if false;
+
+      // Creación desde la app (mismas validaciones que tenías)
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          'id','userId','rewardId','merchantId','status',
+          'createdAt','expiresAt','qrUrl','cityId','appVersion'
+        ])
+        && request.resource.data.id == redemptionId
+        && request.resource.data.userId is string
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.rewardId is string
+        && request.resource.data.merchantId is string
+        && request.resource.data.status == "pending"
+        && request.resource.data.createdAt is timestamp
+        && isNullableTimestamp(request.resource.data.expiresAt)
+        && request.resource.data.qrUrl is string
+        && isNullableString(request.resource.data.cityId)
+        && (!request.resource.data.keys().hasAny(['appVersion']) || isNullableString(request.resource.data.appVersion));
+
+      // Actualizaciones y borrados solo vía Admin SDK (Cloud Functions)
+      allow update, delete: if false;
+    }
+
     /* ── Canjes de referidos ── */
     match /referralRedemptions/{redemptionId} {
       allow read: if request.auth != null
@@ -356,12 +390,12 @@ service cloud.firestore {
       // Solo el dueño puede leer su historial
       allow read: if isOwnerUidOrEmail(userId);
 
-      // El dueño puede crear nuevas entradas en el ledger
-      allow create: if request.auth != null
+      // El dueño puede crear o actualizar sus entradas (p.ej. para set() con merge)
+      allow create, update: if request.auth != null
         && isOwnerUidOrEmail(userId);
 
-      // No permitimos update ni delete desde el cliente
-      allow update, delete: if false;
+      // No permitimos delete desde el cliente
+      allow delete: if false;
     }
 
     /* ── Marcadores diarios de social engagement ── */

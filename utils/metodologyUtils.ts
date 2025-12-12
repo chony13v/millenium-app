@@ -32,7 +32,10 @@ export const buildReferralLink = (
 export const platformLabel = (platform: SocialPlatform) =>
   SOCIAL_PLATFORM_LABELS[platform] || platform;
 
-export const renderHistoryLabel = (eventType: string) => {
+export const renderHistoryLabel = (
+  eventType: string,
+  metadata?: Record<string, unknown>
+) => {
   const base = eventType.split(":")[0];
   switch (base) {
     case "app_open_daily":
@@ -53,6 +56,13 @@ export const renderHistoryLabel = (eventType: string) => {
       return "Canje de referido";
     case "streak_bonus":
       return "Bono por racha";
+    case "reward_redeem": {
+      const title =
+        (metadata?.rewardTitle as string | undefined)?.trim() ||
+        (metadata?.rewardId as string | undefined) ||
+        "Canje de recompensa";
+      return title;
+    }
     default:
       return eventType;
   }

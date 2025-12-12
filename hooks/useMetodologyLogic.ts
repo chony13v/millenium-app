@@ -62,50 +62,6 @@ export const useMetodologyLogic = () => {
     tiktok: "available",
     youtube: "available",
   });
-  const [catalogVisible, setCatalogVisible] = useState(false);
-
-  const rewardCatalog = useMemo(
-    () =>
-      [
-        {
-          id: "reward_4",
-          title: "Entrada doble a evento municipal",
-          description: "Válido para eventos gratuitos destacados del mes.",
-          cost: 800,
-          type: "gift" as const,
-        },
-        {
-          id: "reward_5",
-          title: "10% de cashback en tu próxima compra",
-          description: "Reembolsa hasta $5 en compras elegibles.",
-          cost: 900,
-          type: "discount" as const,
-        },
-        {
-          id: "reward_1",
-          title: "20% off en tu supermercado favorito",
-          description:
-            "Canje válido en locales participantes. Vence en 30 días.",
-          cost: 1000,
-          type: "discount" as const,
-        },
-        {
-          id: "reward_2",
-          title: "Bono de $5 en efectivo",
-          description: "Se acredita a tu cuenta de billetera en 48h.",
-          cost: 1200,
-          type: "cash" as const,
-        },
-        {
-          id: "reward_3",
-          title: "Kit deportivo básico",
-          description: "Incluye botella y toalla Ciudad FC.",
-          cost: 1500,
-          type: "gift" as const,
-        },
-      ].sort((a, b) => a.cost - b.cost),
-    []
-  );
 
   const {
     profile,
@@ -504,9 +460,6 @@ export const useMetodologyLogic = () => {
     handleActionPress,
     scrollRef,
     setReferralSectionY,
-    catalogVisible,
-    setCatalogVisible,
-    rewardCatalog,
     renderHistoryLabel,
     formatDate,
     POINT_ACTIONS,

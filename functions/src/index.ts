@@ -5,3 +5,7 @@ export {
 } from "./referrals";
 export { awardSocialEngagement, awardNewsClick } from "./social";
 export { verifyWeeklyEventAttendance } from "./events";
+export {
+  confirmRedemptionWithPin,
+  createRedemptionWithPoints,
+} from "./redemptions";

@@ -1,19 +1,20 @@
 import React from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
 import { HistorySection } from "@/components/metodology/HistorySection";
 import { MetodologyHeader } from "@/components/metodology/MetodologyHeader";
 import { PointsSection } from "@/components/metodology/PointsSection";
 import { ReferralSection } from "@/components/metodology/ReferralSection";
 import { SocialModal } from "@/components/metodology/SocialModal";
-import { RewardCatalogModal } from "@/components/metodology/RewardCatalogModal";
 import { useMetodologyLogic } from "@/hooks/useMetodologyLogic";
 import { metodologyStyles as styles } from "@/styles/metodology.styles";
 import { platformLabel } from "@/utils/metodologyUtils";
 
 export default function Metodology() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const {
     greeting,
     profile,
@@ -46,9 +47,6 @@ export default function Metodology() {
     formatDate,
     scrollRef,
     setReferralSectionY,
-    catalogVisible,
-    setCatalogVisible,
-    rewardCatalog,
   } = useMetodologyLogic();
   return (
     <>
@@ -89,7 +87,7 @@ export default function Metodology() {
           loadingSocialAvailability={loadingSocialAvailability}
           hasAwardToday={hasAwardToday}
           onActionPress={handleActionPress}
-          onCatalogPress={() => setCatalogVisible(true)}
+          onCatalogPress={() => router.push("/(call)/Metodology/rewards")}
         />
 
         <HistorySection
@@ -110,11 +108,6 @@ export default function Metodology() {
         processingPlatform={processingPlatform}
         onSocialLinkPress={handleSocialLinkPress}
         platformLabel={platformLabel}
-      />
-      <RewardCatalogModal
-        visible={catalogVisible}
-        onClose={() => setCatalogVisible(false)}
-        rewards={rewardCatalog}
       />
     </>
   );

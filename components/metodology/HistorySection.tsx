@@ -7,7 +7,10 @@ import { metodologyStyles as styles } from "@/styles/metodology.styles";
 export type HistorySectionProps = {
   history: UseMetodologyLogicReturn["history"];
   loading: boolean;
-  renderHistoryLabel: (eventType: string) => string;
+  renderHistoryLabel: (
+    eventType: string,
+    metadata?: Record<string, unknown>
+  ) => string;
   formatDate: (date?: Date) => string;
 };
 
@@ -35,7 +38,7 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
       <View key={entry.id} style={styles.historyRow}>
         <View>
           <Text style={styles.historyTitle}>
-            {renderHistoryLabel(entry.eventType)}
+            {renderHistoryLabel(entry.eventType, entry.metadata)}
           </Text>
           <Text style={styles.historyDate}>
             {formatDate(entry.createdAt?.toDate())}
