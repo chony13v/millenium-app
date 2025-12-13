@@ -22,6 +22,8 @@ import { useCitySelection } from "@/hooks/useCitySelection";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CITY_OPTIONS } from "@/constants/cities";
 import { useUser } from "@clerk/clerk-expo";
+import { useFirebaseUid } from "@/hooks/useFirebaseUid";
+import { logSponsorClick } from "@/services/analytics/sponsorClicks";
 
 export default function HomeScreen() {
   const drawerRef = useRef<DrawerLayout>(null);
@@ -29,6 +31,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { selectedCity } = useCitySelection();
   const { user } = useUser();
+  const { firebaseUid } = useFirebaseUid();
   const selectedCityInfo = CITY_OPTIONS.find(
     (city) => city.id === selectedCity
   );
@@ -55,14 +58,29 @@ export default function HomeScreen() {
   };
 
   const handleOpenBgr = () => {
+    logSponsorClick({
+      sponsorId: "bgr",
+      url: "https://www.bgr.com.ec/",
+      userId: firebaseUid,
+    });
     Linking.openURL("https://www.bgr.com.ec/").catch(() => {});
   };
 
   const handleOpenRiobamba = () => {
+    logSponsorClick({
+      sponsorId: "alcaldia_riobamba",
+      url: "https://www.gadmriobamba.gob.ec/",
+      userId: firebaseUid,
+    });
     Linking.openURL("https://www.gadmriobamba.gob.ec/").catch(() => {});
   };
 
   const handleOpenMillenium = () => {
+    logSponsorClick({
+      sponsorId: "millenium_fc",
+      url: "https://www.milleniumfc.com/",
+      userId: firebaseUid,
+    });
     Linking.openURL("https://www.milleniumfc.com/").catch(() => {});
   };
 
@@ -170,7 +188,7 @@ export default function HomeScreen() {
             <View style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <View>
-                  <Text style={styles.sectionTitle}>Videos deportivos</Text>
+                  <Text style={styles.sectionTitle}>Historias Ciudad FC</Text>
                 </View>
                 <Text style={[styles.sectionPill, styles.pillAcademy]}>
                   Videos

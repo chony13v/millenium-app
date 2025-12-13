@@ -12,6 +12,8 @@ import { db } from "@/config/FirebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 import { useRouter } from "expo-router";
 import LoadingBall from "@/components/LoadingBall";
+import { useFirebaseUid } from "@/hooks/useFirebaseUid";
+import { logSocialMediaClick } from "@/services/analytics/socialMediaClicks";
 
 interface CategoryItem {
   id: string;
@@ -26,11 +28,11 @@ const CategoryCard = React.memo(
     onPress,
   }: {
     item: CategoryItem;
-    onPress: (link: string) => void;
+    onPress: (item: CategoryItem) => void;
   }) => (
     <TouchableOpacity
       style={styles.item}
-      onPress={() => onPress(item.link)}
+      onPress={() => onPress(item)}
       activeOpacity={0.85}
     >
       <View style={styles.iconWrapper}>
@@ -45,6 +47,7 @@ export default function CategoryIcons() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { firebaseUid } = useFirebaseUid();
 
   useEffect(() => {
     let isMounted = true;
@@ -74,8 +77,9 @@ export default function CategoryIcons() {
   }, []);
 
   const handlePress = useCallback(
-    (link: string) => {
+    (item: CategoryItem) => {
       try {
+        const { link } = item;
         if (!link || link.trim() === "") {
           Alert.alert(
             "Error",
@@ -84,6 +88,11 @@ export default function CategoryIcons() {
           );
           return;
         }
+        logSocialMediaClick({
+          channelId: item.id,
+          url: link,
+          userId: firebaseUid,
+        });
         router.push(link as any);
       } catch (error) {
         console.error("Navigation error:", error);
@@ -94,12 +103,12 @@ export default function CategoryIcons() {
         );
       }
     },
-    [router]
+    [router, firebaseUid]
   );
 
   const renderItem = useCallback(
     ({ item }: { item: CategoryItem }) => (
-      <CategoryCard item={item} onPress={handlePress} />
+      <CategoryCard item={item} onPress={() => handlePress(item)} />
     ),
     [handlePress]
   );
