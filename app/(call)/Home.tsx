@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   Image,
+  Linking,
 } from "react-native";
 import DrawerLayout from "react-native-gesture-handler/DrawerLayout";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -51,6 +52,18 @@ export default function HomeScreen() {
 
   const handleGoToConecta = () => {
     router.push("/(call)/Conecta");
+  };
+
+  const handleOpenBgr = () => {
+    Linking.openURL("https://www.bgr.com.ec/").catch(() => {});
+  };
+
+  const handleOpenRiobamba = () => {
+    Linking.openURL("https://www.gadmriobamba.gob.ec/").catch(() => {});
+  };
+
+  const handleOpenMillenium = () => {
+    Linking.openURL("https://www.milleniumfc.com/").catch(() => {});
   };
 
   return (
@@ -103,16 +116,42 @@ export default function HomeScreen() {
             <View style={styles.logoContainer}>
               <Text style={styles.sponsorLabel}>Con el auspicio de:</Text>
               <View style={styles.logoRow}>
-                <Image
-                  source={require("@/assets/images/logo_alcaldiaRiobamba.png")}
-                  style={styles.cityLogo}
-                  resizeMode="contain"
-                />
-                <Image
-                  source={require("@/assets/images/LogoFC.png")}
-                  style={styles.cityLogo}
-                  resizeMode="contain"
-                />
+                <TouchableOpacity
+                  onPress={handleOpenRiobamba}
+                  activeOpacity={0.8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Abrir Alcaldía de Riobamba"
+                >
+                  <Image
+                    source={require("@/assets/images/logo_alcaldiaRiobamba.png")}
+                    style={styles.cityLogo}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleOpenMillenium}
+                  activeOpacity={0.8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Abrir Millenium FC"
+                >
+                  <Image
+                    source={require("@/assets/images/LogoFC.png")}
+                    style={styles.cityLogo}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleOpenBgr}
+                  activeOpacity={0.8}
+                  accessibilityRole="link"
+                  accessibilityLabel="Abrir BGR"
+                >
+                  <Image
+                    source={require("@/assets/images/logo-bgr-blue.png")}
+                    style={styles.cityLogo}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
               </View>
             </View>
 
