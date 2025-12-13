@@ -8,21 +8,65 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { doc, onSnapshot } from "firebase/firestore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useUser } from "@clerk/clerk-expo";
 
+import { db } from "@/config/FirebaseConfig";
 import { Colors } from "@/constants/colors";
+import { CITY_INFO_BY_ID, type CityId } from "@/constants/cities";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 import { usePointsProfile } from "@/hooks/usePointsProfile";
-import { type Reward } from "@/types/rewards";
+import { type Redemption, type Reward } from "@/types/rewards";
 import { fetchRewardById } from "@/services/rewards/rewards";
 import {
   buildRedemptionQrUrl,
   createRedemption,
+  fetchLatestRedemptionForReward,
 } from "@/services/rewards/redemptions";
+
+type LastRedemptionInfo = Pick<
+  Redemption,
+  "id" | "status" | "qrUrl" | "createdAt"
+> & { createdAtDate?: Date | null };
+
+const getStatusLabel = (status?: Redemption["status"]) => {
+  switch (status) {
+    case "redeemed":
+      return "canjeado";
+    case "validated":
+      return "validado";
+    case "rejected":
+      return "rechazado";
+    case "expired":
+      return "expirado";
+    default:
+      return "pendiente";
+  }
+};
+
+const formatDateShort = (date?: Date | null) => {
+  if (!date) return "Sin fecha";
+  try {
+    return new Intl.DateTimeFormat("es-ES", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(date);
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+};
+
+const getCityLabel = (rewardCityId?: string | null, userCityId?: string | null) => {
+  const effectiveCity = rewardCityId || userCityId;
+  if (!effectiveCity) return "Sin ciudad";
+  const cityInfo = CITY_INFO_BY_ID[effectiveCity as CityId];
+  return cityInfo?.title ?? effectiveCity;
+};
 
 export default function RewardDetailScreen() {
   const router = useRouter();
@@ -53,10 +97,9 @@ export default function RewardDetailScreen() {
   const [loadingReward, setLoadingReward] = useState(true);
   const [redeeming, setRedeeming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastRedemption, setLastRedemption] = useState<{
-    id: string;
-    qrUrl?: string;
-  } | null>(null);
+  const [lastRedemption, setLastRedemption] =
+    useState<LastRedemptionInfo | null>(null);
+  const [loadingLastRedemption, setLoadingLastRedemption] = useState(true);
 
   const rewardId = getParamValue(params.rewardId);
 
@@ -127,6 +170,79 @@ export default function RewardDetailScreen() {
     };
   }, [rewardFromParams, rewardId]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!firebaseUid || !rewardId) {
+      setLastRedemption(null);
+      setLoadingLastRedemption(false);
+      return;
+    }
+
+    setLoadingLastRedemption(true);
+    fetchLatestRedemptionForReward(firebaseUid, rewardId)
+      .then((redemption) => {
+        if (cancelled) return;
+        if (redemption && redemption.status !== "redeemed") {
+          const createdAtDate =
+            redemption.createdAt && "toDate" in redemption.createdAt
+              ? redemption.createdAt.toDate()
+              : null;
+          setLastRedemption({
+            id: redemption.id,
+            status: redemption.status,
+            qrUrl: redemption.qrUrl,
+            createdAt: redemption.createdAt ?? null,
+            createdAtDate,
+          });
+        } else {
+          setLastRedemption(null);
+        }
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        console.warn("[rewards] No se pudo cargar canje previo", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingLastRedemption(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [firebaseUid, rewardId]);
+
+  useEffect(() => {
+    if (!lastRedemption || lastRedemption.status === "redeemed") return;
+
+    const redemptionRef = doc(db, "redemptions", lastRedemption.id);
+    const unsub = onSnapshot(
+      redemptionRef,
+      (snap) => {
+        if (!snap.exists()) {
+          setLastRedemption(null);
+          return;
+        }
+        const data = snap.data() as Partial<Redemption>;
+        const createdAtDate =
+          data.createdAt && "toDate" in data.createdAt
+            ? data.createdAt.toDate()
+            : lastRedemption?.createdAtDate ?? null;
+        setLastRedemption((prev) => ({
+          id: snap.id,
+          status:
+            (data.status as Redemption["status"]) ?? prev?.status ?? "pending",
+          qrUrl: data.qrUrl ?? prev?.qrUrl ?? "",
+          createdAt: data.createdAt ?? prev?.createdAt ?? null,
+          createdAtDate,
+        }));
+      },
+      (err) => console.warn("[rewards] No se pudo escuchar canje", err)
+    );
+
+    return () => unsub();
+  }, [lastRedemption?.id, lastRedemption?.status]);
+
   const openQrScreen = (redemptionId: string, qrUrl?: string) => {
     const url = qrUrl || buildRedemptionQrUrl(redemptionId);
     router.push({
@@ -136,7 +252,8 @@ export default function RewardDetailScreen() {
         redemptionId,
         qrUrl: url,
         rewardTitle: reward?.title ?? "Recompensa",
-        merchantName: reward?.merchantName ?? reward?.merchantId ?? "Comercio aliado",
+        merchantName:
+          reward?.merchantName ?? reward?.merchantId ?? "Comercio aliado",
       },
     });
   };
@@ -167,7 +284,13 @@ export default function RewardDetailScreen() {
         rewardCost: reward.cost,
         rewardTitle: reward.title,
       });
-      setLastRedemption({ id: redemption.id, qrUrl: redemption.qrUrl });
+      setLastRedemption({
+        id: redemption.id,
+        status: redemption.status,
+        qrUrl: redemption.qrUrl,
+        createdAt: redemption.createdAt ?? null,
+        createdAtDate: new Date(),
+      });
       refreshFromServer().catch(() => {});
       Alert.alert("Canje generado", "Tu cupón está listo para validar.", [
         {
@@ -188,12 +311,29 @@ export default function RewardDetailScreen() {
   };
 
   const pointsAvailable = profile.total ?? 0;
+  const hasActiveRedemption =
+    !!lastRedemption && lastRedemption.status !== "redeemed";
+  const redemptionStatusLabel = getStatusLabel(lastRedemption?.status);
+  const redemptionCreatedAt = lastRedemption?.createdAtDate ?? null;
+  const redemptionExpiresAt = redemptionCreatedAt
+    ? new Date(redemptionCreatedAt.getTime() + 30 * 24 * 60 * 60 * 1000)
+    : null;
+  const cityLabel = getCityLabel(reward?.cityId ?? null, selectedCity);
   const canRedeem =
     !!reward &&
     !redeeming &&
     !loadingPoints &&
+    !loadingLastRedemption &&
+    !hasActiveRedemption &&
     pointsAvailable >= reward.cost &&
     !!firebaseUid;
+  const primaryButtonText = redeeming
+    ? "Generando cupón..."
+    : hasActiveRedemption
+    ? "Ya tienes un cupón pendiente"
+    : loadingLastRedemption
+    ? "Consultando canjes previos..."
+    : "Canjear y generar cupón";
 
   return (
     <View style={styles.container}>
@@ -253,13 +393,9 @@ export default function RewardDetailScreen() {
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Ciudad:</Text>
               <Text style={styles.infoValue}>
-                {reward.cityId || "Disponible en tu cuenta"}
+                {cityLabel}
               </Text>
             </View>
-            <Text style={styles.helperText}>
-              Se generará un cupón en estado pendiente con un QR para validación
-              del comercio. Tu saldo no se descuenta en esta etapa.
-            </Text>
           </View>
 
           <View style={styles.infoCard}>
@@ -283,6 +419,36 @@ export default function RewardDetailScreen() {
             </View>
           </View>
 
+          {hasActiveRedemption && lastRedemption ? (
+            <View style={styles.pendingAlert}>
+              <Text style={styles.pendingAlertTitle}>Cupón pendiente</Text>
+              <View style={styles.pendingBody}>
+                <Text style={styles.pendingEmoji}>🎟️</Text>
+                <View style={{ flex: 1, gap: 6 }}>
+                  <Text style={styles.pendingHighlight}>
+                    ¡Tienes un cupón activo para este comercio!
+                  </Text>
+                  <Text style={styles.pendingAlertText}>
+                    Toca <Text style={styles.pendingBold}>“Ver QR”</Text> y
+                    muéstralo al personal para validar tu canje.
+                  </Text>
+                  <Text style={styles.pendingAlertText}>
+                    Al marcarlo como <Text style={styles.pendingBold}>canjeado</Text>,
+                    podrás generar otro. Vence en{" "}
+                    <Text style={styles.pendingBold}>30 días</Text> desde su creación.
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.pendingStatus}>
+                Estado: {redemptionStatusLabel}
+              </Text>
+              <Text style={styles.pendingDates}>
+                Creado: {formatDateShort(redemptionCreatedAt)} · Expira:{" "}
+                {formatDateShort(redemptionExpiresAt)}
+              </Text>
+            </View>
+          ) : null}
+
           <View style={{ gap: 10 }}>
             <TouchableOpacity
               style={[
@@ -292,12 +458,10 @@ export default function RewardDetailScreen() {
               onPress={handleRedeem}
               disabled={!canRedeem || redeeming}
             >
-              <Text style={styles.primaryButtonText}>
-                {redeeming ? "Generando cupón..." : "Canjear y generar cupón"}
-              </Text>
+              <Text style={styles.primaryButtonText}>{primaryButtonText}</Text>
             </TouchableOpacity>
 
-            {lastRedemption ? (
+            {hasActiveRedemption && lastRedemption ? (
               <TouchableOpacity
                 style={styles.secondaryButton}
                 onPress={() =>
@@ -430,6 +594,59 @@ const styles = StyleSheet.create({
     fontFamily: "barlow-semibold",
     fontSize: 18,
     color: Colors.NAVY_BLUE,
+  },
+  pendingAlert: {
+    backgroundColor: "#0f172a",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#0b1224",
+    gap: 4,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  pendingAlertTitle: {
+    fontFamily: "barlow-semibold",
+    color: "white",
+    fontSize: 15,
+  },
+  pendingAlertText: {
+    fontFamily: "barlow-regular",
+    color: "rgba(255,255,255,0.92)",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  pendingStatus: {
+    fontFamily: "barlow-medium",
+    color: "rgba(255,255,255,0.9)",
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  pendingDates: {
+    fontFamily: "barlow-medium",
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  pendingBody: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+  pendingEmoji: {
+    fontSize: 20,
+  },
+  pendingHighlight: {
+    fontFamily: "barlow-semibold",
+    color: "white",
+    fontSize: 14,
+  },
+  pendingBold: {
+    fontFamily: "barlow-semibold",
+    color: "white",
   },
   primaryButton: {
     backgroundColor: Colors.PRIMARY,

@@ -337,7 +337,7 @@ service cloud.firestore {
       // - get: pública para que /canje?id=... pueda consultar el cupón por ID
       // - list: bloqueada para evitar enumerar cupones
       allow get: if true;
-      allow list: if false;
+      allow list: if request.auth != null && resource.data.userId == request.auth.uid;
 
       // Creación desde la app (mismas validaciones que tenías)
       allow create: if request.auth != null

@@ -75,6 +75,9 @@ export const createRedemptionWithPoints = functions
 
     const redemptionRef = db.collection("redemptions").doc();
     const now = admin.firestore.Timestamp.now();
+    const expiresAt = admin.firestore.Timestamp.fromMillis(
+      now.toMillis() + 30 * 24 * 60 * 60 * 1000
+    );
 
     let qrUrl = "";
     let newTotal = 0;
@@ -160,7 +163,7 @@ export const createRedemptionWithPoints = functions
         merchantId,
         status: "pending",
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        expiresAt: null,
+        expiresAt,
         qrUrl,
         cityId: cityId ?? rewardData.cityId ?? null,
         appVersion: null,

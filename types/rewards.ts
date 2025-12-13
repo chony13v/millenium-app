@@ -11,7 +11,12 @@ export type Reward = {
   imageUrl?: string | null;
 };
 
-export type RedemptionStatus = "pending" | "validated" | "rejected" | "expired";
+export type RedemptionStatus =
+  | "pending"
+  | "redeemed"
+  | "validated"
+  | "rejected"
+  | "expired";
 
 export type Redemption = {
   id: string;
