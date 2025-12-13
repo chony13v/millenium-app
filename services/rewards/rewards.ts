@@ -14,6 +14,20 @@ const mapReward = (id: string, data: Partial<Reward>): Reward => ({
   merchantName: data.merchantName ?? data.merchantId ?? "Comercio aliado",
   cityId: data.cityId ?? null,
   imageUrl: data.imageUrl ?? null,
+  isLimited: data.isLimited ?? false,
+  totalAvailable:
+    typeof data.totalAvailable === "number"
+      ? data.totalAvailable
+      : data.totalAvailable != null
+      ? Number(data.totalAvailable)
+      : null,
+  remaining:
+    typeof data.remaining === "number"
+      ? data.remaining
+      : data.remaining != null
+      ? Number(data.remaining)
+      : null,
+  status: (data.status as Reward["status"]) ?? null,
 });
 
 export const fetchRewards = async (

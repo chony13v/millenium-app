@@ -19,6 +19,10 @@ type RewardDoc = {
   merchantId?: string;
   cityId?: string | null;
   title?: string;
+  isLimited?: boolean;
+  totalAvailable?: number;
+  remaining?: number;
+  status?: string;
 };
 
 const buildRedemptionQrUrl = (redemptionId: string) =>
@@ -138,6 +142,37 @@ export const createRedemptionWithPoints = functions
         );
       }
 
+      const isLimited = rewardData.isLimited === true;
+      const remaining =
+        typeof rewardData.remaining === "number"
+          ? rewardData.remaining
+          : Number.isFinite(rewardData.remaining)
+          ? Number(rewardData.remaining)
+          : null;
+
+      if (isLimited) {
+        if (remaining == null || remaining <= 0) {
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "Recompensa agotada."
+          );
+        }
+
+        const existingRedemptionSnap = await tx.get(
+          db
+            .collection("redemptions")
+            .where("userId", "==", uid)
+            .where("rewardId", "==", rewardId)
+            .limit(1)
+        );
+        if (!existingRedemptionSnap.empty) {
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "Ya canjeaste esta recompensa."
+          );
+        }
+      }
+
       qrUrl = buildRedemptionQrUrl(redemptionRef.id);
 
       const awardResult = await awardPointsTransaction(tx, {
@@ -169,6 +204,14 @@ export const createRedemptionWithPoints = functions
         appVersion: null,
       });
 
+      if (isLimited) {
+        const nextRemaining = Math.max((remaining ?? 0) - 1, 0);
+        tx.update(rewardRef, {
+          remaining: nextRemaining,
+          status: nextRemaining <= 0 ? "sold_out" : rewardData.status ?? "active",
+        });
+      }
+
       functions.logger.info("[rewards] redemption_created", {
         redemptionId: redemptionRef.id,
         rewardId,
@@ -188,6 +231,10 @@ export const createRedemptionWithPoints = functions
       userId: uid,
       merchantId: merchantId ?? null,
       rewardId,
+      remaining:
+        typeof rewardData.remaining === "number"
+          ? Math.max(rewardData.remaining - 1, 0)
+          : null,
     };
   });
 

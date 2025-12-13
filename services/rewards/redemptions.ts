@@ -21,7 +21,9 @@ export const createRedemption = async ({
   cityId,
   rewardCost,
   rewardTitle,
-}: CreateRedemptionInput): Promise<Redemption & { newTotal?: number }> => {
+}: CreateRedemptionInput): Promise<
+  Redemption & { newTotal?: number; remaining?: number }
+> => {
   const functions = getFunctions(app, "us-central1");
   const callable = httpsCallable(functions, "createRedemptionWithPoints");
   const result = await callable({
@@ -40,6 +42,7 @@ export const createRedemption = async ({
     userId?: string;
     rewardId: string;
     merchantId: string;
+    remaining?: number;
   };
 
   return {
@@ -54,6 +57,7 @@ export const createRedemption = async ({
     cityId: cityId ?? null,
     appVersion: null,
     newTotal: data.newTotal,
+    remaining: data.remaining,
   };
 };
 

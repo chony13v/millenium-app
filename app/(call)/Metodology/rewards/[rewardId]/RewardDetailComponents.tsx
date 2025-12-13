@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, TouchableOpacity, View, StyleSheet } from "react-native";
+import { Text, TouchableOpacity, View, StyleSheet, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -21,28 +21,39 @@ export const RewardDetailHeader = ({ onBack }: { onBack: () => void }) => (
 );
 
 export const RewardHero = ({ reward }: { reward: Reward }) => (
-  <LinearGradient
-    colors={["#0f172a", "#1e3a8a"]}
-    start={[0, 0]}
-    end={[1, 1]}
-    style={styles.hero}
-  >
-    <Text style={styles.heroBadge}>
-      {reward.cost} pts · {reward.merchantName || reward.merchantId}
-    </Text>
-    <Text style={styles.heroTitle}>{reward.title}</Text>
-    {reward.description ? (
-      <Text style={styles.heroSubtitle}>{reward.description}</Text>
+  <View style={styles.hero}>
+    {reward.imageUrl ? (
+      <Image source={{ uri: reward.imageUrl }} style={styles.heroImage} />
     ) : null}
-  </LinearGradient>
+    <LinearGradient
+      colors={["rgba(15,23,42,0.9)", "rgba(30,58,138,0.7)"]}
+      start={[0, 0]}
+      end={[1, 1]}
+      style={styles.heroOverlay}
+    >
+      <Text style={styles.heroBadge}>
+        {reward.cost} pts · {reward.merchantName || reward.merchantId}
+      </Text>
+      <Text style={styles.heroTitle}>{reward.title}</Text>
+      {reward.description ? (
+        <Text style={styles.heroSubtitle}>{reward.description}</Text>
+      ) : null}
+    </LinearGradient>
+  </View>
 );
 
 export const RedemptionInfoCard = ({
   reward,
   cityLabel,
+  remaining,
+  isLimited,
+  soldOut,
 }: {
   reward: Reward;
   cityLabel: string;
+  remaining?: number | null;
+  isLimited?: boolean;
+  soldOut?: boolean;
 }) => (
   <View style={styles.infoCard}>
     <Text style={styles.sectionTitle}>Detalles del canje</Text>
@@ -60,6 +71,16 @@ export const RedemptionInfoCard = ({
       <Text style={styles.infoLabel}>Ciudad:</Text>
       <Text style={styles.infoValue}>{cityLabel}</Text>
     </View>
+    {isLimited ? (
+      <View style={styles.infoRow}>
+        <Text style={styles.infoLabel}>Cupos:</Text>
+        <Text
+          style={[styles.infoValue, soldOut && { color: "#b91c1c" }]}
+        >
+          {soldOut ? "Agotada" : `${remaining ?? 0} disponibles`}
+        </Text>
+      </View>
+    ) : null}
   </View>
 );
 
@@ -201,13 +222,25 @@ export const styles = StyleSheet.create({
   hero: {
     width: "100%",
     borderRadius: 16,
-    padding: 16,
-    gap: 8,
+    overflow: "hidden",
+    backgroundColor: "#0f172a",
     shadowColor: "#0f172a",
     shadowOpacity: 0.16,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 10 },
     elevation: 6,
+    minHeight: 180,
+  },
+  heroImage: {
+    width: "100%",
+    height: 200,
+  },
+  heroOverlay: {
+    position: "absolute",
+    inset: 0,
+    padding: 16,
+    gap: 8,
+    justifyContent: "flex-end",
   },
   heroBadge: {
     backgroundColor: "rgba(255,255,255,0.18)",

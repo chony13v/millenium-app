@@ -38,7 +38,7 @@ export default function LoadingBall({
     <View style={styles.loadingContainer}>
       <Animated.View
         style={[
-          styles.soccerBall,
+          styles.loadingIcon,
           {
             transform: [{ translateY: bounce }],
           },
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "white",
   },
-  soccerBall: {
+  loadingIcon: {
     marginBottom: 20,
   },
   loadingText: {

@@ -3,7 +3,7 @@ import { runTransaction, type Firestore, type Transaction } from "firebase/fires
 // Retries Firestore transactions on transient contention errors.
 const RETRYABLE_CODES = new Set(["failed-precondition", "aborted"]);
 const BASE_DELAY_MS = 50;
-const DEFAULT_ATTEMPTS = 5;
+const DEFAULT_ATTEMPTS = 8;
 
 const delay = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -18,6 +18,7 @@ export const runTransactionWithRetry = async <T>(
 
   for (let attempt = 0; attempt < attempts; attempt++) {
     try {
+      // Usamos un único intento interno y manejamos el backoff manualmente
       return await runTransaction(db, executor, { maxAttempts: 1 });
     } catch (err: any) {
       lastError = err;

@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,6 +30,15 @@ const RewardCard = ({
     activeOpacity={0.9}
     onPress={() => onPress(reward)}
   >
+    {reward.imageUrl ? (
+      <View style={styles.cardImageBox}>
+        <Image
+          source={{ uri: reward.imageUrl }}
+          style={styles.cardImage}
+          resizeMode="cover"
+        />
+      </View>
+    ) : null}
     <View style={styles.cardHeader}>
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={styles.cardTitle}>{reward.title}</Text>
@@ -149,6 +159,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "barlow-regular",
     color: "#475569",
+  },
+  cardImageBox: {
+    width: "100%",
+    height: 140,
+    borderRadius: 14,
+    overflow: "hidden",
+    marginBottom: 8,
+    backgroundColor: "#e2e8f0",
+  },
+  cardImage: {
+    width: "100%",
+    height: "100%",
   },
   listContent: {
     paddingHorizontal: 16,

@@ -1,15 +1,8 @@
 import { type Reward } from "@/types/rewards";
 
 export const FALLBACK_REWARDS: Reward[] = [
-  {
-    id: "Entrada doble a evento municipal",
-    title: "Entrada doble a evento municipal",
-    description: "Válido para eventos gratuitos destacados del mes.",
-    cost: 100,
-    merchantId: "alcaldia_riobamba",
-    merchantName: "Alcaldía de Riobamba",
-    cityId: "riobamba",
-  },
+  
+
   {
     id: "10% de cashback en tu próxima compra",
     title: "10% de cashback en tu próxima compra",

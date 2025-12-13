@@ -9,6 +9,10 @@ export type Reward = {
   merchantName?: string;
   cityId?: string | null;
   imageUrl?: string | null;
+  isLimited?: boolean;
+  totalAvailable?: number | null;
+  remaining?: number | null;
+  status?: "active" | "sold_out" | null;
 };
 
 export type RedemptionStatus =

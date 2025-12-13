@@ -185,18 +185,24 @@ export default function RewardDetailScreen() {
     fetchLatestRedemptionForReward(firebaseUid, rewardId)
       .then((redemption) => {
         if (cancelled) return;
-        if (redemption && redemption.status !== "redeemed") {
+        if (redemption) {
           const createdAtDate =
             redemption.createdAt && "toDate" in redemption.createdAt
               ? redemption.createdAt.toDate()
               : null;
-          setLastRedemption({
-            id: redemption.id,
-            status: redemption.status,
-            qrUrl: redemption.qrUrl,
-            createdAt: redemption.createdAt ?? null,
-            createdAtDate,
-          });
+          const shouldKeep =
+            reward?.isLimited === true || redemption.status !== "redeemed";
+          setLastRedemption(
+            shouldKeep
+              ? {
+                  id: redemption.id,
+                  status: redemption.status,
+                  qrUrl: redemption.qrUrl,
+                  createdAt: redemption.createdAt ?? null,
+                  createdAtDate,
+                }
+              : null
+          );
         } else {
           setLastRedemption(null);
         }
@@ -212,7 +218,7 @@ export default function RewardDetailScreen() {
     return () => {
       cancelled = true;
     };
-  }, [firebaseUid, rewardId]);
+  }, [firebaseUid, rewardId, reward?.isLimited]);
 
   useEffect(() => {
     if (!lastRedemption || lastRedemption.status === "redeemed") return;
@@ -265,6 +271,13 @@ export default function RewardDetailScreen() {
       Alert.alert("No disponible", "No encontramos esta recompensa.");
       return;
     }
+    if (reward.isLimited && lastRedemption) {
+      Alert.alert(
+        "Ya canjeaste esta recompensa",
+        "Solo puedes canjear una vez por usuario."
+      );
+      return;
+    }
     if (!firebaseUid) {
       Alert.alert("Inicia sesión", "Necesitas una sesión activa para canjear.");
       return;
@@ -286,6 +299,16 @@ export default function RewardDetailScreen() {
         rewardCost: reward.cost,
         rewardTitle: reward.title,
       });
+      if (reward.isLimited) {
+        const nextRemaining =
+          redemption.remaining ??
+          (typeof reward.remaining === "number"
+            ? Math.max(reward.remaining - 1, 0)
+            : reward.remaining ?? null);
+        setReward((prev) =>
+          prev ? { ...prev, remaining: nextRemaining } : prev
+        );
+      }
       setLastRedemption({
         id: redemption.id,
         status: redemption.status,
@@ -320,6 +343,9 @@ export default function RewardDetailScreen() {
   const redemptionExpiresAt = redemptionCreatedAt
     ? new Date(redemptionCreatedAt.getTime() + 30 * 24 * 60 * 60 * 1000)
     : null;
+  const remaining = reward?.remaining;
+  const isLimited = reward?.isLimited;
+  const soldOut = isLimited && (remaining ?? 0) <= 0;
   const cityLabel = getCityLabel(reward?.cityId ?? null, selectedCity);
   const canRedeem =
     !!reward &&
@@ -327,6 +353,7 @@ export default function RewardDetailScreen() {
     !loadingPoints &&
     !loadingLastRedemption &&
     !hasActiveRedemption &&
+    !soldOut &&
     pointsAvailable >= reward.cost &&
     !!firebaseUid;
   const primaryButtonText = redeeming
@@ -358,7 +385,13 @@ export default function RewardDetailScreen() {
         >
           <RewardHero reward={reward} />
 
-          <RedemptionInfoCard reward={reward} cityLabel={cityLabel} />
+          <RedemptionInfoCard
+            reward={reward}
+            cityLabel={cityLabel}
+            remaining={remaining}
+            isLimited={isLimited}
+            soldOut={soldOut}
+          />
 
           <PointsBalanceCard
             pointsAvailable={pointsAvailable}
