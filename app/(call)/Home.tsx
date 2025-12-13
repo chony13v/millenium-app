@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import DrawerLayout from "react-native-gesture-handler/DrawerLayout";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import Academy from "@/components/home/Academy";
 import { useRouter } from "expo-router";
@@ -18,12 +17,37 @@ import DrawerContent from "@/components/DrawerContent";
 import SignOutDialog from "@/components/SignOutDialog";
 import CategoryIcons from "@/components/home/Category";
 import News from "@/components/home/News";
+import useFonts from "@/hooks/useFonts";
+import LoadingBall from "@/components/LoadingBall";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { CITY_OPTIONS } from "@/constants/cities";
 import { useUser } from "@clerk/clerk-expo";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 import { logSponsorClick } from "@/services/analytics/sponsorClicks";
+
+const buildInitials = (
+  firstName?: string | null,
+  lastName?: string | null,
+  fullName?: string | null
+) => {
+  const first = firstName?.trim();
+  const last = lastName?.trim();
+  if (first || last) {
+    const firstInitial = first?.[0]?.toUpperCase() ?? "";
+    const lastInitial = last?.[0]?.toUpperCase() ?? "";
+    return `${firstInitial}${lastInitial}`.trim() || firstInitial || lastInitial || "CF";
+  }
+  if (fullName) {
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length) {
+      const firstInitial = parts[0][0]?.toUpperCase() ?? "";
+      const lastInitial = parts.length > 1 ? parts[parts.length - 1][0]?.toUpperCase() ?? "" : "";
+      return `${firstInitial}${lastInitial}`.trim() || firstInitial || "CF";
+    }
+  }
+  return "CF";
+};
 
 export default function HomeScreen() {
   const drawerRef = useRef<DrawerLayout>(null);
@@ -32,6 +56,7 @@ export default function HomeScreen() {
   const { selectedCity } = useCitySelection();
   const { user } = useUser();
   const { firebaseUid } = useFirebaseUid();
+  const fontsLoaded = useFonts();
   const selectedCityInfo = CITY_OPTIONS.find(
     (city) => city.id === selectedCity
   );
@@ -84,6 +109,14 @@ export default function HomeScreen() {
     Linking.openURL("https://www.milleniumfc.com/").catch(() => {});
   };
 
+  const handleGoToClub = () => {
+    router.navigate("/(call)/Metodology?scrollTo=profile");
+  };
+
+  if (!fontsLoaded) {
+    return <LoadingBall text="Cargando..." />;
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <DrawerLayout
@@ -108,29 +141,37 @@ export default function HomeScreen() {
               { paddingBottom: 32 + insets.bottom },
             ]}
           >
-            <LinearGradient
-              colors={["#1e3a8a", "#1e3a8a"]}
-              start={[0, 0]}
-              end={[1, 1]}
-              style={styles.heroCard}
-            >
+            <View style={styles.heroCard}>
               <View style={styles.heroTopRow}>
                 <TouchableOpacity
                   onPress={() => drawerRef.current?.openDrawer()}
                   style={styles.menuButton}
                   activeOpacity={0.9}
                 >
-                  <Ionicons name="menu" size={22} color="white" />
+                  <Ionicons name="menu" size={22} color="#0f172a" />
                 </TouchableOpacity>
-                <Text style={styles.greetingText}>
-                  Hola, {user?.firstName || user?.fullName || "Ciudad FC"}
-                </Text>
+                <Text style={styles.brandTitle}>CIUDAD FC</Text>
+                <TouchableOpacity
+                  onPress={handleGoToClub}
+                  activeOpacity={0.85}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <View style={styles.initialsBadge}>
+                    <Text style={styles.greetingText}>
+                      {buildInitials(
+                        user?.firstName,
+                        user?.lastName,
+                        user?.fullName
+                      )}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
               </View>
 
               <Text style={styles.heroSubtitle}>
-                Participa y vive el deporte en tu ciudad
+                Participa y vive el deporte y la cultura en tu ciudad
               </Text>
-            </LinearGradient>
+            </View>
             <View style={styles.logoContainer}>
               <Text style={styles.sponsorLabel}>Con el auspicio de:</Text>
               <View style={styles.logoRow}>
@@ -231,16 +272,18 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     marginTop: 6,
-    padding: 16,
-    borderRadius: 18,
+    padding: 0,
+    borderRadius: 0,
     width: "100%",
     minHeight: 100,
     gap: 10,
-    shadowColor: "#1e3a8a",
-    shadowOpacity: 0.18,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    shadowColor: "transparent",
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
   heroBadgeRow: {
     flexDirection: "row",
@@ -265,15 +308,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   heroTitle: {
-    color: "white",
+    color: "#0f172a",
     fontFamily: "barlow-semibold",
     fontSize: 22,
     marginTop: 12,
     lineHeight: 28,
   },
   heroSubtitle: {
-    color: "rgba(255,255,255,0.9)",
-    fontFamily: "barlow-regular",
+    color: "#0f172a",
+    fontFamily: "barlow-medium",
     fontSize: 14,
     lineHeight: 20,
     marginTop: 4,
@@ -320,18 +363,39 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
   },
+  initialsBadge: {
+    minWidth: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#0f172a",
+    borderWidth: 1,
+    borderColor: "rgba(15,23,42,0.16)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 10,
+  },
   menuButton: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.16)",
+    backgroundColor: "rgba(15,23,42,0.08)",
     alignItems: "center",
     justifyContent: "center",
   },
   greetingText: {
-    color: "rgba(255,255,255,0.92)",
-    fontFamily: "barlow-medium",
-    fontSize: 14,
+    color: "white",
+    fontFamily: "barlow-extrabold",
+    fontSize: 15,
+    letterSpacing: 0.5,
+  },
+  brandTitle: {
+    position: "absolute",
+    left: "30%",
+    transform: [{ translateX: -45 }],
+    color: "#0f172a",
+    fontFamily: "bebas-regular",
+    fontSize: 30,
+    letterSpacing: 2,
   },
   logoContainer: {
     marginTop: 10,

@@ -13,6 +13,7 @@ export type PointsSectionProps = {
   hasAwardToday: UseMetodologyLogicReturn["hasAwardToday"];
   onActionPress: (action: PointAction) => void;
   onCatalogPress?: () => void;
+  onLayout?: (event: any) => void;
 };
 
 export const PointsSection: React.FC<PointsSectionProps> = ({
@@ -23,8 +24,9 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
   hasAwardToday,
   onActionPress,
   onCatalogPress,
+  onLayout,
 }) => (
-  <View style={styles.sectionCard}>
+  <View style={styles.sectionCard} onLayout={onLayout}>
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Cómo ganar puntos</Text>
       <TouchableOpacity

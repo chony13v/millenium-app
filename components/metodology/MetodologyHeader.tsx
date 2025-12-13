@@ -11,6 +11,7 @@ type Props = {
   progressValue: number;
   levelDisplay: number;
   xpToNext: number;
+  onLayout?: (event: any) => void;
 };
 
 export const MetodologyHeader: React.FC<Props> = ({
@@ -19,12 +20,14 @@ export const MetodologyHeader: React.FC<Props> = ({
   progressValue,
   levelDisplay,
   xpToNext,
+  onLayout,
 }) => (
   <LinearGradient
     colors={["#1e3a8a", "#1e3a8a"]}
     start={[0, 0]}
     end={[1, 1]}
     style={styles.heroCard}
+    onLayout={onLayout}
   >
     <View style={styles.heroTitlePill}>
       <Text style={styles.heroTitle}>Perfil de puntos de {greeting}</Text>

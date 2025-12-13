@@ -49,7 +49,9 @@ export const useMetodologyLogic = () => {
   const [sharing, setSharing] = useState(false);
   const [redeemInput, setRedeemInput] = useState("");
   const [redeeming, setRedeeming] = useState(false);
-  const [referralSectionY, setReferralSectionY] = useState(0);
+  const [referralSectionY, setReferralSectionY] = useState<number | null>(null);
+  const [pointsSectionY, setPointsSectionY] = useState<number | null>(null);
+  const [profileSectionY, setProfileSectionY] = useState<number | null>(null);
   const [ensureTried, setEnsureTried] = useState(false);
   const [socialModalVisible, setSocialModalVisible] = useState(false);
   const [processingPlatform, setProcessingPlatform] =
@@ -460,6 +462,10 @@ export const useMetodologyLogic = () => {
     handleActionPress,
     scrollRef,
     setReferralSectionY,
+    pointsSectionY,
+    setPointsSectionY,
+    profileSectionY,
+    setProfileSectionY,
     renderHistoryLabel,
     formatDate,
     POINT_ACTIONS,

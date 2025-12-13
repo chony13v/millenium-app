@@ -1,17 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, View } from "react-native";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useUser } from "@clerk/clerk-expo";
 
 import { db } from "@/config/FirebaseConfig";
@@ -27,6 +17,15 @@ import {
   createRedemption,
   fetchLatestRedemptionForReward,
 } from "@/services/rewards/redemptions";
+import {
+  PendingRedemptionAlert,
+  PointsBalanceCard,
+  RedemptionInfoCard,
+  RewardActions,
+  RewardDetailHeader,
+  RewardHero,
+  styles,
+} from "./[rewardId]/RewardDetailComponents";
 
 type LastRedemptionInfo = Pick<
   Redemption,
@@ -61,7 +60,10 @@ const formatDateShort = (date?: Date | null) => {
   }
 };
 
-const getCityLabel = (rewardCityId?: string | null, userCityId?: string | null) => {
+const getCityLabel = (
+  rewardCityId?: string | null,
+  userCityId?: string | null
+) => {
   const effectiveCity = rewardCityId || userCityId;
   if (!effectiveCity) return "Sin ciudad";
   const cityInfo = CITY_INFO_BY_ID[effectiveCity as CityId];
@@ -337,16 +339,7 @@ export default function RewardDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-          accessibilityLabel="Volver"
-        >
-          <Ionicons name="chevron-back" size={22} color="#0f172a" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Detalle de recompensa</Text>
-      </View>
+      <RewardDetailHeader onBack={() => router.back()} />
 
       {loadingReward && !reward ? (
         <View style={styles.loadingBox}>
@@ -363,314 +356,36 @@ export default function RewardDetailScreen() {
           contentContainerStyle={{ padding: 16, paddingBottom: 28, gap: 16 }}
           showsVerticalScrollIndicator={false}
         >
-          <LinearGradient
-            colors={["#0f172a", "#1e3a8a"]}
-            start={[0, 0]}
-            end={[1, 1]}
-            style={styles.hero}
-          >
-            <Text style={styles.heroBadge}>
-              {reward.cost} pts · {reward.merchantName || reward.merchantId}
-            </Text>
-            <Text style={styles.heroTitle}>{reward.title}</Text>
-            {reward.description ? (
-              <Text style={styles.heroSubtitle}>{reward.description}</Text>
-            ) : null}
-          </LinearGradient>
+          <RewardHero reward={reward} />
 
-          <View style={styles.infoCard}>
-            <Text style={styles.sectionTitle}>Detalles del canje</Text>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Comercio:</Text>
-              <Text style={styles.infoValue}>
-                {reward.merchantName || reward.merchantId}
-              </Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Costo:</Text>
-              <Text style={styles.infoValue}>{reward.cost} pts</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Ciudad:</Text>
-              <Text style={styles.infoValue}>
-                {cityLabel}
-              </Text>
-            </View>
-          </View>
+          <RedemptionInfoCard reward={reward} cityLabel={cityLabel} />
 
-          <View style={styles.infoCard}>
-            <Text style={styles.sectionTitle}>Tu saldo</Text>
-            <View style={styles.pointsRow}>
-              <View>
-                <Text style={styles.infoLabel}>Puntos disponibles</Text>
-                <Text style={styles.pointsValue}>{pointsAvailable} pts</Text>
-              </View>
-              <View>
-                <Text style={styles.infoLabel}>Requiere</Text>
-                <Text
-                  style={[
-                    styles.pointsValue,
-                    pointsAvailable < reward.cost && { color: "#b91c1c" },
-                  ]}
-                >
-                  {reward.cost} pts
-                </Text>
-              </View>
-            </View>
-          </View>
+          <PointsBalanceCard
+            pointsAvailable={pointsAvailable}
+            rewardCost={reward.cost}
+          />
 
           {hasActiveRedemption && lastRedemption ? (
-            <View style={styles.pendingAlert}>
-              <Text style={styles.pendingAlertTitle}>Cupón pendiente</Text>
-              <View style={styles.pendingBody}>
-                <Text style={styles.pendingEmoji}>🎟️</Text>
-                <View style={{ flex: 1, gap: 6 }}>
-                  <Text style={styles.pendingHighlight}>
-                    ¡Tienes un cupón activo para este comercio!
-                  </Text>
-                  <Text style={styles.pendingAlertText}>
-                    Toca <Text style={styles.pendingBold}>“Ver QR”</Text> y
-                    muéstralo al personal para validar tu canje.
-                  </Text>
-                  <Text style={styles.pendingAlertText}>
-                    Al marcarlo como <Text style={styles.pendingBold}>canjeado</Text>,
-                    podrás generar otro. Vence en{" "}
-                    <Text style={styles.pendingBold}>30 días</Text> desde su creación.
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.pendingStatus}>
-                Estado: {redemptionStatusLabel}
-              </Text>
-              <Text style={styles.pendingDates}>
-                Creado: {formatDateShort(redemptionCreatedAt)} · Expira:{" "}
-                {formatDateShort(redemptionExpiresAt)}
-              </Text>
-            </View>
+            <PendingRedemptionAlert
+              statusLabel={redemptionStatusLabel}
+              createdAtLabel={formatDateShort(redemptionCreatedAt)}
+              expiresAtLabel={formatDateShort(redemptionExpiresAt)}
+            />
           ) : null}
 
-          <View style={{ gap: 10 }}>
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                (!canRedeem || redeeming) && styles.buttonDisabled,
-              ]}
-              onPress={handleRedeem}
-              disabled={!canRedeem || redeeming}
-            >
-              <Text style={styles.primaryButtonText}>{primaryButtonText}</Text>
-            </TouchableOpacity>
-
-            {hasActiveRedemption && lastRedemption ? (
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() =>
-                  openQrScreen(lastRedemption.id, lastRedemption.qrUrl)
-                }
-              >
-                <Text style={styles.secondaryButtonText}>Ver QR</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
+          <RewardActions
+            onRedeem={handleRedeem}
+            onViewQr={
+              hasActiveRedemption && lastRedemption
+                ? () => openQrScreen(lastRedemption.id, lastRedemption.qrUrl)
+                : undefined
+            }
+            primaryButtonText={primaryButtonText}
+            disabled={!canRedeem || redeeming}
+            showViewQr={hasActiveRedemption && !!lastRedemption}
+          />
         </ScrollView>
       ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 10,
-  },
-  backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "#e2e8f0",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontFamily: "barlow-semibold",
-    fontSize: 18,
-    color: "#0f172a",
-  },
-  loadingBox: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-  },
-  loadingText: {
-    fontFamily: "barlow-medium",
-    color: "#334155",
-  },
-  errorText: {
-    paddingHorizontal: 16,
-    color: "#b91c1c",
-    fontFamily: "barlow-medium",
-  },
-  hero: {
-    padding: 18,
-    borderRadius: 16,
-    gap: 10,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-  },
-  heroBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "rgba(255,255,255,0.16)",
-    color: "white",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    fontFamily: "barlow-semibold",
-    fontSize: 12,
-  },
-  heroTitle: {
-    color: "white",
-    fontFamily: "barlow-semibold",
-    fontSize: 20,
-    lineHeight: 26,
-  },
-  heroSubtitle: {
-    color: "rgba(255,255,255,0.92)",
-    fontFamily: "barlow-regular",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  infoCard: {
-    backgroundColor: "#fff",
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    gap: 8,
-  },
-  sectionTitle: {
-    fontFamily: "barlow-semibold",
-    fontSize: 16,
-    color: "#0f172a",
-  },
-  infoRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  infoLabel: {
-    fontFamily: "barlow-medium",
-    color: "#475569",
-    fontSize: 13,
-  },
-  infoValue: {
-    fontFamily: "barlow-semibold",
-    color: "#0f172a",
-    fontSize: 13,
-  },
-  helperText: {
-    fontFamily: "barlow-regular",
-    color: "#475569",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  pointsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-  pointsValue: {
-    fontFamily: "barlow-semibold",
-    fontSize: 18,
-    color: Colors.NAVY_BLUE,
-  },
-  pendingAlert: {
-    backgroundColor: "#0f172a",
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#0b1224",
-    gap: 4,
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.16,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
-  },
-  pendingAlertTitle: {
-    fontFamily: "barlow-semibold",
-    color: "white",
-    fontSize: 15,
-  },
-  pendingAlertText: {
-    fontFamily: "barlow-regular",
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  pendingStatus: {
-    fontFamily: "barlow-medium",
-    color: "rgba(255,255,255,0.9)",
-    fontSize: 12,
-    letterSpacing: 0.3,
-  },
-  pendingDates: {
-    fontFamily: "barlow-medium",
-    color: "rgba(255,255,255,0.75)",
-    fontSize: 12,
-    letterSpacing: 0.2,
-  },
-  pendingBody: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-  },
-  pendingEmoji: {
-    fontSize: 20,
-  },
-  pendingHighlight: {
-    fontFamily: "barlow-semibold",
-    color: "white",
-    fontSize: 14,
-  },
-  pendingBold: {
-    fontFamily: "barlow-semibold",
-    color: "white",
-  },
-  primaryButton: {
-    backgroundColor: Colors.PRIMARY,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    color: "white",
-    fontFamily: "barlow-semibold",
-    fontSize: 15,
-  },
-  secondaryButton: {
-    backgroundColor: "#0f172a",
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    color: "white",
-    fontFamily: "barlow-semibold",
-    fontSize: 15,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-});

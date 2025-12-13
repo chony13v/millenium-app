@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import { HistorySection } from "@/components/metodology/HistorySection";
 import { MetodologyHeader } from "@/components/metodology/MetodologyHeader";
@@ -15,6 +15,8 @@ import { platformLabel } from "@/utils/metodologyUtils";
 export default function Metodology() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const params = useLocalSearchParams<{ scrollTo?: string }>();
+  const hasScrolledToAnchor = useRef(false);
   const {
     greeting,
     profile,
@@ -47,7 +49,32 @@ export default function Metodology() {
     formatDate,
     scrollRef,
     setReferralSectionY,
+    pointsSectionY,
+    setPointsSectionY,
+    profileSectionY,
+    setProfileSectionY,
   } = useMetodologyLogic();
+
+  useEffect(() => {
+    hasScrolledToAnchor.current = false;
+  }, [params.scrollTo]);
+
+  useEffect(() => {
+    if (hasScrolledToAnchor.current || !scrollRef.current) return;
+
+    const target =
+      params.scrollTo === "points"
+        ? pointsSectionY
+        : params.scrollTo === "profile"
+        ? profileSectionY
+        : null;
+
+    if (target == null) return;
+
+    const targetY = Math.max(target - 10, 0);
+    scrollRef.current.scrollTo({ y: targetY, animated: true });
+    hasScrolledToAnchor.current = true;
+  }, [params.scrollTo, pointsSectionY, profileSectionY, scrollRef]);
   return (
     <>
       <ScrollView
@@ -65,6 +92,9 @@ export default function Metodology() {
           progressValue={progressValue}
           levelDisplay={levelDisplay}
           xpToNext={xpToNext}
+          onLayout={(event) =>
+            setProfileSectionY(event.nativeEvent.layout.y ?? null)
+          }
         />
 
         <ReferralSection
@@ -88,6 +118,9 @@ export default function Metodology() {
           hasAwardToday={hasAwardToday}
           onActionPress={handleActionPress}
           onCatalogPress={() => router.push("/(call)/Metodology/rewards")}
+          onLayout={(event) =>
+            setPointsSectionY(event.nativeEvent.layout.y ?? null)
+          }
         />
 
         <HistorySection
