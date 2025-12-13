@@ -13,21 +13,20 @@ export default function AboutModal({ visible, onClose }: Props) {
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.title}>Acerca de Ciudad FC</Text>
-          <Text style={styles.version}>Versión 1.1</Text>
+          <Text style={styles.version}>Versión 2.1</Text>
           <Text style={styles.description}>
-            Ciudad FC App v1.1
+            Ciudad FC App
             {"\n\n"}Tu plataforma integral para torneos selectivos y comunidad
-            deportiva local.
+           local.
             {"\n\n"}Características principales:
             {"\n"}• Gestión de torneos
             {"\n"}• Registro de jugadores
             {"\n"}• Estadísticas en tiempo real
             {"\n"}• Notificaciones personalizadas
-            {"\n\n"}Desarrollado por Ciudad FC
-            {"\n"}© 2026 Ciudad FC. Todos los derechos reservados.
+            {"\n\n"}Desarrollado por Controvento LLC©
+            {"\n"}Todos los derechos reservados.
             {"\n\n"}Contáctanos:
-            {"\n"}ciudadfc.com
-            {"\n"}www.ciudadfc.com
+            {"\n"}www.controventofcg.com
           </Text>
           <TouchableOpacity style={styles.button} onPress={onClose}>
             <Text style={styles.buttonText}>Cerrar</Text>

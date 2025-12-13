@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import {
+  Animated,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,7 +8,9 @@ import {
   View,
   Image,
   Linking,
+  Dimensions,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import DrawerLayout from "react-native-gesture-handler/DrawerLayout";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
@@ -36,13 +39,19 @@ const buildInitials = (
   if (first || last) {
     const firstInitial = first?.[0]?.toUpperCase() ?? "";
     const lastInitial = last?.[0]?.toUpperCase() ?? "";
-    return `${firstInitial}${lastInitial}`.trim() || firstInitial || lastInitial || "CF";
+    return (
+      `${firstInitial}${lastInitial}`.trim() ||
+      firstInitial ||
+      lastInitial ||
+      "CF"
+    );
   }
   if (fullName) {
     const parts = fullName.trim().split(/\s+/);
     if (parts.length) {
       const firstInitial = parts[0][0]?.toUpperCase() ?? "";
-      const lastInitial = parts.length > 1 ? parts[parts.length - 1][0]?.toUpperCase() ?? "" : "";
+      const lastInitial =
+        parts.length > 1 ? parts[parts.length - 1][0]?.toUpperCase() ?? "" : "";
       return `${firstInitial}${lastInitial}`.trim() || firstInitial || "CF";
     }
   }
@@ -51,6 +60,7 @@ const buildInitials = (
 
 export default function HomeScreen() {
   const drawerRef = useRef<DrawerLayout>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { selectedCity } = useCitySelection();
@@ -113,6 +123,44 @@ export default function HomeScreen() {
     router.navigate("/(call)/Metodology?scrollTo=profile");
   };
 
+  type SponsorItem = {
+    id: string;
+    onPress: () => void;
+    label: string;
+    source: any;
+    gradient?: string[];
+  };
+
+  const sponsorItems: SponsorItem[] = [
+    {
+      id: "alcaldia",
+      onPress: handleOpenRiobamba,
+      label: "Abrir Alcaldía de Riobamba",
+      source: require("@/assets/images/logo_alcaldiaRiobamba.png"),
+      gradient: undefined,
+    },
+    {
+      id: "millenium",
+      onPress: handleOpenMillenium,
+      label: "Abrir Millenium FC",
+      source: require("@/assets/images/MFC_Logo.png"),
+      gradient: ["#7f5283", "#7f5283", "#7f5283"],
+    },
+    {
+      id: "bgr",
+      onPress: handleOpenBgr,
+      label: "Abrir BGR",
+      source: require("@/assets/images/bgr_logo.png"),
+      gradient: undefined,
+    },
+  ] as const;
+
+  const CARD_WIDTH = 300;
+  const CARD_HEIGHT = 200;
+  const CARD_SPACING = 18;
+  const { width: SCREEN_WIDTH } = Dimensions.get("window");
+  const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+
   if (!fontsLoaded) {
     return <LoadingBall text="Cargando..." />;
   }
@@ -173,45 +221,81 @@ export default function HomeScreen() {
               </Text>
             </View>
             <View style={styles.logoContainer}>
-              <Text style={styles.sponsorLabel}>Con el auspicio de:</Text>
-              <View style={styles.logoRow}>
-                <TouchableOpacity
-                  onPress={handleOpenRiobamba}
-                  activeOpacity={0.8}
-                  accessibilityRole="link"
-                  accessibilityLabel="Abrir Alcaldía de Riobamba"
-                >
-                  <Image
-                    source={require("@/assets/images/logo_alcaldiaRiobamba.png")}
-                    style={styles.cityLogo}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleOpenMillenium}
-                  activeOpacity={0.8}
-                  accessibilityRole="link"
-                  accessibilityLabel="Abrir Millenium FC"
-                >
-                  <Image
-                    source={require("@/assets/images/LogoFC.png")}
-                    style={styles.cityLogo}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={handleOpenBgr}
-                  activeOpacity={0.8}
-                  accessibilityRole="link"
-                  accessibilityLabel="Abrir BGR"
-                >
-                  <Image
-                    source={require("@/assets/images/logo-bgr-blue.png")}
-                    style={styles.cityLogo}
-                    resizeMode="contain"
-                  />
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.sponsorLabel}>AUSPICIANTES</Text>
+              <Animated.FlatList
+                data={sponsorItems}
+                keyExtractor={(item) => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={CARD_WIDTH + CARD_SPACING}
+                decelerationRate="fast"
+                snapToAlignment="center"
+                pagingEnabled={false}
+                disableIntervalMomentum
+                contentContainerStyle={[
+                  styles.sponsorScroll,
+                  { paddingHorizontal: SIDE_PADDING },
+                ]}
+                renderItem={({ item, index }) => {
+                  const inputRange = [
+                    (index - 1) * (CARD_WIDTH + CARD_SPACING),
+                    index * (CARD_WIDTH + CARD_SPACING),
+                    (index + 1) * (CARD_WIDTH + CARD_SPACING),
+                  ];
+                  const scale = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.9, 1, 0.92],
+                    extrapolate: "clamp",
+                  });
+                  const opacity = scrollX.interpolate({
+                    inputRange,
+                    outputRange: [0.65, 1, 0.7],
+                    extrapolate: "clamp",
+                  });
+                  return (
+                    <Animated.View
+                      style={[
+                        styles.sponsorCard,
+                        {
+                          width: CARD_WIDTH,
+                          height: CARD_HEIGHT,
+                          marginHorizontal: CARD_SPACING / 2,
+                          transform: [{ scale }],
+                          opacity,
+                        },
+                      ]}
+                    >
+                      <TouchableOpacity
+                        onPress={item.onPress}
+                        activeOpacity={0.9}
+                        accessibilityRole="link"
+                        accessibilityLabel={item.label}
+                        style={styles.sponsorCardInner}
+                      >
+                        <LinearGradient
+                          colors={
+                            item.gradient ? [...item.gradient] : ["#f8fafc", "#e2e8f0", "#cbd5e1"]
+                          }
+                          start={[0, 0]}
+                          end={[0, 1]}
+                          style={styles.sponsorCardGradient}
+                        >
+                          <Image
+                            source={item.source}
+                            style={styles.sponsorLogo}
+                            resizeMode="contain"
+                          />
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </Animated.View>
+                  );
+                }}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: true }
+                )}
+                scrollEventThrottle={16}
+              />
             </View>
 
             <View style={styles.sectionCard}>
@@ -398,40 +482,75 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
   logoContainer: {
-    marginTop: 10,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderRadius: 16,
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(36,44,68,0.08)",
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-    alignItems: "center",
+    marginTop: -20,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
+    borderRadius: 0,
+    backgroundColor: "transparent",
+    borderTopWidth: 0,
+    shadowColor: "transparent",
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
+    alignItems: "flex-start",
     justifyContent: "center",
-    gap: 12,
+    gap: 8,
   },
   cityLogo: {
     width: 150,
     height: 70,
   },
-  logoRow: {
-    flexDirection: "row",
+  sponsorScroll: {
+    paddingVertical: 4,
+    gap: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+  },
+  sponsorCard: {
+    width: 300,
+    height: 200,
+    borderRadius: 16,
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    borderColor: "transparent",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
     alignItems: "center",
     justifyContent: "center",
-    gap: 18,
+    padding: 0,
+  },
+  sponsorCardInner: {
+    flex: 1,
     width: "100%",
-    alignSelf: "center",
-    flexWrap: "wrap",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    overflow: "hidden",
+  },
+  sponsorCardGradient: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    padding: 10,
+  },
+  sponsorLogo: {
+    width: "100%",
+    height: "100%",
   },
   sponsorLabel: {
-    fontFamily: "barlow-medium",
-    fontSize: 15,
-    color: "#1f2937",
+    fontFamily: "barlow-semibold",
+    fontSize: 16,
+    color: "#0f172a",
     textAlign: "center",
+    alignSelf: "center",
   },
   sectionCard: {
     backgroundColor: "white",

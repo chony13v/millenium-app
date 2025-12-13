@@ -175,7 +175,7 @@ export default function SettingsScreen() {
             <View style={styles.aboutContent}>
               <View>
                 <Text style={styles.aboutButtonText}>Acerca de Ciudad FC</Text>
-                <Text style={styles.aboutVersion}>Versión 1.1</Text>
+                <Text style={styles.aboutVersion}>Versión 2.1</Text>
               </View>
             </View>
             <Ionicons

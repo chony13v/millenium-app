@@ -45,7 +45,7 @@ export default function LoadingBall({
         ]}
       >
         <Image
-          source={require("@/assets/images/soccer.png")}
+          source={require("@/assets/images/loading.png")}
           style={{ width: 40, height: 40 }}
         />
       </Animated.View>
