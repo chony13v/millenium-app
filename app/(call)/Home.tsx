@@ -298,7 +298,7 @@ export default function HomeScreen() {
               />
             </View>
 
-            <View style={styles.sectionCard}>
+            <View style={styles.sectionPlain}>
               <View style={styles.sectionHeader}>
                 <View>
                   <Text style={styles.sectionTitle}>Canales oficiales</Text>
@@ -310,7 +310,7 @@ export default function HomeScreen() {
               <CategoryIcons />
             </View>
 
-            <View style={styles.sectionCard}>
+            <View style={styles.sectionPlain}>
               <View style={styles.sectionHeader}>
                 <View>
                   <Text style={styles.sectionTitle}>Historias Ciudad FC</Text>
@@ -319,10 +319,12 @@ export default function HomeScreen() {
                   Videos
                 </Text>
               </View>
-              <Academy />
+              <View style={styles.academyFrame}>
+                <Academy />
+              </View>
             </View>
 
-            <View style={styles.sectionCard}>
+            <View style={styles.sectionPlain}>
               <View style={styles.sectionHeader}>
                 <View>
                   <Text style={styles.sectionTitle}>Noticias Ciudad FC</Text>
@@ -552,17 +554,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     alignSelf: "center",
   },
-  sectionCard: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#e2e8f0",
-    shadowColor: "#0f172a",
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 3,
+  sectionPlain: {
+    paddingHorizontal: 0,
+    paddingVertical: 4,
+  },
+  academyFrame: {
+    width: "100%",
+    alignItems: "center",
   },
   sectionHeader: {
     flexDirection: "row",
