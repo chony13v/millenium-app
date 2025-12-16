@@ -3,7 +3,7 @@
     "name": "Ciudad FC",
     "description": "Participa y vive el deporte y la cultura en tu ciudad con Ciudad FC.",
     "slug": "millenium-app",
-    "version": "2.1.1",
+    "version": "2.1.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon_square.png",
     "scheme": "millenium-app",
@@ -24,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.chony.milleniumapp",
-      "versionCode": 6,
+      "versionCode": 7,
       "permissions": [
         "CAMERA",
         "ACCESS_COARSE_LOCATION",
