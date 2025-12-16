@@ -70,7 +70,5 @@ export const fetchRewardById = async (
     console.warn("[rewards] No se pudo obtener detalle", error);
   }
 
-  return (
-    FALLBACK_REWARDS.find((reward) => reward.id === rewardId) ?? null
-  );
+  return FALLBACK_REWARDS.find((reward) => reward.id === rewardId) ?? null;
 };

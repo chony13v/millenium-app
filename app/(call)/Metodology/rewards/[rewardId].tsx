@@ -173,6 +173,56 @@ export default function RewardDetailScreen() {
   }, [rewardFromParams, rewardId]);
 
   useEffect(() => {
+    if (!rewardId) return undefined;
+
+    const rewardRef = doc(db, "rewards", rewardId);
+    const unsub = onSnapshot(
+      rewardRef,
+      (snap) => {
+        if (!snap.exists()) return;
+
+        const data = snap.data() as Partial<Reward>;
+        setReward((prev) => ({
+          id: rewardId,
+          title: data.title ?? prev?.title ?? "Recompensa",
+          description: data.description ?? prev?.description,
+          cost:
+            typeof data.cost === "number"
+              ? data.cost
+              : Number(data.cost ?? prev?.cost ?? 0),
+          merchantId: data.merchantId ?? prev?.merchantId ?? "merchant_unknown",
+          merchantName:
+            data.merchantName ??
+            data.merchantId ??
+            prev?.merchantId ??
+            "Comercio aliado",
+          cityId: data.cityId ?? prev?.cityId ?? null,
+          imageUrl: data.imageUrl ?? prev?.imageUrl ?? null,
+          isLimited: data.isLimited ?? prev?.isLimited ?? false,
+          totalAvailable:
+            typeof data.totalAvailable === "number"
+              ? data.totalAvailable
+              : data.totalAvailable != null
+              ? Number(data.totalAvailable)
+              : prev?.totalAvailable ?? null,
+          remaining:
+            typeof data.remaining === "number"
+              ? data.remaining
+              : data.remaining != null
+              ? Number(data.remaining)
+              : prev?.remaining ?? null,
+          status: (data.status as Reward["status"]) ?? prev?.status ?? null,
+        }));
+      },
+      (err) => {
+        console.warn("[rewards] No se pudo escuchar la recompensa", err);
+      }
+    );
+
+    return () => unsub();
+  }, [rewardId]);
+
+  useEffect(() => {
     let cancelled = false;
 
     if (!firebaseUid || !rewardId) {
@@ -299,14 +349,9 @@ export default function RewardDetailScreen() {
         rewardCost: reward.cost,
         rewardTitle: reward.title,
       });
-      if (reward.isLimited) {
-        const nextRemaining =
-          redemption.remaining ??
-          (typeof reward.remaining === "number"
-            ? Math.max(reward.remaining - 1, 0)
-            : reward.remaining ?? null);
+      if (reward.isLimited && typeof redemption.remaining === "number") {
         setReward((prev) =>
-          prev ? { ...prev, remaining: nextRemaining } : prev
+          prev ? { ...prev, remaining: redemption.remaining } : prev
         );
       }
       setLastRedemption({

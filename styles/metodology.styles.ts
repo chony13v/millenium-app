@@ -177,6 +177,9 @@ export const metodologyStyles = StyleSheet.create({
     fontFamily: "barlow-medium",
     fontSize: 12,
   },
+  sectionPlain: {
+    gap: 10,
+  },
   sectionCard: {
     backgroundColor: "white",
     borderRadius: 16,
@@ -194,6 +197,44 @@ export const metodologyStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
+  },
+  participationBadgeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "stretch",
+    width: "60%",
+    minWidth: "60%",
+    marginLeft: -16,
+    marginTop: 4,
+    marginBottom: 2,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.18,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  participationBadgeLabel: {
+    backgroundColor: "#0f1f4b",
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    flex: 1,
+  },
+  participationBadgeText: {
+    color: "#fff",
+    fontFamily: "barlow-semibold",
+    fontSize: 17,
+    letterSpacing: 0.3,
+  },
+  participationBadgeArrow: {
+    width: 0,
+    height: 0,
+    borderTopWidth: 26,
+    borderBottomWidth: 26,
+    borderLeftWidth: 38,
+    borderTopColor: "transparent",
+    borderBottomColor: "transparent",
+    borderLeftColor: "#0f1f4b",
+    marginLeft: 0,
   },
   sectionTitle: {
     fontSize: 18,
@@ -266,6 +307,13 @@ export const metodologyStyles = StyleSheet.create({
     padding: 12,
     gap: 8,
     backgroundColor: "#f8fafc",
+  },
+  actionCardPlain: {
+    borderWidth: 0,
+    borderRadius: 0,
+    backgroundColor: "#fff",
+    paddingHorizontal: 0,
+    paddingVertical: 10,
   },
   actionCardDisabled: {
     opacity: 0.7,
@@ -368,7 +416,18 @@ export const metodologyStyles = StyleSheet.create({
   actionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
     gap: 10,
+  },
+  actionIconBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: "transparent",
+    borderWidth: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 6,
   },
   actionTextCol: {
     flex: 1,
@@ -388,6 +447,24 @@ export const metodologyStyles = StyleSheet.create({
     fontFamily: "barlow-semibold",
     color: "#0ea5e9",
   },
+  actionPointsWrap: {
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
+    minWidth: 60,
+  },
+  actionPointUnderline: {
+    height: 1,
+    width: 44,
+    marginTop: 2,
+    borderRadius: 999,
+    alignSelf: "flex-start",
+  },
+  actionPointUnderlineSecondary: {
+    height: 1,
+    width: 36,
+    marginTop: 2,
+    alignSelf: "flex-start",
+  },
   actionFooter: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -400,6 +477,14 @@ export const metodologyStyles = StyleSheet.create({
     color: "#0f172a",
     flex: 1,
   },
+  actionFrequencyInline: {
+    marginTop: 2,
+    color: "#475569",
+    flex: 0,
+  },
+  actionFooterSpacer: {
+    flex: 1,
+  },
   statusBadge: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -407,6 +492,9 @@ export const metodologyStyles = StyleSheet.create({
     fontFamily: "barlow-semibold",
     fontSize: 12,
     alignSelf: "flex-start",
+  },
+  statusBadgeRaised: {
+    marginTop: -6,
   },
   badgeAvailable: {
     backgroundColor: "rgba(34,197,94,0.15)",

@@ -28,7 +28,7 @@ type PointsProfileDoc = {
 
 const DAILY_POINTS =
   POINT_ACTIONS.find((action) => action.eventType === "app_open_daily")
-    ?.points ?? 5;
+    ?.points ?? getPointsForActivity("app_open_daily");
 const DAILY_EVENT_TYPE: PointsEventType = "app_open_daily";
 
 export const hasEarnedDailyToday = (
@@ -52,7 +52,7 @@ export const getNextStreakCount = (
 
 const STREAK_MILESTONES = [7, 15, 23, 30];
 const MAX_STREAK_BONUS_PER_30DAYS = 100;
-const STREAK_BONUS_POINTS = getPointsForActivity("streak_bonus", 25);
+const STREAK_BONUS_POINTS = getPointsForActivity("streak_bonus");
 
 const pruneBonusHistory = (
   history: { awardedAt: Timestamp; points: number }[],

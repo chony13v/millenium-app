@@ -13,7 +13,7 @@ import {
 
 import { db } from "@/config/FirebaseConfig";
 import type { CityId } from "@/constants/cities";
-import { getLevelProgress, POINT_ACTIONS } from "@/constants/points";
+import { getLevelProgress } from "@/constants/points";
 import { getPointsForActivity } from "@/shared/pointsConfig";
 import type { AttendanceCoords } from "./types";
 import type { VerifyAttendanceResponse } from "./verifyWeeklyEventAttendance";
@@ -28,8 +28,7 @@ type VerifyWeeklyAttendanceFallbackParams = {
 };
 
 const WEEKLY_EVENT_POINTS =
-  POINT_ACTIONS.find((a) => a.eventType === "weekly_event_attendance")
-    ?.points ?? getPointsForActivity("weekly_event_attendance", 50);
+  getPointsForActivity("weekly_event_attendance");
 
 export const verifyWeeklyAttendanceFallback = async ({
   attendanceId,

@@ -1,10 +1,25 @@
 import React from "react";
-import { Dimensions, Text, TouchableOpacity, View } from "react-native";
-import ConfettiCannon from "react-native-confetti-cannon";
+import { Text, TouchableOpacity, View } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 
 import { type PointAction } from "@/constants/points";
 import { type UseMetodologyLogicReturn } from "@/hooks/useMetodologyLogic";
 import { metodologyStyles as styles } from "@/styles/metodology.styles";
+import { ConfettiBurst } from "./ConfettiBurst";
+
+const ACTION_ICONS: Record<
+  PointAction["id"],
+  keyof typeof MaterialIcons.glyphMap
+> = {
+  app_open_daily: "event-available",
+  poll_vote: "poll",
+  city_report_created: "report-problem",
+  weekly_event_attendance: "event-note",
+  social_follow: "group",
+  referral_signup: "person-add-alt",
+  streak_bonus: "whatshot",
+};
 
 export type PointsSectionProps = {
   actions: readonly PointAction[];
@@ -30,25 +45,18 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
   streakCount,
 }) => {
   const [confettiKey, setConfettiKey] = React.useState(0);
-  const { width, height } = Dimensions.get("window");
 
   const handleStreakPress = () => {
     setConfettiKey((prev) => prev + 1);
   };
 
   return (
-    <View style={styles.sectionCard} onLayout={onLayout}>
-      {confettiKey > 0 && (
-        <ConfettiCannon
-          key={`streak-confetti-${confettiKey}`}
-          autoStart
-          fadeOut
-          count={60}
-          origin={{ x: width / 2, y: height }}
-          colors={["#007BFF", "#FF0000"]}
-          onAnimationEnd={() => setConfettiKey(0)}
-        />
-      )}
+    <View style={styles.sectionPlain} onLayout={onLayout}>
+      <ConfettiBurst
+        runKey={confettiKey}
+        colors={["#007BFF", "#FF0000"]}
+        onComplete={() => setConfettiKey(0)}
+      />
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Cómo ganar puntos</Text>
@@ -60,10 +68,14 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
           <Text style={styles.catalogPill}>🎁 Premios</Text>
         </TouchableOpacity>
       </View>
-      <Text style={styles.sectionSubtitle}>
-        Acciones disponibles y su elegibilidad. La validación final la hace el
-        backend para evitar duplicados.
-      </Text>
+
+      <View style={styles.participationBadgeRow}>
+        <View style={styles.participationBadgeLabel}>
+          <Text style={styles.participationBadgeText}>Participación</Text>
+        </View>
+        <View style={styles.participationBadgeArrow} />
+      </View>
+
       {typeof streakCount === "number" && (
         <TouchableOpacity
           activeOpacity={0.85}
@@ -84,37 +96,72 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
         const isBlocked = isSocialAction
           ? isSocialBlocked
           : availability[action.eventType] === "blocked";
+        const iconName = ACTION_ICONS[action.id] ?? "check-circle";
         return (
-          <TouchableOpacity
-            key={action.id}
-            style={[styles.actionCard, isBlocked && styles.actionCardDisabled]}
-            disabled={
-              loading ||
-              isBlocked ||
-              (isSocialAction && (loadingSocialAvailability || loading))
-            }
-            onPress={() => onActionPress(action)}
-            accessibilityLabel={`Acción: ${action.title}`}
-          >
-            <View style={styles.actionHeader}>
-              <View style={styles.actionTextCol}>
-                <Text style={styles.actionTitle}>{action.title}</Text>
-                <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+          <View key={action.id}>
+            <TouchableOpacity
+              style={[
+                styles.actionCard,
+                styles.actionCardPlain,
+                isBlocked && styles.actionCardDisabled,
+              ]}
+              disabled={
+                loading ||
+                isBlocked ||
+                (isSocialAction && (loadingSocialAvailability || loading))
+              }
+              onPress={() => onActionPress(action)}
+              accessibilityLabel={`Acción: ${action.title}`}
+            >
+              <View style={styles.actionHeader}>
+                <View style={styles.actionIconBadge}>
+                  <MaterialIcons name={iconName} size={34} color="#0f1f4b" />
+                </View>
+                <View style={styles.actionTextCol}>
+                  <Text style={styles.actionTitle}>{action.title}</Text>
+                  <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
+                  <Text
+                    style={[
+                      styles.actionFrequency,
+                      styles.actionFrequencyInline,
+                    ]}
+                  >
+                    {action.frequency}
+                  </Text>
+                </View>
+                <View style={styles.actionPointsWrap}>
+                  <Text style={styles.actionPoints}>+{action.points} pts</Text>
+                  <LinearGradient
+                    colors={["#0f1f4b", "#ef4444"]}
+                    start={[0, 0.5]}
+                    end={[1, 0.5]}
+                    style={styles.actionPointUnderline}
+                  />
+                  <LinearGradient
+                    colors={["#0f1f4b", "#ef4444"]}
+                    start={[0, 0.5]}
+                    end={[1, 0.5]}
+                    style={[
+                      styles.actionPointUnderline,
+                      styles.actionPointUnderlineSecondary,
+                    ]}
+                  />
+                </View>
               </View>
-              <Text style={styles.actionPoints}>+{action.points} pts</Text>
-            </View>
-            <View style={styles.actionFooter}>
-              <Text style={styles.actionFrequency}>{action.frequency}</Text>
-              <Text
-                style={[
-                  styles.statusBadge,
-                  isBlocked ? styles.badgeBlocked : styles.badgeAvailable,
-                ]}
-              >
-                {isBlocked ? "No disponible" : "Disponible"}
-              </Text>
-            </View>
-          </TouchableOpacity>
+              <View style={styles.actionFooter}>
+                <View style={styles.actionFooterSpacer} />
+                <Text
+                  style={[
+                    styles.statusBadge,
+                    styles.statusBadgeRaised,
+                    isBlocked ? styles.badgeBlocked : styles.badgeAvailable,
+                  ]}
+                >
+                  {isBlocked ? "No disponible" : "Disponible"}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         );
       })}
     </View>

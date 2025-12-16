@@ -18,7 +18,7 @@ import { getPointsForActivity } from "@/shared/pointsConfig";
 const CITY_REPORT_EVENT: PointsEventType = "city_report_created";
 const CITY_REPORT_POINTS =
   POINT_ACTIONS.find((a) => a.eventType === CITY_REPORT_EVENT)?.points ??
-  getPointsForActivity(CITY_REPORT_EVENT, 30);
+  getPointsForActivity(CITY_REPORT_EVENT);
 
 type PointsProfileDoc = {
   total?: number;

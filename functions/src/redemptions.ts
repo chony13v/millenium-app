@@ -213,7 +213,8 @@ export const createRedemptionWithPoints = functions
         remainingAfterRedemption = nextRemaining;
         tx.update(rewardRef, {
           remaining: nextRemaining,
-          status: nextRemaining <= 0 ? "sold_out" : rewardData.status ?? "active",
+          status:
+            nextRemaining <= 0 ? "sold_out" : rewardData.status ?? "active",
         });
       }
 
@@ -360,4 +361,3 @@ export const confirmRedemptionWithPin = functions
       redeemedAt: updated?.redeemedAt ?? null,
     };
   });
-

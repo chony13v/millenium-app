@@ -37,10 +37,10 @@ const APP_DL_BASE_URL =
   process.env.EXPO_PUBLIC_APP_DL_BASE_URL || process.env.APP_DL_BASE_URL || "";
 const REFERRER_REWARD_POINTS =
   Number(process.env.EXPO_PUBLIC_REFERRER_REWARD_POINTS) ||
-  getPointsForActivity("referral_reward_referrer", 200);
+  getPointsForActivity("referral_reward_referrer");
 const REDEEMER_REWARD_POINTS =
   Number(process.env.EXPO_PUBLIC_REDEEMER_REWARD_POINTS) ||
-  getPointsForActivity("referral_reward_redeemer", 100);
+  getPointsForActivity("referral_reward_redeemer");
 
 export const useMetodologyLogic = () => {
   const router = useRouter();
@@ -53,6 +53,7 @@ export const useMetodologyLogic = () => {
   const [sharing, setSharing] = useState(false);
   const [redeemInput, setRedeemInput] = useState("");
   const [redeeming, setRedeeming] = useState(false);
+  const [confettiKey, setConfettiKey] = useState(0);
   const [referralSectionY, setReferralSectionY] = useState<number | null>(null);
   const [pointsSectionY, setPointsSectionY] = useState<number | null>(null);
   const [profileSectionY, setProfileSectionY] = useState<number | null>(null);
@@ -142,6 +143,9 @@ export const useMetodologyLogic = () => {
     appStoreUrl: APP_STORE_URL,
     appDlBaseUrl: APP_DL_BASE_URL,
   } as const;
+
+  const triggerConfetti = () => setConfettiKey((prev) => prev + 1);
+  const handleConfettiComplete = () => setConfettiKey(0);
 
   const handleGenerateCode = async () => {
     if (loadingCode) return;
@@ -270,6 +274,7 @@ export const useMetodologyLogic = () => {
           `Código registrado: ${result.codeUsed ?? codeTrimmed}`
         );
       } else if (result.success) {
+        triggerConfetti();
         Alert.alert(
           result.message ?? "✅ Canje realizado",
           `Sumaste ${result.redeemerPoints ?? 100} pts. El referente ganó ${
@@ -483,6 +488,8 @@ export const useMetodologyLogic = () => {
     processingPlatform,
     handleSocialLinkPress,
     memberSince,
+    confettiKey,
+    handleConfettiComplete,
   } as const;
 };
 

@@ -9,6 +9,7 @@ import { MetodologyHeader } from "@/components/metodology/MetodologyHeader";
 import { PointsSection } from "@/components/metodology/PointsSection";
 import { ReferralSection } from "@/components/metodology/ReferralSection";
 import { SocialModal } from "@/components/metodology/SocialModal";
+import { ConfettiBurst } from "@/components/metodology/ConfettiBurst";
 import { useMetodologyLogic } from "@/hooks/useMetodologyLogic";
 import { metodologyStyles as styles } from "@/styles/metodology.styles";
 import { platformLabel } from "@/utils/metodologyUtils";
@@ -60,6 +61,8 @@ export default function Metodology() {
     profileSectionY,
     setProfileSectionY,
     memberSince,
+    confettiKey,
+    handleConfettiComplete,
   } = useMetodologyLogic();
 
   useEffect(() => {
@@ -181,6 +184,11 @@ export default function Metodology() {
   );
   return (
     <>
+      <ConfettiBurst
+        runKey={confettiKey}
+        colors={["#16A34A", "#FFFFFF"]}
+        onComplete={handleConfettiComplete}
+      />
       {activeTab === "catalog" ? (
         <CatalogTab
           tabBar={tabBar}

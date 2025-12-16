@@ -26,7 +26,7 @@ type PointsProfileDoc = {
 
 const POLL_POINTS =
   POINT_ACTIONS.find((action) => action.eventType === "poll_vote")?.points ??
-  getPointsForActivity("poll_vote", 10);
+  getPointsForActivity("poll_vote");
 const POLL_EVENT_TYPE: PointsEventType = "poll_vote";
 
 export type AwardPollResult = {
