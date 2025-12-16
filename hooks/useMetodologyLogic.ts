@@ -9,6 +9,7 @@ import {
   getLevelProgress,
   type PointAction,
 } from "@/constants/points";
+import { getPointsForActivity } from "@/shared/pointsConfig";
 import { type SocialPlatform } from "@/constants/social";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 import { useOfficialSocialLinks } from "@/hooks/useOfficialSocialLinks";
@@ -35,9 +36,11 @@ const APP_STORE_URL =
 const APP_DL_BASE_URL =
   process.env.EXPO_PUBLIC_APP_DL_BASE_URL || process.env.APP_DL_BASE_URL || "";
 const REFERRER_REWARD_POINTS =
-  Number(process.env.EXPO_PUBLIC_REFERRER_REWARD_POINTS) || 200;
+  Number(process.env.EXPO_PUBLIC_REFERRER_REWARD_POINTS) ||
+  getPointsForActivity("referral_reward_referrer", 200);
 const REDEEMER_REWARD_POINTS =
-  Number(process.env.EXPO_PUBLIC_REDEEMER_REWARD_POINTS) || 100;
+  Number(process.env.EXPO_PUBLIC_REDEEMER_REWARD_POINTS) ||
+  getPointsForActivity("referral_reward_redeemer", 100);
 
 export const useMetodologyLogic = () => {
   const router = useRouter();
@@ -399,7 +402,9 @@ export const useMetodologyLogic = () => {
     }
 
     if (action.eventType === "referral_signup") {
-      scrollRef.current?.scrollTo({ y: referralSectionY, animated: true });
+      if (referralSectionY !== null) {
+        scrollRef.current?.scrollTo({ y: referralSectionY, animated: true });
+      }
       return;
     }
 

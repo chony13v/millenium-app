@@ -4,6 +4,7 @@ import {
   POINT_ACTIONS,
   type PointsEventType,
 } from "@/constants/points";
+import { getPointsForActivity } from "@/shared/pointsConfig";
 import {
   collection,
   doc,
@@ -51,7 +52,7 @@ export const getNextStreakCount = (
 
 const STREAK_MILESTONES = [7, 15, 23, 30];
 const MAX_STREAK_BONUS_PER_30DAYS = 100;
-const STREAK_BONUS_POINTS = 25;
+const STREAK_BONUS_POINTS = getPointsForActivity("streak_bonus", 25);
 
 const pruneBonusHistory = (
   history: { awardedAt: Timestamp; points: number }[],

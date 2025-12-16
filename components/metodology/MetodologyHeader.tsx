@@ -1,5 +1,5 @@
-import React, { useMemo } from "react";
-import { Dimensions, Image, Text, View } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Animated, Dimensions, Easing, Image, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import { type UseMetodologyLogicReturn } from "@/hooks/useMetodologyLogic";
@@ -25,6 +25,9 @@ export const MetodologyHeader: React.FC<Props> = ({
   memberSince,
   onLayout,
 }) => {
+  const [showLevelToast, setShowLevelToast] = useState(false);
+  const levelAnim = useRef(new Animated.Value(0)).current;
+  const prevLevelRef = useRef(levelDisplay);
   const ringSize = useMemo(() => {
     const { width } = Dimensions.get("window");
     return Math.min(width * 0.7, 320);
@@ -45,6 +48,38 @@ export const MetodologyHeader: React.FC<Props> = ({
     });
   }, [memberSince]);
 
+  useEffect(() => {
+    if (levelDisplay > prevLevelRef.current) {
+      setShowLevelToast(true);
+      levelAnim.setValue(0);
+      Animated.sequence([
+        Animated.timing(levelAnim, {
+          toValue: 1,
+          duration: 450,
+          easing: Easing.out(Easing.exp),
+          useNativeDriver: true,
+        }),
+        Animated.delay(500),
+        Animated.timing(levelAnim, {
+          toValue: 0,
+          duration: 400,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]).start(() => setShowLevelToast(false));
+    }
+    prevLevelRef.current = levelDisplay;
+  }, [levelAnim, levelDisplay]);
+
+  const toastScale = levelAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.85, 1],
+  });
+  const toastOpacity = levelAnim.interpolate({
+    inputRange: [0, 0.1, 1],
+    outputRange: [0, 1, 0],
+  });
+
   return (
     <LinearGradient
       colors={["#1e3a8a", "#1e3a8a"]}
@@ -55,6 +90,21 @@ export const MetodologyHeader: React.FC<Props> = ({
     >
       <Text style={styles.heroName}>{greeting}</Text>
       <View style={styles.pointsRingWrapper}>
+        {showLevelToast && (
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              styles.levelUpToast,
+              {
+                opacity: toastOpacity,
+                transform: [{ scale: toastScale }],
+              },
+            ]}
+          >
+            <Text style={styles.levelUpIcon}>🏅</Text>
+            <Text style={styles.levelUpText}>Nivel {levelDisplay} desbloqueado</Text>
+          </Animated.View>
+        )}
         <CircularPointsRing
           progress={progressValue}
           size={ringSize}

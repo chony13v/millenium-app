@@ -4,6 +4,7 @@ import {
   POINT_ACTIONS,
   type PointsEventType,
 } from "@/constants/points";
+import { getPointsForActivity } from "@/shared/pointsConfig";
 import {
   doc,
   Timestamp,
@@ -25,7 +26,7 @@ type PointsProfileDoc = {
 
 const POLL_POINTS =
   POINT_ACTIONS.find((action) => action.eventType === "poll_vote")?.points ??
-  10;
+  getPointsForActivity("poll_vote", 10);
 const POLL_EVENT_TYPE: PointsEventType = "poll_vote";
 
 export type AwardPollResult = {

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Keyboard, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -12,12 +13,16 @@ import { useMetodologyLogic } from "@/hooks/useMetodologyLogic";
 import { metodologyStyles as styles } from "@/styles/metodology.styles";
 import { platformLabel } from "@/utils/metodologyUtils";
 
+type TabKey = "rewards" | "catalog" | "transactions";
+
 export default function Metodology() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ scrollTo?: string }>();
-  const [activeTab, setActiveTab] = useState<"rewards" | "catalog" | "transactions">("rewards");
+  const [activeTab, setActiveTab] = useState<TabKey>("rewards");
   const hasScrolledToAnchor = useRef(false);
+  const shouldScrollToTop = useRef(false);
+  const currentOffsetY = useRef(0);
   const {
     greeting,
     profile,
@@ -61,6 +66,40 @@ export default function Metodology() {
     hasScrolledToAnchor.current = false;
   }, [params.scrollTo]);
 
+  const scrollToTopIfNeeded = useCallback(() => {
+    if (activeTab === "catalog") return true;
+    if (currentOffsetY.current <= 2) return true;
+    const scrollView = scrollRef.current;
+    if (!scrollView) return false;
+    Keyboard.dismiss();
+    scrollView.scrollTo({ y: 0, animated: true });
+    return true;
+  }, [activeTab, scrollRef]);
+
+  const requestScrollToTop = useCallback(
+    (tab: TabKey) => {
+      if (tab === "catalog") return;
+      shouldScrollToTop.current = true;
+      const attempt = () => {
+        if (scrollToTopIfNeeded()) {
+          shouldScrollToTop.current = false;
+          return;
+        }
+        requestAnimationFrame(attempt);
+      };
+      setTimeout(attempt, 80);
+    },
+    [scrollToTopIfNeeded]
+  );
+
+  const handleTabPress = useCallback(
+    (tab: TabKey) => {
+      setActiveTab(tab);
+      requestScrollToTop(tab);
+    },
+    [requestScrollToTop]
+  );
+
   useEffect(() => {
     if (hasScrolledToAnchor.current || !scrollRef.current) return;
 
@@ -78,6 +117,37 @@ export default function Metodology() {
     hasScrolledToAnchor.current = true;
   }, [params.scrollTo, pointsSectionY, profileSectionY, scrollRef]);
 
+  useEffect(() => {
+    if (!shouldScrollToTop.current) return;
+    if (activeTab === "catalog") {
+      shouldScrollToTop.current = false;
+      return;
+    }
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ y: 0, animated: true });
+    }
+    shouldScrollToTop.current = false;
+  }, [activeTab, scrollRef]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      const timeout = setTimeout(() => {
+        if (!isActive) return;
+        const attempt = () => {
+          if (!isActive) return;
+          if (scrollToTopIfNeeded()) return;
+          requestAnimationFrame(attempt);
+        };
+        attempt();
+      }, 80);
+      return () => {
+        isActive = false;
+        clearTimeout(timeout);
+      };
+    }, [scrollToTopIfNeeded])
+  );
+
   const tabBar = useMemo(
     () => (
       <View style={styles.tabBar}>
@@ -92,7 +162,7 @@ export default function Metodology() {
               styles.tabButton,
               activeTab === tab.key && styles.tabButtonActive,
             ]}
-            onPress={() => setActiveTab(tab.key as any)}
+            onPress={() => handleTabPress(tab.key as TabKey)}
             activeOpacity={0.8}
           >
             <Text
@@ -107,7 +177,7 @@ export default function Metodology() {
         ))}
       </View>
     ),
-    [activeTab]
+    [activeTab, handleTabPress]
   );
   return (
     <>
@@ -125,6 +195,10 @@ export default function Metodology() {
           ]}
           showsVerticalScrollIndicator={false}
           ref={scrollRef}
+          onScroll={(event) => {
+            currentOffsetY.current = event.nativeEvent.contentOffset?.y ?? 0;
+          }}
+          scrollEventThrottle={16}
         >
           {tabBar}
 

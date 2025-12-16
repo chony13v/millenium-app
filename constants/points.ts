@@ -1,3 +1,5 @@
+import { getPointsForActivity } from "@/shared/pointsConfig";
+
 export type PointsEventType =
   | "app_open_daily"
   | "poll_vote"
@@ -21,7 +23,7 @@ export const POINT_ACTIONS: PointAction[] = [
     id: "app_open_daily",
     title: "Entrar a Ciudad FC cada día",
     subtitle: "Suma por tu constancia diaria",
-    points: 5,
+    points: getPointsForActivity("app_open_daily", 5),
     frequency: "1 vez por día",
     eventType: "app_open_daily",
   },
@@ -29,7 +31,7 @@ export const POINT_ACTIONS: PointAction[] = [
     id: "poll_vote",
     title: "Responder encuestas",
     subtitle: "Tu voz importa, participa y suma puntos puntos puntos puntos",
-    points: 10,
+    points: getPointsForActivity("poll_vote", 10),
     frequency: "Hasta 3 por día",
     eventType: "poll_vote",
   },
@@ -37,7 +39,7 @@ export const POINT_ACTIONS: PointAction[] = [
     id: "city_report_created",
     title: "Reportar incidencias",
     subtitle: "Ayuda a mejorar las canchas de tu ciudad",
-    points: 30,
+    points: getPointsForActivity("city_report_created", 30),
     frequency: "Cada 6 horas",
     eventType: "city_report_created",
   },
@@ -45,7 +47,7 @@ export const POINT_ACTIONS: PointAction[] = [
     id: "weekly_event_attendance",
     title: "Asistencia a eventos municipales gratuitos",
     subtitle: "Registra tu participación en eventos semanales",
-    points: 50,
+    points: getPointsForActivity("weekly_event_attendance", 50),
     frequency: "1 vez por evento",
     eventType: "weekly_event_attendance",
   },
@@ -53,7 +55,7 @@ export const POINT_ACTIONS: PointAction[] = [
     id: "social_follow",
     title: "Seguir redes oficiales",
     subtitle: "Apoya a Ciudad FC en cada plataforma",
-    points: 20,
+    points: getPointsForActivity("social_follow", 20),
     frequency: "1 vez por día y plataforma",
     eventType: "social_follow",
   },
@@ -61,7 +63,7 @@ export const POINT_ACTIONS: PointAction[] = [
     id: "referral_signup",
     title: "Invitar amigos",
     subtitle: "Recibe puntos cuando tu referido se registra",
-    points: 100,
+    points: getPointsForActivity("referral_signup", 100),
     frequency: "Por cada referido aprobado",
     eventType: "referral_signup",
   },
@@ -69,7 +71,7 @@ export const POINT_ACTIONS: PointAction[] = [
     id: "streak_bonus",
     title: "Bonos por racha",
     subtitle: "Recompensa extra al llegar a hitos",
-    points: 0,
+    points: getPointsForActivity("streak_bonus", 0),
     frequency: "Se otorgan bonos por racha de 7, 14, 23 y 30 consecutivos, y después cada 30 días adicionales",
     eventType: "streak_bonus",
   },
