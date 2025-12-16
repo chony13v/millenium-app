@@ -4,18 +4,47 @@ import { Colors } from "@/constants/colors";
 export const metodologyStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#ffffff",
   },
   content: {
     paddingHorizontal: 16,
     paddingTop: 12,
     gap: 14,
   },
+  sectionsStack: {
+    gap: 14,
+  },
+  tabBar: {
+    flexDirection: "row",
+    backgroundColor: "transparent",
+    borderRadius: 14,
+    padding: 4,
+    marginHorizontal: 2,
+    gap: 4,
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  tabButtonActive: {
+    backgroundColor: "transparent",
+  },
+  tabButtonText: {
+    fontFamily: "barlow-light",
+    color: "#00000066",
+    fontSize: 14,
+  },
+  tabButtonTextActive: {
+    fontFamily: "barlow-extrabold",
+    color: Colors.NAVY_BLUE,
+  },
   heroCard: {
-    borderRadius: 18,
+    borderRadius: 0,
     padding: 18,
     gap: 10,
-    marginTop: 6,
     shadowColor: "#1e3a8a",
     shadowOpacity: 0.18,
     shadowRadius: 12,
@@ -37,6 +66,13 @@ export const metodologyStyles = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.12)",
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.16)",
+  },
+  heroName: {
+    color: "#ffffff",
+    fontFamily: "barlow-extrabold",
+    fontSize: 26,
+    letterSpacing: 0.6,
+    textAlign: "center",
   },
   heroSubtitle: {
     color: "rgba(255,255,255,0.9)",
@@ -63,6 +99,17 @@ export const metodologyStyles = StyleSheet.create({
   sponsorLogo: {
     width: 200,
     height: 90,
+  },
+  pointsRingWrapper: {
+    marginTop: 10,
+    alignItems: "center",
+    gap: 8,
+  },
+  ringHint: {
+    color: "rgba(255,255,255,0.7)",
+    fontFamily: "barlow-medium",
+    fontSize: 12,
+    textAlign: "center",
   },
   heroStatsRow: {
     flexDirection: "row",
@@ -136,6 +183,28 @@ export const metodologyStyles = StyleSheet.create({
     fontFamily: "barlow-regular",
     color: "#475569",
     lineHeight: 20,
+  },
+  streakPillRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "rgba(15,23,42,0.06)",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
+  streakPillLabel: {
+    fontFamily: "barlow-semibold",
+    fontSize: 14,
+    color: "#0f172a",
+  },
+  streakPillValue: {
+    fontFamily: "barlow-semibold",
+    fontSize: 14,
+    color: "#0f172a",
   },
   sectionPill: {
     backgroundColor: "#e0f2fe",
@@ -332,6 +401,7 @@ export const metodologyStyles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 10,
   },
   historyTitle: {
     fontSize: 14,
@@ -347,6 +417,13 @@ export const metodologyStyles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "barlow-semibold",
   },
+  historyThumb: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
   pointsPositive: {
     color: "#16a34a",
   },
@@ -357,6 +434,71 @@ export const metodologyStyles = StyleSheet.create({
     color: "#64748b",
     fontFamily: "barlow-regular",
     fontSize: 13,
+  },
+  catalogContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  catalogHeaderRow: {
+    gap: 4,
+  },
+  catalogLoading: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    gap: 6,
+  },
+  catalogList: {
+    gap: 10,
+  },
+  catalogCard: {
+    backgroundColor: "#f8fafc",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    gap: 6,
+  },
+  catalogCardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  catalogCardTitle: {
+    fontFamily: "barlow-semibold",
+    fontSize: 15,
+    color: "#0f172a",
+  },
+  catalogCardSubtitle: {
+    fontFamily: "barlow-regular",
+    fontSize: 12,
+    color: "#475569",
+  },
+  catalogPointsPill: {
+    backgroundColor: "#0f172a",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  catalogPointsText: {
+    color: "#fff",
+    fontFamily: "barlow-semibold",
+    fontSize: 12,
+  },
+  catalogDescription: {
+    fontFamily: "barlow-regular",
+    fontSize: 12,
+    color: "#334155",
+    lineHeight: 18,
   },
   modalOverlay: {
     flex: 1,

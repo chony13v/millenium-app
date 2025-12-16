@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { ScrollView } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -16,6 +16,7 @@ export default function Metodology() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ scrollTo?: string }>();
+  const [activeTab, setActiveTab] = useState<"rewards" | "catalog" | "transactions">("rewards");
   const hasScrolledToAnchor = useRef(false);
   const {
     greeting,
@@ -53,6 +54,7 @@ export default function Metodology() {
     setPointsSectionY,
     profileSectionY,
     setProfileSectionY,
+    memberSince,
   } = useMetodologyLogic();
 
   useEffect(() => {
@@ -75,61 +77,112 @@ export default function Metodology() {
     scrollRef.current.scrollTo({ y: targetY, animated: true });
     hasScrolledToAnchor.current = true;
   }, [params.scrollTo, pointsSectionY, profileSectionY, scrollRef]);
+
+  const tabBar = useMemo(
+    () => (
+      <View style={styles.tabBar}>
+        {[
+          { key: "rewards", label: "Puntos" },
+          { key: "catalog", label: "Premios" },
+          { key: "transactions", label: "Transacciones" },
+        ].map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[
+              styles.tabButton,
+              activeTab === tab.key && styles.tabButtonActive,
+            ]}
+            onPress={() => setActiveTab(tab.key as any)}
+            activeOpacity={0.8}
+          >
+            <Text
+              style={[
+                styles.tabButtonText,
+                activeTab === tab.key && styles.tabButtonTextActive,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    ),
+    [activeTab]
+  );
   return (
     <>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + 20 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        ref={scrollRef}
-      >
-        <MetodologyHeader
-          greeting={greeting}
-          profile={profile}
-          progressValue={progressValue}
-          levelDisplay={levelDisplay}
-          xpToNext={xpToNext}
-          onLayout={(event) =>
-            setProfileSectionY(event.nativeEvent.layout.y ?? null)
-          }
+      {activeTab === "catalog" ? (
+        <CatalogTab
+          tabBar={tabBar}
+          contentPaddingBottom={insets.bottom + 20}
         />
+      ) : (
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: insets.bottom + 20, gap: 0 },
+          ]}
+          showsVerticalScrollIndicator={false}
+          ref={scrollRef}
+        >
+          {tabBar}
 
-        <ReferralSection
-          referralCode={referralCode}
-          loadingCode={loadingCode}
-          sharing={sharing}
-          redeemInput={redeemInput}
-          redeeming={redeeming}
-          onGenerate={handleGenerateCode}
-          onShare={handleShareCode}
-          onRedeem={handleRedeem}
-          onRedeemInputChange={setRedeemInput}
-          onLayout={setReferralSectionY}
-        />
+          {activeTab === "rewards" && (
+            <View style={styles.sectionsStack}>
+              <MetodologyHeader
+                greeting={greeting}
+                profile={profile}
+                progressValue={progressValue}
+                levelDisplay={levelDisplay}
+                xpToNext={xpToNext}
+                memberSince={memberSince}
+                onLayout={(event) =>
+                  setProfileSectionY(event.nativeEvent.layout.y ?? null)
+                }
+              />
 
-        <PointsSection
-          actions={POINT_ACTIONS}
-          loading={loading}
-          availability={availability}
-          loadingSocialAvailability={loadingSocialAvailability}
-          hasAwardToday={hasAwardToday}
-          onActionPress={handleActionPress}
-          onCatalogPress={() => router.push("/(call)/Metodology/rewards")}
-          onLayout={(event) =>
-            setPointsSectionY(event.nativeEvent.layout.y ?? null)
-          }
-        />
+              <ReferralSection
+                referralCode={referralCode}
+                loadingCode={loadingCode}
+                sharing={sharing}
+                redeemInput={redeemInput}
+                redeeming={redeeming}
+                onGenerate={handleGenerateCode}
+                onShare={handleShareCode}
+                onRedeem={handleRedeem}
+                onRedeemInputChange={setRedeemInput}
+                onLayout={setReferralSectionY}
+              />
 
-        <HistorySection
-          history={history}
-          loading={loading}
-          renderHistoryLabel={renderHistoryLabel}
-          formatDate={formatDate}
-        />
-      </ScrollView>
+              <PointsSection
+                actions={POINT_ACTIONS}
+                loading={loading}
+                availability={availability}
+                loadingSocialAvailability={loadingSocialAvailability}
+                hasAwardToday={hasAwardToday}
+                onActionPress={handleActionPress}
+                onCatalogPress={() => router.push("/(call)/Metodology/rewards")}
+                streakCount={profile.streakCount ?? 0}
+                onLayout={(event) =>
+                  setPointsSectionY(event.nativeEvent.layout.y ?? null)
+                }
+              />
+            </View>
+          )}
+
+          {activeTab === "transactions" && (
+            <View style={styles.sectionsStack}>
+              <HistorySection
+                history={history}
+                loading={loading}
+                renderHistoryLabel={renderHistoryLabel}
+                formatDate={formatDate}
+              />
+            </View>
+          )}
+        </ScrollView>
+      )}
 
       <SocialModal
         visible={socialModalVisible}
@@ -145,3 +198,22 @@ export default function Metodology() {
     </>
   );
 }
+
+const CatalogTab: React.FC<{
+  tabBar: React.ReactNode;
+  contentPaddingBottom: number;
+}> = ({ tabBar, contentPaddingBottom }) => (
+  <View style={styles.container}>
+    <View
+      style={[
+        styles.content,
+        { paddingBottom: contentPaddingBottom, flex: 1 },
+      ]}
+    >
+      {tabBar}
+      <View style={styles.catalogContainer}>
+        <Text style={styles.sectionTitle}>Catálogo</Text>
+      </View>
+    </View>
+  </View>
+);

@@ -43,6 +43,7 @@ export const useMetodologyLogic = () => {
   const router = useRouter();
   const { user } = useUser();
   const { firebaseUid } = useFirebaseUid();
+  const memberSince = user?.createdAt ? new Date(user.createdAt) : null;
   const scrollRef = useRef<ScrollView | null>(null);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [loadingCode, setLoadingCode] = useState(false);
@@ -476,6 +477,7 @@ export const useMetodologyLogic = () => {
     hasAwardToday,
     processingPlatform,
     handleSocialLinkPress,
+    memberSince,
   } as const;
 };
 

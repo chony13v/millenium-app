@@ -1,5 +1,5 @@
 import React from "react";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 
 import { type UseMetodologyLogicReturn } from "@/hooks/useMetodologyLogic";
 import { metodologyStyles as styles } from "@/styles/metodology.styles";
@@ -36,7 +36,18 @@ export const HistorySection: React.FC<HistorySectionProps> = ({
 
     {history.slice(0, 5).map((entry) => (
       <View key={entry.id} style={styles.historyRow}>
-        <View>
+        {((entry as any).imageUrl || (entry as any).metadata?.imageUrl) ? (
+          <Image
+            source={{
+              uri:
+                (entry as any).imageUrl ||
+                ((entry as any).metadata?.imageUrl as string),
+            }}
+            style={styles.historyThumb}
+            resizeMode="cover"
+          />
+        ) : null}
+        <View style={{ flex: 1 }}>
           <Text style={styles.historyTitle}>
             {renderHistoryLabel(entry.eventType, entry.metadata)}
           </Text>
