@@ -10,6 +10,18 @@ import {
 import { formatMonthKey } from "./time";
 import { awardPointsTransaction } from "./points";
 
+type RedeemReferralResponse = {
+  success: true;
+  alreadyRedeemed?: boolean;
+  code?: string;
+  codeUsed?: string;
+  referrerUid?: string;
+  redeemedAt?: admin.firestore.Timestamp;
+  referrerPoints?: number;
+  redeemerPoints?: number;
+  message: string;
+};
+
 const generateReferralCode = () => {
   let code = "";
   for (let i = 0; i < REFERRAL_CODE_LENGTH; i++) {
@@ -116,8 +128,6 @@ export const redeemReferralCode = functions
       .collection("referral_meta")
       .doc("redeemed");
 
-    let response: any = null;
-
     const logInvalid = (reason: string) =>
       functions.logger.warn("referral_code_invalid", {
         reason,
@@ -125,237 +135,238 @@ export const redeemReferralCode = functions
         redeemerUid,
       });
 
-    await db.runTransaction(async (tx) => {
-      const markerSnap = await tx.get(redeemerMarkerRef);
-      if (markerSnap.exists) {
-        const markerData = markerSnap.data() as {
-          code?: string;
-          redeemedAt?: admin.firestore.Timestamp;
-          referrerUid?: string;
-        };
+    const response = await db.runTransaction<RedeemReferralResponse>(
+      async (tx) => {
+        const markerSnap = await tx.get(redeemerMarkerRef);
+        if (markerSnap.exists) {
+          const markerData = markerSnap.data() as {
+            code?: string;
+            redeemedAt?: admin.firestore.Timestamp;
+            referrerUid?: string;
+          };
 
-        if (markerData.code === code) {
-          functions.logger.info("[referrals] marker hit same code", {
+          if (markerData.code === code) {
+            functions.logger.info("[referrals] marker hit same code", {
+              redeemerUid,
+              codeIntentado: code,
+              markerPath: redeemerMarkerRef.path,
+              markerData,
+            });
+            return {
+              success: true,
+              alreadyRedeemed: true,
+              codeUsed: markerData.code ?? code,
+              referrerUid: markerData.referrerUid,
+              redeemedAt: markerData.redeemedAt,
+              message: "✅ Código ya canjeado anteriormente",
+            };
+          }
+
+          functions.logger.info("[referrals] marker hit other code", {
             redeemerUid,
             codeIntentado: code,
             markerPath: redeemerMarkerRef.path,
             markerData,
           });
-          response = {
-            success: true,
-            alreadyRedeemed: true,
-            codeUsed: markerData.code ?? code,
-            referrerUid: markerData.referrerUid,
-            redeemedAt: markerData.redeemedAt,
-            message: "✅ Código ya canjeado anteriormente",
-          };
-          return;
+          logInvalid("already_redeemed_other_code");
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "⚠️ Ya canjeaste un código de registro previamente"
+          );
         }
 
-        functions.logger.info("[referrals] marker hit other code", {
-          redeemerUid,
-          codeIntentado: code,
-          markerPath: redeemerMarkerRef.path,
-          markerData,
+        const codeSnap = await tx.get(codeRef);
+        if (!codeSnap.exists) {
+          logInvalid("code_not_found");
+          throw new functions.https.HttpsError(
+            "not-found",
+            "Código no existe."
+          );
+        }
+
+        const codeData = codeSnap.data() as {
+          referrerUid?: string;
+          active?: boolean;
+          redeemedCount?: number;
+          maxRedemptions?: number;
+          expiresAt?: admin.firestore.Timestamp | null;
+        };
+
+        const referrerUid = codeData.referrerUid;
+        if (!referrerUid) {
+          logInvalid("missing_referrer");
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "Código inválido."
+          );
+        }
+
+        if (referrerUid === redeemerUid) {
+          logInvalid("self_redeem");
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "No puedes usar tu propio código."
+          );
+        }
+
+        if (codeData.active === false) {
+          logInvalid("inactive");
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "Código inactivo."
+          );
+        }
+
+        if (
+          codeData.expiresAt &&
+          codeData.expiresAt.toMillis() <= nowTs.toMillis()
+        ) {
+          logInvalid("expired");
+          throw new functions.https.HttpsError(
+            "failed-precondition",
+            "Código expirado."
+          );
+        }
+
+        const redeemedCount = codeData.redeemedCount ?? 0;
+        const maxRedemptions =
+          codeData.maxRedemptions ?? REFERRAL_MAX_REDEMPTIONS_PER_CODE;
+        if (redeemedCount >= maxRedemptions) {
+          logInvalid("max_redemptions_reached");
+          throw new functions.https.HttpsError(
+            "resource-exhausted",
+            "Este código alcanzó su máximo de usos."
+          );
+        }
+
+        const referrerProfileRef = db
+          .collection("users")
+          .doc(referrerUid)
+          .collection("points_profile")
+          .doc("profile");
+        const referrerStatsRef = db
+          .collection("referral_stats")
+          .doc(referrerUid);
+        const statsSnap = await tx.get(referrerStatsRef);
+
+        const stats = (statsSnap.exists ? statsSnap.data() : {}) as {
+          currentMonth?: string;
+          count?: number;
+          maxPerMonth?: number;
+        };
+        const currentMonth = stats.currentMonth;
+        const monthCount = currentMonth === monthKey ? stats.count ?? 0 : 0;
+        const monthCap = stats.maxPerMonth ?? REFERRER_MONTHLY_CAP;
+        if (monthCount >= monthCap) {
+          logInvalid("referrer_monthly_cap");
+          throw new functions.https.HttpsError(
+            "resource-exhausted",
+            "El referente alcanzó su límite mensual."
+          );
+        }
+
+        const referrerLedgerRef = db
+          .collection("users")
+          .doc(referrerUid)
+          .collection("points_ledger")
+          .doc();
+        const redeemerLedgerRef = db
+          .collection("users")
+          .doc(redeemerUid)
+          .collection("points_ledger")
+          .doc();
+        const redemptionRecordRef = db
+          .collection("referralRedemptions")
+          .doc();
+
+        await awardPointsTransaction(tx, {
+          userId: referrerUid,
+          points: REFERRER_REWARD_POINTS,
+          eventType: "referral_reward",
+          metadata: { code, redeemerUid },
+          now: nowTs,
+          profileRef: referrerProfileRef,
+          ledgerRef: referrerLedgerRef,
         });
-        logInvalid("already_redeemed_other_code");
-        throw new functions.https.HttpsError(
-          "failed-precondition",
-          "⚠️ Ya canjeaste un código de registro previamente"
+
+        await awardPointsTransaction(tx, {
+          userId: redeemerUid,
+          points: REDEEMER_REWARD_POINTS,
+          eventType: "referral_redeem",
+          metadata: { code, referrerUid },
+          now: nowTs,
+          profileRef: redeemerProfileRef,
+          ledgerRef: redeemerLedgerRef,
+        });
+
+        tx.set(
+          codeRef,
+          {
+            redeemedCount: admin.firestore.FieldValue.increment(1),
+            lastRedeemedAt: nowTs,
+          },
+          { merge: true }
         );
-      }
 
-      const codeSnap = await tx.get(codeRef);
-      if (!codeSnap.exists) {
-        logInvalid("code_not_found");
-        throw new functions.https.HttpsError("not-found", "Código no existe.");
-      }
-
-      const codeData = codeSnap.data() as {
-        referrerUid?: string;
-        active?: boolean;
-        redeemedCount?: number;
-        maxRedemptions?: number;
-        expiresAt?: admin.firestore.Timestamp | null;
-      };
-
-      const referrerUid = codeData.referrerUid;
-      if (!referrerUid) {
-        logInvalid("missing_referrer");
-        throw new functions.https.HttpsError(
-          "failed-precondition",
-          "Código inválido."
+        tx.set(
+          referrerStatsRef,
+          {
+            referrerUid,
+            currentMonth: monthKey,
+            count: monthCount + 1,
+            maxPerMonth: monthCap,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
         );
-      }
 
-      if (referrerUid === redeemerUid) {
-        logInvalid("self_redeem");
-        throw new functions.https.HttpsError(
-          "failed-precondition",
-          "No puedes usar tu propio código."
-        );
-      }
-
-      if (codeData.active === false) {
-        logInvalid("inactive");
-        throw new functions.https.HttpsError(
-          "failed-precondition",
-          "Código inactivo."
-        );
-      }
-
-      if (
-        codeData.expiresAt &&
-        codeData.expiresAt.toMillis() <= nowTs.toMillis()
-      ) {
-        logInvalid("expired");
-        throw new functions.https.HttpsError(
-          "failed-precondition",
-          "Código expirado."
-        );
-      }
-
-      const redeemedCount = codeData.redeemedCount ?? 0;
-      const maxRedemptions =
-        codeData.maxRedemptions ?? REFERRAL_MAX_REDEMPTIONS_PER_CODE;
-      if (redeemedCount >= maxRedemptions) {
-        logInvalid("max_redemptions_reached");
-        throw new functions.https.HttpsError(
-          "resource-exhausted",
-          "Este código alcanzó su máximo de usos."
-        );
-      }
-
-      const referrerProfileRef = db
-        .collection("users")
-        .doc(referrerUid)
-        .collection("points_profile")
-        .doc("profile");
-      const referrerStatsRef = db.collection("referral_stats").doc(referrerUid);
-      const statsSnap = await tx.get(referrerStatsRef);
-
-      const stats = (statsSnap.exists ? statsSnap.data() : {}) as {
-        currentMonth?: string;
-        count?: number;
-        maxPerMonth?: number;
-      };
-      const currentMonth = stats.currentMonth;
-      const monthCount = currentMonth === monthKey ? stats.count ?? 0 : 0;
-      const monthCap = stats.maxPerMonth ?? REFERRER_MONTHLY_CAP;
-      if (monthCount >= monthCap) {
-        logInvalid("referrer_monthly_cap");
-        throw new functions.https.HttpsError(
-          "resource-exhausted",
-          "El referente alcanzó su límite mensual."
-        );
-      }
-
-      const referrerLedgerRef = db
-        .collection("users")
-        .doc(referrerUid)
-        .collection("points_ledger")
-        .doc();
-      const redeemerLedgerRef = db
-        .collection("users")
-        .doc(redeemerUid)
-        .collection("points_ledger")
-        .doc();
-      const redemptionRecordRef = db.collection("referralRedemptions").doc();
-
-      await awardPointsTransaction(tx, {
-        userId: referrerUid,
-        points: REFERRER_REWARD_POINTS,
-        eventType: "referral_reward",
-        metadata: { code, redeemerUid },
-        now: nowTs,
-        profileRef: referrerProfileRef,
-        ledgerRef: referrerLedgerRef,
-      });
-
-      await awardPointsTransaction(tx, {
-        userId: redeemerUid,
-        points: REDEEMER_REWARD_POINTS,
-        eventType: "referral_redeem",
-        metadata: { code, referrerUid },
-        now: nowTs,
-        profileRef: redeemerProfileRef,
-        ledgerRef: redeemerLedgerRef,
-      });
-
-      tx.set(
-        codeRef,
-        {
-          redeemedCount: admin.firestore.FieldValue.increment(1),
-          lastRedeemedAt: nowTs,
-        },
-        { merge: true }
-      );
-
-      tx.set(
-        referrerStatsRef,
-        {
-          referrerUid,
-          currentMonth: monthKey,
-          count: monthCount + 1,
-          maxPerMonth: monthCap,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      tx.set(redemptionRecordRef, {
-        code,
-        referrerUid,
-        redeemerUid,
-        redeemedAt: nowTs,
-        pointsAwarded: {
-          referrer: REFERRER_REWARD_POINTS,
-          redeemer: REDEEMER_REWARD_POINTS,
-        },
-        month: monthKey,
-      });
-
-      tx.set(
-        redeemerMarkerRef,
-        {
+        tx.set(redemptionRecordRef, {
           code,
           referrerUid,
-          redemptionId: redemptionRecordRef.id,
+          redeemerUid,
           redeemedAt: nowTs,
-        },
-        { merge: true }
-      );
+          pointsAwarded: {
+            referrer: REFERRER_REWARD_POINTS,
+            redeemer: REDEEMER_REWARD_POINTS,
+          },
+          month: monthKey,
+        });
 
-      response = {
-        success: true,
-        referrerUid,
-        code,
-        referrerPoints: REFERRER_REWARD_POINTS,
-        redeemerPoints: REDEEMER_REWARD_POINTS,
-        message: "✅ Canje realizado",
-      };
-    });
+        tx.set(
+          redeemerMarkerRef,
+          {
+            code,
+            referrerUid,
+            redemptionId: redemptionRecordRef.id,
+            redeemedAt: nowTs,
+          },
+          { merge: true }
+        );
 
-    if (!response) {
-      throw new functions.https.HttpsError(
-        "internal",
-        "No se pudo canjear el código."
-      );
-    }
+        return {
+          success: true,
+          referrerUid,
+          code,
+          referrerPoints: REFERRER_REWARD_POINTS,
+          redeemerPoints: REDEEMER_REWARD_POINTS,
+          message: "✅ Canje realizado",
+        };
+      }
+    );
 
-    const awardedReferrerPoints = response?.alreadyRedeemed
+    const awardedReferrerPoints = response.alreadyRedeemed
       ? 0
-      : REFERRER_REWARD_POINTS;
-    const awardedRedeemerPoints = response?.alreadyRedeemed
+      : response.referrerPoints ?? REFERRER_REWARD_POINTS;
+    const awardedRedeemerPoints = response.alreadyRedeemed
       ? 0
-      : REDEEMER_REWARD_POINTS;
+      : response.redeemerPoints ?? REDEEMER_REWARD_POINTS;
 
     functions.logger.info("[referrals] Resultado canje", {
       redeemerUid,
       code,
-      alreadyRedeemed: !!response?.alreadyRedeemed,
+      alreadyRedeemed: !!response.alreadyRedeemed,
       event: "referral_code_redeemed",
-      referrerUid: response?.referrerUid,
+      referrerUid: response.referrerUid,
       pointsGivenReferrer: awardedReferrerPoints,
       pointsGivenRedeemer: awardedRedeemerPoints,
       timestamp: admin.firestore.Timestamp.now().toMillis(),

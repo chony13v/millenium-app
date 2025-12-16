@@ -5,7 +5,7 @@
     "slug": "millenium-app",
     "version": "2.1.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon_square.png",
     "scheme": "millenium-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -20,7 +20,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/LogoFC.png",
+        "foregroundImage": "./assets/images/LogoFC_square.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.chony.milleniumapp",

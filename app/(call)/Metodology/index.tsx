@@ -286,7 +286,6 @@ const CatalogTab: React.FC<{
     >
       {tabBar}
       <View style={styles.catalogContainer}>
-        <Text style={styles.sectionTitle}>Catálogo</Text>
       </View>
     </View>
   </View>

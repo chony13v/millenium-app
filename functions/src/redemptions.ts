@@ -86,6 +86,7 @@ export const createRedemptionWithPoints = functions
     let qrUrl = "";
     let newTotal = 0;
     let merchantId: string | undefined;
+    let remainingAfterRedemption: number | null = null;
 
     await db.runTransaction(async (tx) => {
       const [rewardSnap, profileSnap] = await Promise.all([
@@ -150,6 +151,9 @@ export const createRedemptionWithPoints = functions
           ? Number(rewardData.remaining)
           : null;
 
+      remainingAfterRedemption =
+        typeof remaining === "number" ? Math.max(remaining - 1, 0) : null;
+
       if (isLimited) {
         if (remaining == null || remaining <= 0) {
           throw new functions.https.HttpsError(
@@ -206,6 +210,7 @@ export const createRedemptionWithPoints = functions
 
       if (isLimited) {
         const nextRemaining = Math.max((remaining ?? 0) - 1, 0);
+        remainingAfterRedemption = nextRemaining;
         tx.update(rewardRef, {
           remaining: nextRemaining,
           status: nextRemaining <= 0 ? "sold_out" : rewardData.status ?? "active",
@@ -231,10 +236,7 @@ export const createRedemptionWithPoints = functions
       userId: uid,
       merchantId: merchantId ?? null,
       rewardId,
-      remaining:
-        typeof rewardData.remaining === "number"
-          ? Math.max(rewardData.remaining - 1, 0)
-          : null,
+      remaining: remainingAfterRedemption,
     };
   });
 
@@ -359,5 +361,3 @@ export const confirmRedemptionWithPin = functions
     };
   });
 
-// En una fase posterior se puede ampliar esta función para ajustar el saldo de puntos
-// del usuario dentro de la misma transacción, una vez validado el canje.
