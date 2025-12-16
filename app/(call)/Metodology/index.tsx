@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Keyboard, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 
 import { HistorySection } from "@/components/metodology/HistorySection";
 import { MetodologyHeader } from "@/components/metodology/MetodologyHeader";
@@ -12,12 +12,12 @@ import { SocialModal } from "@/components/metodology/SocialModal";
 import { useMetodologyLogic } from "@/hooks/useMetodologyLogic";
 import { metodologyStyles as styles } from "@/styles/metodology.styles";
 import { platformLabel } from "@/utils/metodologyUtils";
+import RewardsCatalogScreen from "./rewards";
 
 type TabKey = "rewards" | "catalog" | "transactions";
 
 export default function Metodology() {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
   const params = useLocalSearchParams<{ scrollTo?: string }>();
   const [activeTab, setActiveTab] = useState<TabKey>("rewards");
   const hasScrolledToAnchor = useRef(false);
@@ -185,6 +185,7 @@ export default function Metodology() {
         <CatalogTab
           tabBar={tabBar}
           contentPaddingBottom={insets.bottom + 20}
+          onBackToRewards={() => handleTabPress("rewards")}
         />
       ) : (
         <ScrollView
@@ -236,7 +237,7 @@ export default function Metodology() {
                 loadingSocialAvailability={loadingSocialAvailability}
                 hasAwardToday={hasAwardToday}
                 onActionPress={handleActionPress}
-                onCatalogPress={() => router.push("/(call)/Metodology/rewards")}
+                onCatalogPress={() => handleTabPress("catalog")}
                 streakCount={profile.streakCount ?? 0}
                 onLayout={(event) =>
                   setPointsSectionY(event.nativeEvent.layout.y ?? null)
@@ -276,17 +277,12 @@ export default function Metodology() {
 const CatalogTab: React.FC<{
   tabBar: React.ReactNode;
   contentPaddingBottom: number;
-}> = ({ tabBar, contentPaddingBottom }) => (
-  <View style={styles.container}>
-    <View
-      style={[
-        styles.content,
-        { paddingBottom: contentPaddingBottom, flex: 1 },
-      ]}
-    >
-      {tabBar}
-      <View style={styles.catalogContainer}>
-      </View>
+  onBackToRewards: () => void;
+}> = ({ tabBar, contentPaddingBottom, onBackToRewards }) => (
+  <View style={[styles.container, { paddingBottom: contentPaddingBottom }]}>
+    <View style={[styles.content, { paddingBottom: 0 }]}>{tabBar}</View>
+    <View style={{ flex: 1 }}>
+      <RewardsCatalogScreen onBack={onBackToRewards} />
     </View>
   </View>
 );

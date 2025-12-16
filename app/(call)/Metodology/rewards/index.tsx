@@ -18,6 +18,10 @@ import { useRewardsCatalog } from "@/hooks/useRewardsCatalog";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { type Reward } from "@/types/rewards";
 
+type RewardsCatalogScreenProps = {
+  onBack?: () => void;
+};
+
 const RewardCard = ({
   reward,
   onPress,
@@ -62,11 +66,21 @@ const RewardCard = ({
   </TouchableOpacity>
 );
 
-export default function RewardsCatalogScreen() {
+export default function RewardsCatalogScreen({
+  onBack,
+}: RewardsCatalogScreenProps = {}) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { selectedCity } = useCitySelection();
   const { rewards, loading, error, refresh } = useRewardsCatalog(selectedCity);
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    router.back();
+  };
 
   const handleRewardPress = (reward: Reward) => {
     router.push({
@@ -87,7 +101,7 @@ export default function RewardsCatalogScreen() {
     <View style={[styles.container, { paddingTop: insets.top + 6 }]}>
       <View style={styles.header}>
         <TouchableOpacity
-          onPress={() => router.back()}
+          onPress={handleBack}
           style={styles.backButton}
           accessibilityLabel="Volver"
         >

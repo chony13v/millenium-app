@@ -57,7 +57,7 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
           activeOpacity={0.9}
           style={styles.catalogPillButton}
         >
-          <Text style={styles.catalogPill}>🎁 Catálogo</Text>
+          <Text style={styles.catalogPill}>🎁 Premios</Text>
         </TouchableOpacity>
       </View>
       <Text style={styles.sectionSubtitle}>
