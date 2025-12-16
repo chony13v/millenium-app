@@ -22,9 +22,7 @@ import CategoryIcons from "@/components/home/Category";
 import News from "@/components/home/News";
 import useFonts from "@/hooks/useFonts";
 import LoadingBall from "@/components/LoadingBall";
-import { useCitySelection } from "@/hooks/useCitySelection";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CITY_OPTIONS } from "@/constants/cities";
 import { useUser } from "@clerk/clerk-expo";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 import { logSponsorClick } from "@/services/analytics/sponsorClicks";
@@ -63,13 +61,9 @@ export default function HomeScreen() {
   const scrollX = useRef(new Animated.Value(0)).current;
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { selectedCity } = useCitySelection();
   const { user } = useUser();
   const { firebaseUid } = useFirebaseUid();
   const fontsLoaded = useFonts();
-  const selectedCityInfo = CITY_OPTIONS.find(
-    (city) => city.id === selectedCity
-  );
   const [isSignOutVisible, setIsSignOutVisible] = useState(false);
 
   const handleCalendarPress = () => {
@@ -86,10 +80,6 @@ export default function HomeScreen() {
 
   const handleSignOutPress = () => {
     setIsSignOutVisible(true);
-  };
-
-  const handleGoToConecta = () => {
-    router.push("/(call)/Conecta");
   };
 
   const handleOpenBgr = () => {

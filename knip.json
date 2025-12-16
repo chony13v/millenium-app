@@ -1,0 +1,29 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["index.js"],
+  "project": [
+    "app/**/*.{ts,tsx,js,jsx}",
+    "components/**/*.{ts,tsx,js,jsx}",
+    "constants/**/*.{ts,tsx,js,jsx}",
+    "hooks/**/*.{ts,tsx,js,jsx}",
+    "services/**/*.{ts,tsx,js,jsx}",
+    "utils/**/*.{ts,tsx,js,jsx}",
+    "shared/**/*.{ts,tsx,js,jsx}",
+    "types/**/*.{ts,tsx,js,jsx}"
+  ],
+  "ignore": ["functions/**", "**/__tests__/**", "**/*.test.*", "**/*.spec.*"],
+  "ignoreDependencies": [
+    "@clerk/localizations",
+    "@react-navigation/bottom-tabs",
+    "@react-navigation/native-stack",
+    "react-native-worklets",
+    "tslib",
+
+    "@babel/core",
+    "@types/geolib",
+    "@types/react-native-calendars",
+    "@types/react-native-dialog",
+    "@types/react-test-renderer",
+    "react-test-renderer"
+  ]
+}

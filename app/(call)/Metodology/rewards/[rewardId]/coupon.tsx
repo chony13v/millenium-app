@@ -38,6 +38,7 @@ export default function RedemptionCouponScreen() {
       await Clipboard.setStringAsync(redemptionId);
       Alert.alert("Código copiado", "Pégalo si el comercio no puede escanear.");
     } catch (error) {
+      console.warn("copy redemption id failed", error);
       Alert.alert("No pudimos copiar el código");
     }
   };

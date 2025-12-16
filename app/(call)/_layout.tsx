@@ -16,7 +16,7 @@ import {
 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useCitySelection } from "@/hooks/useCitySelection";
-import { CITY_OPTIONS, type CityId } from "@/constants/cities";
+import { CITY_OPTIONS } from "@/constants/cities";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CitySelectionScreen from "@/components/city/CitySelectionScreen";
 import TabIcon from "@/components/navigation/TabIcon";
@@ -31,7 +31,6 @@ export default function CallRoutesLayout() {
   const {
     selectedCity,
     isLoading: isCityLoading,
-    clearCity,
   } = useCitySelection();
 
   const selectedCityInfo = React.useMemo(

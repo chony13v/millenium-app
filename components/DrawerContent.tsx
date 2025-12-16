@@ -55,6 +55,8 @@ const DrawerContent: React.FC<DrawerContentProps> = memo(
   }
 );
 
+DrawerContent.displayName = "DrawerContent";
+
 export default DrawerContent;
 
 const styles = StyleSheet.create({

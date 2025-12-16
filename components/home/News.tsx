@@ -38,48 +38,50 @@ const NewsCard = React.memo(
     onPress: (item: NewsItem) => void;
     disabled: boolean;
   }) => {
-  const [imageLoading, setImageLoading] = useState(true);
+    const [imageLoading, setImageLoading] = useState(true);
 
-  return (
-    <TouchableOpacity
-      onPress={() => onPress(item)}
-      disabled={disabled}
-      activeOpacity={0.7}
-    >
-      <View style={styles.card}>
-        <View style={styles.imageContainer}>
-          {imageLoading && (
-            <ActivityIndicator
-              size="small"
-              color="#0ea5e9"
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: [{ translateX: -10 }, { translateY: -10 }],
-              }}
+    return (
+      <TouchableOpacity
+        onPress={() => onPress(item)}
+        disabled={disabled}
+        activeOpacity={0.7}
+      >
+        <View style={styles.card}>
+          <View style={styles.imageContainer}>
+            {imageLoading && (
+              <ActivityIndicator
+                size="small"
+                color="#0ea5e9"
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: "50%",
+                  transform: [{ translateX: -10 }, { translateY: -10 }],
+                }}
+              />
+            )}
+            <Image
+              source={{ uri: item.imageUrl }}
+              style={styles.image}
+              onLoadStart={() => setImageLoading(true)}
+              onLoadEnd={() => setImageLoading(false)}
             />
-          )}
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.image}
-            onLoadStart={() => setImageLoading(true)}
-            onLoadEnd={() => setImageLoading(false)}
-          />
+          </View>
+          <View style={styles.contentContainer}>
+            <Text style={styles.date}>{item.date}</Text>
+            <Text style={styles.tag}>{item.tag}</Text>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.description} numberOfLines={3}>
+              {item.description}
+            </Text>
+          </View>
         </View>
-        <View style={styles.contentContainer}>
-          <Text style={styles.date}>{item.date}</Text>
-          <Text style={styles.tag}>{item.tag}</Text>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.description} numberOfLines={3}>
-            {item.description}
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-}
+      </TouchableOpacity>
+    );
+  }
 );
+
+NewsCard.displayName = "NewsCard";
 
 export default function News() {
   const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
@@ -164,17 +166,11 @@ export default function News() {
           );
         }
       } else {
-        Alert.alert(
-          "No pudimos registrar tu visita",
-          "Intenta nuevamente."
-        );
+        Alert.alert("No pudimos registrar tu visita", "Intenta nuevamente.");
       }
     } catch (error) {
       console.error("[news] award failed", error);
-      Alert.alert(
-        "No pudimos registrar tu visita",
-        "Intenta nuevamente."
-      );
+      Alert.alert("No pudimos registrar tu visita", "Intenta nuevamente.");
     } finally {
       setProcessingId(null);
       try {

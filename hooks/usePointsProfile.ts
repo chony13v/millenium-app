@@ -12,7 +12,7 @@ import {
   type Unsubscribe,
   where,
 } from "firebase/firestore";
-import { db } from "@/config/FirebaseConfig";
+import { db , auth } from "@/config/FirebaseConfig";
 import { type PointsEventType } from "@/constants/points";
 import {
   SOCIAL_PLATFORMS,
@@ -20,7 +20,6 @@ import {
 } from "@/constants/social";
 import { isSameDay } from "@/utils/date";
 import { ensurePointsProfile } from "@/services/points/pointsProfile";
-import { auth } from "@/config/FirebaseConfig";
 
 export type PointsProfile = {
   total: number;

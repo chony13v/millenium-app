@@ -7,18 +7,16 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons , FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useUser } from "@clerk/clerk-expo";
-import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView , useSafeAreaInsets } from "react-native-safe-area-context";
 import ChangePasswordModal from "@/components/modals/ChangePasswordModal";
 import HelpSupportModal from "@/components/modals/HelpSupportModal";
 import GetHelpModal from "@/components/modals/GetHelpModal";
 import AboutModal from "@/components/modals/AboutModal";
 import { Colors } from "@/constants/colors";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -59,6 +57,7 @@ export default function SettingsScreen() {
       Alert.alert("Éxito", "Contraseña actualizada correctamente");
       setIsChangePasswordVisible(false);
     } catch (error) {
+      console.warn("change password failed", error);
       Alert.alert("Error", "No se pudo actualizar la contraseña");
     }
   };

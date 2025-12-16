@@ -58,7 +58,7 @@ export default function Field() {
     await signInWithCustomToken(auth, token);
   }, [getToken]);
 
-  const handleUpdateLocationBucket = async () => {
+  const handleUpdateLocationBucket = useCallback(async () => {
     if (!firebaseUid) {
       Alert.alert(
         "Inicia sesión",
@@ -99,7 +99,7 @@ export default function Field() {
     } finally {
       setIsUpdatingLocation(false);
     }
-  };
+  }, [firebaseUid, selectedCity, ensureFirebaseSession, user?.primaryEmailAddress?.emailAddress, setUserLocation]);
 
   const listHeader = useMemo(
     () => (
@@ -138,10 +138,8 @@ export default function Field() {
     ),
     [
       handleUpdateLocationBucket,
-      insets.top,
       isUpdatingLocation,
       selectedCityInfo?.title,
-      sortedFieldList.length,
     ]
   );
 

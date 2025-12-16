@@ -35,7 +35,6 @@ export const getPointsForActivity = (
   const value = POINTS_BY_ACTIVITY[key as PointsActivityKey];
   if (typeof value === "number") return value;
   if (isDevEnv) {
-    // eslint-disable-next-line no-console
     console.warn(`[points] No points configured for activity "${key}"`);
   }
   return fallback;

@@ -8,7 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView , useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,7 +18,6 @@ import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileDetails from "@/components/profile/ProfileDetails";
 import { fetchProfile, Profile } from "@/services/profile/profileScreenData";
 import { useProfileImage } from "@/hooks/profile/useProfileImage";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 

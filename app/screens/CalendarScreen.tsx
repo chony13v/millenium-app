@@ -42,30 +42,33 @@ export default function CalendarScreen() {
 
   const handleGoBack = () => router.back();
 
-  const handleDayPress = (day: DateData) => {
-    const date = day.dateString;
-    const event = eventDetails[date];
+  const handleDayPress = useCallback(
+    (day: DateData) => {
+      const date = day.dateString;
+      const event = eventDetails[date];
 
-    if (event) {
-      if (isAdminUser && event.id) {
-        setEditEvent({
-          id: event.id,
-          date,
-          time: event.time || "",
-          description: event.description,
-          cityId: event.cityId ?? selectedCity ?? CITY_OPTIONS[0].id,
-        });
-        setModalVisible(true);
-      } else {
-        const isGlobal = !!event.id;
-        const title = isGlobal ? "Evento" : "DÍA DE PRUEBAS DE SELECCIÓN";
-        const message = isGlobal
-          ? `${event.description}\nHora: ${event.time || "No especificada"}`
-          : `${event.description}`;
-        Alert.alert(title, message);
+      if (event) {
+        if (isAdminUser && event.id) {
+          setEditEvent({
+            id: event.id,
+            date,
+            time: event.time || "",
+            description: event.description,
+            cityId: event.cityId ?? selectedCity ?? CITY_OPTIONS[0].id,
+          });
+          setModalVisible(true);
+        } else {
+          const isGlobal = !!event.id;
+          const title = isGlobal ? "Evento" : "DÍA DE PRUEBAS DE SELECCIÓN";
+          const message = isGlobal
+            ? `${event.description}\nHora: ${event.time || "No especificada"}`
+            : `${event.description}`;
+          Alert.alert(title, message);
+        }
       }
-    }
-  };
+    },
+    [eventDetails, isAdminUser, selectedCity]
+  );
 
   const todayString = useMemo(() => new Date().toISOString().split("T")[0], []);
 

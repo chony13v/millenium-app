@@ -8,7 +8,7 @@ interface LoadingBallProps {
 export default function LoadingBall({
   text = "Cargando...",
 }: LoadingBallProps) {
-  const bounceValue = new Animated.Value(0);
+  const bounceValue = React.useRef(new Animated.Value(0)).current;
 
   React.useEffect(() => {
     Animated.loop(
@@ -27,7 +27,7 @@ export default function LoadingBall({
         }),
       ])
     ).start();
-  }, []);
+  }, [bounceValue]);
 
   const bounce = bounceValue.interpolate({
     inputRange: [0, 1],

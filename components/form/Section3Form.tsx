@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Button, TouchableOpacity, Alert } from "react-native";
-import Checkbox from "expo-checkbox";
+import {Checkbox} from "expo-checkbox";
 
 interface Section3FormProps {
   consentimientoParticipacion: boolean;

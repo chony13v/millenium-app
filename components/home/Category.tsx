@@ -43,6 +43,8 @@ const CategoryCard = React.memo(
   )
 );
 
+CategoryCard.displayName = "CategoryCard";
+
 export default function CategoryIcons() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);

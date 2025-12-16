@@ -50,7 +50,7 @@ const FirebaseSync = () => {
     return () => {
       cancelled = true;
     };
-  }, [getToken, isSignedIn, user?.id]);
+  }, [getToken, isSignedIn, user]);
 
   return null;
 };

@@ -14,7 +14,7 @@ import {
 import { useState, useRef } from "react";
 import { useSignUp } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
-import Checkbox from "expo-checkbox";
+import { Checkbox } from "expo-checkbox";
 import useFonts from "@/hooks/useFonts";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -110,7 +110,7 @@ export default function SignUpScreen() {
       } else {
         console.error(JSON.stringify(completeSignUp, null, 2));
       }
-    } catch (err: any) {
+    } catch {
       Alert.alert(
         "Whoops",
         "Parece que ingresaste un código incorrecto \n\nIntenta de nuevo."
@@ -124,6 +124,7 @@ export default function SignUpScreen() {
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
       Alert.alert("Éxito", "El código de verificación ha sido reenviado.");
     } catch (err: any) {
+      console.warn("[signup] resend verification failed", err);
       Alert.alert(
         "Error",
         "No se pudo reenviar el código. Intenta de nuevo más tarde."

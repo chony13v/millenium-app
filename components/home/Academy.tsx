@@ -129,42 +129,45 @@ export default function Academy() {
     [scrollX]
   );
 
-  const renderVideoContent = (item: VideoItem, index: number) => {
-    if (videoErrors[index]) {
-      return (
-        <View style={[styles.video, styles.fallbackContainer]}>
-          <Text style={styles.errorIcon}>▶</Text>
-          <Text style={styles.errorText}>Video unavailable</Text>
-          <Text style={styles.retryText}>Please try again later</Text>
-        </View>
-      );
-    }
+  const renderVideoContent = useCallback(
+    (item: VideoItem, index: number) => {
+      if (videoErrors[index]) {
+        return (
+          <View style={[styles.video, styles.fallbackContainer]}>
+            <Text style={styles.errorIcon}>▶</Text>
+            <Text style={styles.errorText}>Video unavailable</Text>
+            <Text style={styles.retryText}>Please try again later</Text>
+          </View>
+        );
+      }
 
-    return (
-      <YoutubePlayer
-        height={videoHeight}
-        width={screenWidth * 0.9}
-        play={playing && currentIndex === index}
-        videoId={item.videoId}
-        onChangeState={onStateChange}
-        onError={onError}
-        webViewProps={{
-          androidLayerType: Platform.OS === "android" ? "hardware" : undefined,
-          allowsInlineMediaPlayback: true,
-          mediaPlaybackRequiresUserAction: false,
-          bounces: false,
-        }}
-        initialPlayerParams={{
-          preventFullScreen: false,
-          rel: false,
-          showClosedCaptions: false,
-          modestbranding: true,
-          controls: true,
-          iv_load_policy: 3,
-        }}
-      />
-    );
-  };
+      return (
+        <YoutubePlayer
+          height={videoHeight}
+          width={screenWidth * 0.9}
+          play={playing && currentIndex === index}
+          videoId={item.videoId}
+          onChangeState={onStateChange}
+          onError={onError}
+          webViewProps={{
+            androidLayerType: Platform.OS === "android" ? "hardware" : undefined,
+            allowsInlineMediaPlayback: true,
+            mediaPlaybackRequiresUserAction: false,
+            bounces: false,
+          }}
+          initialPlayerParams={{
+            preventFullScreen: false,
+            rel: false,
+            showClosedCaptions: false,
+            modestbranding: true,
+            controls: true,
+            iv_load_policy: 3,
+          }}
+        />
+      );
+    },
+    [currentIndex, onError, onStateChange, playing, videoErrors]
+  );
 
   const renderVideoItem = useCallback(
     ({ item, index }: { item: VideoItem; index: number }) => {
@@ -191,7 +194,7 @@ export default function Academy() {
         </Animated.View>
       );
     },
-    [currentIndex, playing, onStateChange, scrollX, videoErrors]
+    [renderVideoContent, scrollX]
   );
 
   const renderIndicators = () => {

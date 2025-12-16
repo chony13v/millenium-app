@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
-import { updateImage } from "@/services/profile/profileScreenData";
-import { Profile } from "@/services/profile/profileScreenData";
+import { updateImage , Profile } from "@/services/profile/profileScreenData";
 
 const MAX_BASE64_LENGTH = 1000000;
 

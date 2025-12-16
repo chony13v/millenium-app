@@ -7,7 +7,7 @@ import { type UseMetodologyLogicReturn } from "@/hooks/useMetodologyLogic";
 import { metodologyStyles as styles } from "@/styles/metodology.styles";
 
 export type PointsSectionProps = {
-  actions: ReadonlyArray<PointAction>;
+  actions: readonly PointAction[];
   loading: boolean;
   availability: UseMetodologyLogicReturn["availability"];
   loadingSocialAvailability: boolean;

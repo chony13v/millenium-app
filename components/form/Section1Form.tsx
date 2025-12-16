@@ -12,9 +12,9 @@ interface Section1FormProps {
   informacionMedica: string;
   afiliacionEquipo: string;
   errors: any;
-  dateTimes: Array<{ key: string; label: string }>;
-  positions: Array<{ key: string; label: string }>;
-  cities: Array<{ key: string; label: string }>;
+  dateTimes: { key: string; label: string }[];
+  positions: { key: string; label: string }[];
+  cities: { key: string; label: string }[];
   handleNombreCompletoChange: (text: string) => void;
   handleIdNumberChange: (text: string) => void;
   handleBirthDateChange: (text: string) => void;

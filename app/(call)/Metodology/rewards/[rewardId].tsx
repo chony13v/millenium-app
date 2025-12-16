@@ -249,7 +249,7 @@ export default function RewardDetailScreen() {
     );
 
     return () => unsub();
-  }, [lastRedemption?.id, lastRedemption?.status]);
+  }, [lastRedemption]);
 
   const openQrScreen = (redemptionId: string, qrUrl?: string) => {
     const url = qrUrl || buildRedemptionQrUrl(redemptionId);
