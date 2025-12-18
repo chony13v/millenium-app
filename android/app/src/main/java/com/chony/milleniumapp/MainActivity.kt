@@ -1,7 +1,10 @@
 package com.chony.milleniumapp
 
-import android.os.Build 
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -20,7 +23,17 @@ class MainActivity : ReactActivity() {
     // Setup de React Native
     super.onCreate(null)
 
-    // Ya no hay lógica de Edge-to-Edge aquí
+    // Modern edge-to-edge handling for Android 15+
+    enableEdgeToEdge(
+      statusBarStyle = SystemBarStyle.auto(
+        lightScrim = Color.TRANSPARENT,
+        darkScrim = Color.TRANSPARENT
+      ),
+      navigationBarStyle = SystemBarStyle.auto(
+        lightScrim = Color.TRANSPARENT,
+        darkScrim = Color.TRANSPARENT
+      )
+    )
   }
 
   /** Nombre del componente JS. */

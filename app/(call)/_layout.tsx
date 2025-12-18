@@ -7,6 +7,7 @@ import {
   Keyboard,
   Text,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useAuth } from "@clerk/clerk-expo";
 import {
@@ -20,6 +21,7 @@ import { CITY_OPTIONS } from "@/constants/cities";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CitySelectionScreen from "@/components/city/CitySelectionScreen";
 import TabIcon from "@/components/navigation/TabIcon";
+import { TOURNAMENTS_ENABLED } from "@/config/FeatureFlags";
 
 /* ================================================
    LAYOUT CON TABS SEGÚN CIUDAD SELECCIONADA
@@ -190,6 +192,18 @@ export default function CallRoutesLayout() {
                   size={24}
                 />
               ),
+            }}
+            listeners={{
+              tabPress: (e) => {
+                if (!TOURNAMENTS_ENABLED) {
+                  e.preventDefault();
+                  Alert.alert(
+                    "Inscripciones cerradas",
+                    "Por el momento están cerradas las inscripciones para torneos locales.",
+                    [{ text: "Entendido" }]
+                  );
+                }
+              },
             }}
           />
         </Tabs>
