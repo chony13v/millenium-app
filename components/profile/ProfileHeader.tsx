@@ -54,11 +54,6 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </View>
         </View>
         <View style={styles.rightColumn}>
-          <Text style={styles.metaLabel}>Edad</Text>
-          <Text style={styles.age}>
-            {profile.edad ? `${profile.edad} años` : "N/A"}
-          </Text>
-          <View style={styles.separator} />
           <View style={styles.metaBadge}>
             <Text style={styles.metaBadgeText}>Registro activo</Text>
           </View>
@@ -176,24 +171,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: "barlow-semibold",
     color: "#0ea5e9",
-  },
-  age: {
-    fontSize: 16,
-    fontFamily: "barlow-semibold",
-    color: "#0A2240",
-    marginTop: 6,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: "#e2e8f0",
-    width: "100%",
-    marginVertical: 10,
-  },
-  metaLabel: {
-    fontSize: 12,
-    color: "#64748b",
-    fontFamily: "barlow-medium",
-    letterSpacing: 0.2,
   },
   metaBadge: {
     paddingHorizontal: 12,

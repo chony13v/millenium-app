@@ -46,8 +46,7 @@ export const CitySelectionProvider = ({
   useEffect(() => {
     let isMounted = true;
 
-    // Al cambiar de usuario limpiamos el estado local y recargamos desde su clave
-    setSelectedCity(null);
+    // Evitar resets si la key no cambia
     setIsLoading(true);
     setHasHydrated(false);
 
@@ -55,16 +54,16 @@ export const CitySelectionProvider = ({
       try {
         const storedCity = await AsyncStorage.getItem(storageKey);
 
-        if (storedCity && isMounted) {
-          if (isCityId(storedCity)) {
-            setSelectedCity(storedCity);
-          } else {
-            console.warn(
-              "Valor de ciudad almacenado inválido, limpiando preferencia",
-              storedCity
-            );
-            await AsyncStorage.removeItem(storageKey);
-          }
+        if (!isMounted) return;
+
+        if (storedCity && isCityId(storedCity)) {
+          setSelectedCity((prev) => (prev === storedCity ? prev : storedCity));
+        } else if (storedCity && !isCityId(storedCity)) {
+          console.warn(
+            "Valor de ciudad almacenado inválido, limpiando preferencia",
+            storedCity
+          );
+          await AsyncStorage.removeItem(storageKey);
         }
       } catch (error) {
         console.warn("No se pudo cargar la ciudad almacenada", error);

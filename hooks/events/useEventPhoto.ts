@@ -7,45 +7,78 @@ import { processReportPhoto } from "@/services/report/processReportPhoto";
 export const useEventPhoto = () => {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
+  const handleAsset = useCallback(
+    async (asset: ImagePicker.ImagePickerAsset | undefined) => {
+      if (!asset?.uri) return null;
+      try {
+        return await processReportPhoto(asset.uri);
+      } catch (pickerError) {
+        console.warn("No se pudo procesar la foto del evento", pickerError);
+        Alert.alert(
+          "No se pudo adjuntar",
+          "Intenta nuevamente o elige otra imagen."
+        );
+        return null;
+      }
+    },
+    []
+  );
+
   const pickFromLibrary = useCallback(async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permiso requerido",
+          "Necesitamos acceso a tus fotos para adjuntar una imagen."
+        );
+        return null;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        selectionLimit: 1,
+      });
+
+      if (result.canceled) return null;
+
+      return handleAsset(result.assets?.[0]);
+    } catch (pickerError) {
+      console.warn("No se pudo abrir la galería", pickerError);
       Alert.alert(
-        "Permiso requerido",
-        "Necesitamos acceso a tus fotos para adjuntar una imagen."
+        "No se pudo abrir la galería",
+        "Intenta nuevamente para adjuntar tu foto."
       );
       return null;
     }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-
-    if (result.canceled || !result.assets?.[0]?.uri) return null;
-
-    return processReportPhoto(result.assets[0].uri);
-  }, []);
+  }, [handleAsset]);
 
   const takePhoto = useCallback(async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso de cámara",
-        "Autoriza la cámara para tomar una foto."
-      );
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permiso de cámara",
+          "Autoriza la cámara para tomar una foto."
+        );
+        return null;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+      });
+
+      if (result.canceled) return null;
+
+      return handleAsset(result.assets?.[0]);
+    } catch (pickerError) {
+      console.warn("No se pudo abrir la cámara", pickerError);
+      Alert.alert("No se pudo abrir la cámara", "Intenta tomar la foto otra vez.");
       return null;
     }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-
-    if (result.canceled || !result.assets?.[0]?.uri) return null;
-
-    return processReportPhoto(result.assets[0].uri);
-  }, []);
+  }, [handleAsset]);
 
   const pickPhoto = useCallback(() => {
     Alert.alert("Adjuntar foto", "Elige cómo agregar la imagen", [

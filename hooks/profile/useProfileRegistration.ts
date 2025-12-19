@@ -21,7 +21,7 @@ type RootStackParamList = {
   "(call)": undefined;
 };
 
-export const useProfileRegistration = () => {
+export const useProfileRegistration = (enabled: boolean = true) => {
   const { user } = useUser();
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { firebaseUid, loadingFirebaseUid } = useFirebaseUid();
@@ -42,11 +42,12 @@ export const useProfileRegistration = () => {
   );
 
   useEffect(() => {
+    if (!enabled) return;
     WebBrowser.warmUpAsync();
     return () => {
       WebBrowser.coolDownAsync();
     };
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     const checkExistingRegistration = async () => {
@@ -69,10 +70,13 @@ export const useProfileRegistration = () => {
         setIsLoading(false);
       }
     };
-    checkExistingRegistration();
-  }, [navigation, user]);
+    if (enabled) {
+      checkExistingRegistration();
+    }
+  }, [enabled, navigation, user]);
 
   useEffect(() => {
+    if (!enabled) return;
     const show = Keyboard.addListener("keyboardDidShow", () =>
       setKeyboardVisible(true)
     );
@@ -83,7 +87,7 @@ export const useProfileRegistration = () => {
       show.remove();
       hide.remove();
     };
-  }, []);
+  }, [enabled]);
 
   const handleCancelRegistration = useCallback(() => {
     Alert.alert("Cancelar registro", "¿Seguro deseas cancelar?", [
@@ -162,26 +166,11 @@ export const useProfileRegistration = () => {
     }
   }, [
     firebaseUid,
+    loadingFirebaseUid,
     navigation,
-    section1.afiliacionEquipo,
-    section1.birthDate,
-    section1.calculateAge,
-    section1.idNumber,
-    section1.informacionMedica,
-    section1.nombreCompleto,
-    section1.selectedCity,
-    section1.selectedDateTime,
-    section1.selectedPosition,
-    section2.economicSituation,
-    section2.parentEmail,
-    section2.parentFullName,
-    section2.parentPhoneNumber,
-    section2.relationship,
-    section3.acuerdoPrivacidad,
-    section3.autorizacionFotos,
-    section3.consentimientoParticipacion,
-    section3.esRiobambeno,
-    section3.validateSection3,
+    section1,
+    section2,
+    section3,
     user,
   ]);
 

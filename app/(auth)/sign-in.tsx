@@ -35,7 +35,13 @@ export default function SignInScreen() {
             >
               <View style={styles.buttonContent}>
                 <Ionicons name="mail-outline" size={20} color="#ffffff" />
-                <Text style={styles.buttonText}>Continuar con tu email</Text>
+                <Text
+                  style={styles.buttonText}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
+                  Continuar con tu email
+                </Text>
               </View>
             </TouchableOpacity>
             <View style={styles.separatorContainer}>
@@ -102,12 +108,16 @@ const styles = StyleSheet.create({
   buttonContent: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    paddingHorizontal: 16,
   },
   buttonText: {
     color: "#ffffff",
-    fontSize: 17,
+    fontSize: 16,
     fontFamily: "barlow-medium",
     marginLeft: 10,
+    flexShrink: 1,
   },
   separatorContainer: {
     flexDirection: "row",

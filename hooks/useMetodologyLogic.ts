@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Linking, Platform, Share, type ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import * as Clipboard from "expo-clipboard";
@@ -35,14 +35,11 @@ const APP_STORE_URL =
   process.env.EXPO_PUBLIC_APP_STORE_URL || process.env.APP_STORE_URL || "";
 const APP_DL_BASE_URL =
   process.env.EXPO_PUBLIC_APP_DL_BASE_URL || process.env.APP_DL_BASE_URL || "";
-const REFERRER_REWARD_POINTS =
-  Number(process.env.EXPO_PUBLIC_REFERRER_REWARD_POINTS) ||
-  getPointsForActivity("referral_reward_referrer");
 const REDEEMER_REWARD_POINTS =
   Number(process.env.EXPO_PUBLIC_REDEEMER_REWARD_POINTS) ||
   getPointsForActivity("referral_reward_redeemer");
 
-export const useMetodologyLogic = () => {
+export const useMetodologyLogic = (enabled: boolean = true) => {
   const router = useRouter();
   const { user } = useUser();
   const { firebaseUid } = useFirebaseUid();
@@ -81,7 +78,8 @@ export const useMetodologyLogic = () => {
     refreshSocialAvailability,
   } = usePointsProfile(
     firebaseUid,
-    user?.primaryEmailAddress?.emailAddress ?? null
+    user?.primaryEmailAddress?.emailAddress ?? null,
+    enabled
   );
 
   const {
@@ -92,8 +90,9 @@ export const useMetodologyLogic = () => {
   } = useOfficialSocialLinks();
 
   useEffect(() => {
+    if (!enabled) return;
     setHasAwardToday(socialAvailability);
-  }, [socialAvailability]);
+  }, [enabled, socialAvailability]);
 
   useEffect(() => {
     const loadCode = async () => {
@@ -111,22 +110,17 @@ export const useMetodologyLogic = () => {
       }
     };
 
-    loadCode();
-  }, [firebaseUid]);
-
-  useEffect(() => {
-    if (socialLinksError) {
-      console.warn("[social] No se pudieron cargar las redes oficiales", {
-        socialLinksError,
-      });
+    if (enabled) {
+      loadCode();
     }
-  }, [socialLinksError]);
+  }, [enabled, firebaseUid]);
 
   useEffect(() => {
-    if (!socialModalVisible) return;
-    refreshSocialLinks();
-    refreshSocialAvailability();
-  }, [socialModalVisible, refreshSocialLinks, refreshSocialAvailability]);
+    if (!enabled || !socialLinksError) return;
+    console.warn("[social] No se pudieron cargar las redes oficiales", {
+      socialLinksError,
+    });
+  }, [enabled, socialLinksError]);
 
   const greeting = user?.firstName || user?.fullName || "Jugador de Ciudad FC";
 
@@ -177,6 +171,7 @@ export const useMetodologyLogic = () => {
         "No pudimos generar tu código ahora. Intenta nuevamente."
       );
     } catch (error: any) {
+      console.warn("[referral] referral_code_request_failed", error);
       Alert.alert(
         "No disponible",
         "El servicio de referidos no está disponible ahora. Inténtalo más tarde."
@@ -249,6 +244,7 @@ export const useMetodologyLogic = () => {
           linkType: "dynamic",
         });
       } catch (copyError) {
+        console.warn("[referral] copy fallback failed", copyError);
         Alert.alert("No se pudo compartir. Inténtalo nuevamente.");
       }
     } finally {
@@ -421,18 +417,41 @@ export const useMetodologyLogic = () => {
         );
         return;
       }
-      try {
-        await Promise.all([refreshSocialLinks(), refreshSocialAvailability()]);
-      } catch {
-        // best effort; modal seguirá mostrando el estado actual
-      }
       setSocialModalVisible(true);
+      // best effort refresh en segundo plano para mantener datos frescos sin bloquear el modal
+      void refreshSocialLinks();
       return;
     }
 
     if (action.eventType === "streak_bonus") {
-      // Lleva al inicio de la pestaña para ver progreso/racha sin mostrar alertas
-      scrollRef.current?.scrollTo({ y: 0, animated: true });
+      const targetY = pointsSectionY ?? 0;
+      scrollRef.current?.scrollTo({ y: targetY, animated: true });
+      return;
+    }
+
+    if (action.eventType === "app_open_daily") {
+      try {
+        const result = await awardActionEvent(action, firebaseUid);
+        if (result.success) {
+          Alert.alert("Listo", "Sumamos tus 5 puntos de ingreso diario.");
+        } else if (result.alreadyAwardedToday) {
+          Alert.alert(
+            "Puntos ya acreditados",
+            "Tus 5 puntos diarios ya fueron sumados hoy."
+          );
+        } else {
+          Alert.alert(
+            "No pudimos sumar puntos",
+            result.message ?? "Intenta nuevamente en unos segundos."
+          );
+        }
+      } catch (error) {
+        console.warn("[points] daily award failed", error);
+        Alert.alert(
+          "No pudimos sumar puntos",
+          "Intenta nuevamente en unos segundos."
+        );
+      }
       return;
     }
 
@@ -443,6 +462,7 @@ export const useMetodologyLogic = () => {
         "Registramos tu intento. Se validará elegibilidad y sumará puntos si corresponde."
       );
     } catch (error) {
+      console.warn("[points] award action failed", error);
       Alert.alert(
         "No disponible",
         "Aún no conectamos esta acción a puntos."

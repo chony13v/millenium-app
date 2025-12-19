@@ -1,7 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useMemo } from "react";
+import { StyleSheet, Text, View } from "react-native";
 import Svg, { Circle, Defs, LinearGradient, Stop } from "react-native-svg";
 import { useIsFocused } from "@react-navigation/native";
+import Animated, {
+  Easing,
+  Extrapolation,
+  interpolate,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from "react-native-reanimated";
 
 type RingColors = {
   track: string;
@@ -26,7 +37,10 @@ type Props = {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
+const clamp01 = (value: number) => {
+  "worklet";
+  return Math.min(Math.max(value, 0), 1);
+};
 
 export const CircularPointsRing: React.FC<Props> = ({
   progress,
@@ -41,12 +55,9 @@ export const CircularPointsRing: React.FC<Props> = ({
   showDots = true,
 }) => {
   const clampedProgress = clamp01(progress);
-  const animatedProgress = useRef(new Animated.Value(0)).current;
-  const animatedStrokeOffset = useRef(new Animated.Value(0)).current;
   const isFocused = useIsFocused();
   const center = size / 2;
-  const [endPoint, setEndPoint] = useState({ x: center, y: center });
-  const rafRef = useRef<number | null>(null);
+  const progressSV = useSharedValue(clampedProgress);
 
   const radius = useMemo(
     () => Math.max((size - strokeWidth) / 2, 0),
@@ -54,6 +65,11 @@ export const CircularPointsRing: React.FC<Props> = ({
   );
   const circumference = useMemo(() => 2 * Math.PI * radius, [radius]);
   const dotSize = Math.max(strokeWidth * 0.45, 5);
+  const gapRadians = useMemo(
+    () => (Math.min(Math.max(gapDegrees, 0), 330) * Math.PI) / 180,
+    [gapDegrees]
+  );
+  const gapHalf = gapRadians > 0 ? (circumference * (gapDegrees / 360)) / 2 : 0;
   const gapLength = useMemo(() => {
     const clampedGap = Math.min(Math.max(gapDegrees, 0), 330);
     return circumference * (clampedGap / 360);
@@ -82,94 +98,44 @@ export const CircularPointsRing: React.FC<Props> = ({
     });
   }, [center, radius]);
 
-  const animateStroke = useCallback(() => {
-    const targetProgress = clampedProgress;
-    const targetOffset = (1 - targetProgress) * circumference;
-    animatedProgress.setValue(0);
-    animatedStrokeOffset.setValue(circumference);
-    Animated.parallel([
-      Animated.timing(animatedProgress, {
-        toValue: targetProgress,
-        duration: 1500,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: false,
-      }),
-      Animated.timing(animatedStrokeOffset, {
-        toValue: targetOffset,
-        duration: 1500,
-        easing: Easing.inOut(Easing.cubic),
-        useNativeDriver: false,
-      }),
-    ]).start();
-  }, [animatedProgress, animatedStrokeOffset, circumference, clampedProgress]);
-
   useEffect(() => {
     if (!isFocused) return;
-    animateStroke();
-  }, [animateStroke, isFocused, progress]);
-
-  const updateEndPoint = useCallback(
-    (value: number) => {
-      const gapRadians = (Math.min(Math.max(gapDegrees, 0), 330) * Math.PI) / 180;
-      const angleRange = 2 * Math.PI - gapRadians;
-      const start = -Math.PI / 2 + gapRadians / 2;
-      const angle = start + clamp01(value) * angleRange;
-      const x = center + radius * Math.cos(angle);
-      const y = center + radius * Math.sin(angle);
-      setEndPoint((prev) =>
-        Math.abs(prev.x - x) < 0.5 && Math.abs(prev.y - y) < 0.5
-          ? prev
-          : { x, y }
-      );
-    },
-    [center, gapDegrees, radius]
-  );
-
-  useEffect(() => {
-    updateEndPoint(clampedProgress);
-  }, [clampedProgress, updateEndPoint]);
-
-  useEffect(() => {
-    const listenerId = animatedProgress.addListener(({ value }) => {
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      rafRef.current = requestAnimationFrame(() => updateEndPoint(value));
+    progressSV.value = withTiming(clampedProgress, {
+      duration: 1500,
+      easing: Easing.inOut(Easing.cubic),
     });
-    return () => {
-      animatedProgress.removeListener(listenerId);
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-      }
-    };
-  }, [animatedProgress, updateEndPoint]);
+  }, [clampedProgress, isFocused, progressSV]);
 
-  const trackOpacity = useMemo(
-    () =>
-      animatedProgress.interpolate({
-        inputRange: [0, 0.3, 0.7, 1],
-        outputRange: [0.22, 0.18, 0.12, 0.1],
-        extrapolate: "clamp",
-      }),
-    [animatedProgress]
+  const strokeOffset = useDerivedValue(
+    () => (1 - progressSV.value) * circumference
   );
-  const highlightOpacity = useMemo(
-    () =>
-      animatedProgress.interpolate({
-        inputRange: [0, 0.3, 0.7, 1],
-        outputRange: [0.14, 0.12, 0.08, 0.06],
-        extrapolate: "clamp",
-      }),
-    [animatedProgress]
+  const strokeDashoffsetValue = useDerivedValue(
+    () => (gapHalf > 0 ? strokeOffset.value + gapHalf : strokeOffset.value)
   );
-  const textureOpacity = useMemo(
-    () =>
-      animatedProgress.interpolate({
-        inputRange: [0, 0.3, 0.7, 1],
-        outputRange: [0.1, 0.09, 0.06, 0.04],
-        extrapolate: "clamp",
-      }),
-    [animatedProgress]
+
+  const trackOpacity = useDerivedValue(() =>
+    interpolate(
+      progressSV.value,
+      [0, 0.3, 0.7, 1],
+      [0.22, 0.18, 0.12, 0.1],
+      Extrapolation.CLAMP
+    )
+  );
+  const highlightOpacity = useDerivedValue(() =>
+    interpolate(
+      progressSV.value,
+      [0, 0.3, 0.7, 1],
+      [0.14, 0.12, 0.08, 0.06],
+      Extrapolation.CLAMP
+    )
+  );
+  const textureOpacity = useDerivedValue(() =>
+    interpolate(
+      progressSV.value,
+      [0, 0.3, 0.7, 1],
+      [0.1, 0.09, 0.06, 0.04],
+      Extrapolation.CLAMP
+    )
   );
   const highlightStrokeWidth = Math.max(1, strokeWidth * 0.25);
   const textureStrokeWidth = Math.max(1, strokeWidth * 0.18);
@@ -177,6 +143,37 @@ export const CircularPointsRing: React.FC<Props> = ({
     1,
     strokeWidth * 1.0
   )}`;
+
+  const endX = useDerivedValue(() => {
+    const angleRange = 2 * Math.PI - gapRadians;
+    const start = -Math.PI / 2 + gapRadians / 2;
+    const angle = start + clamp01(progressSV.value) * angleRange;
+    return center + radius * Math.cos(angle);
+  });
+
+  const endY = useDerivedValue(() => {
+    const angleRange = 2 * Math.PI - gapRadians;
+    const start = -Math.PI / 2 + gapRadians / 2;
+    const angle = start + clamp01(progressSV.value) * angleRange;
+    return center + radius * Math.sin(angle);
+  });
+
+  const trackAnimatedProps = useAnimatedProps(() => ({
+    opacity: trackOpacity.value,
+  }));
+  const highlightAnimatedProps = useAnimatedProps(() => ({
+    opacity: highlightOpacity.value,
+  }));
+  const textureAnimatedProps = useAnimatedProps(() => ({
+    opacity: textureOpacity.value,
+  }));
+  const progressAnimatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: strokeDashoffsetValue.value,
+  }));
+  const endPointAnimatedProps = useAnimatedProps(() => ({
+    cx: endX.value,
+    cy: endY.value,
+  }));
 
   const dots = useMemo(() => {
     return Array.from({ length: dotCount }).map((_, index) => {
@@ -222,7 +219,7 @@ export const CircularPointsRing: React.FC<Props> = ({
           r={radius}
           stroke="url(#trackGradient)"
           strokeWidth={strokeWidth + 2}
-          opacity={trackOpacity}
+          animatedProps={trackAnimatedProps}
           fill="none"
           strokeLinecap="round"
           strokeDasharray={dashArray}
@@ -234,7 +231,7 @@ export const CircularPointsRing: React.FC<Props> = ({
           r={radius}
           stroke="rgba(255,255,255,0.10)"
           strokeWidth={highlightStrokeWidth}
-          opacity={highlightOpacity}
+          animatedProps={highlightAnimatedProps}
           fill="none"
           strokeLinecap="round"
           strokeDasharray={dashArray}
@@ -246,7 +243,7 @@ export const CircularPointsRing: React.FC<Props> = ({
           r={radius}
           stroke="rgba(255,255,255,0.06)"
           strokeWidth={textureStrokeWidth}
-          opacity={textureOpacity}
+          animatedProps={textureAnimatedProps}
           fill="none"
           strokeLinecap="round"
           strokeDasharray={textureDashArray}
@@ -262,11 +259,7 @@ export const CircularPointsRing: React.FC<Props> = ({
           fill="none"
           strokeLinecap="round"
           strokeDasharray={dashArray}
-          strokeDashoffset={
-            gapLength > 0
-              ? Animated.add(animatedStrokeOffset, gapLength / 2)
-              : animatedStrokeOffset
-          }
+          animatedProps={progressAnimatedProps}
           rotation={-90}
           origin={`${center}, ${center}`}
         />
@@ -279,79 +272,34 @@ export const CircularPointsRing: React.FC<Props> = ({
           fill="none"
           strokeLinecap="round"
           strokeDasharray={dashArray}
-          strokeDashoffset={
-            gapLength > 0
-              ? Animated.add(animatedStrokeOffset, gapLength / 2)
-              : animatedStrokeOffset
-          }
+          animatedProps={progressAnimatedProps}
           rotation={-90}
           origin={`${center}, ${center}`}
         />
-        <Circle
-          cx={endPoint.x}
-          cy={endPoint.y}
+        <AnimatedCircle
           r={strokeWidth * 0.7}
           fill={colors.progress}
           opacity={0.22}
+          animatedProps={endPointAnimatedProps}
         />
-        <Circle
-          cx={endPoint.x}
-          cy={endPoint.y}
+        <AnimatedCircle
           r={strokeWidth * 0.42}
           fill="#ffffff"
           opacity={1}
+          animatedProps={endPointAnimatedProps}
         />
       </Svg>
 
       {showDots &&
-        dots.map((dot) => {
-          const opacity = animatedProgress.interpolate({
-            inputRange: [dot.ratio - 0.001, dot.ratio, dot.ratio + 0.001],
-            outputRange: [0.12, 0.12, 1],
-            extrapolate: "clamp",
-          });
-          const scale = animatedProgress.interpolate({
-            inputRange: [dot.ratio - 0.001, dot.ratio, dot.ratio + 0.001],
-            outputRange: [0.85, 0.85, 1.25],
-            extrapolate: "clamp",
-          });
-
-          return (
-            <View
-              key={dot.key}
-              style={[
-                styles.dot,
-                {
-                  width: dotSize,
-                  height: dotSize,
-                  left: dot.x - dotSize / 2,
-                  top: dot.y - dotSize / 2,
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.dotCircle,
-                  {
-                    backgroundColor: colors.dotInactive,
-                    borderRadius: dotSize / 2,
-                  },
-                ]}
-              />
-              <Animated.View
-                style={[
-                  styles.dotCircle,
-                  {
-                    backgroundColor: colors.dotActive,
-                    opacity,
-                    transform: [{ scale }],
-                    borderRadius: dotSize / 2,
-                  },
-                ]}
-              />
-            </View>
-          );
-        })}
+        dots.map((dot) => (
+          <Dot
+            key={dot.key}
+            dot={dot}
+            dotSize={dotSize}
+            colors={colors}
+            progressSV={progressSV}
+          />
+        ))}
 
       <View style={styles.centerContent}>
         <Text style={styles.title}>{title}</Text>
@@ -388,6 +336,75 @@ export const CircularPointsRing: React.FC<Props> = ({
     </View>
   );
 };
+
+type DotProps = {
+  dot: { ratio: number; x: number; y: number };
+  dotSize: number;
+  colors: RingColors;
+  progressSV: SharedValue<number>;
+};
+
+const AnimatedView = Animated.createAnimatedComponent(View);
+
+const Dot = React.memo(({ dot, dotSize, colors, progressSV }: DotProps) => {
+  const animatedStyle = useAnimatedStyle(
+    () => ({
+      opacity: interpolate(
+        progressSV.value,
+        [dot.ratio - 0.001, dot.ratio, dot.ratio + 0.001],
+        [0.12, 0.12, 1],
+        Extrapolation.CLAMP
+      ),
+      transform: [
+        {
+          scale: interpolate(
+            progressSV.value,
+            [dot.ratio - 0.001, dot.ratio, dot.ratio + 0.001],
+            [0.85, 0.85, 1.25],
+            Extrapolation.CLAMP
+          ),
+        },
+      ],
+    }),
+    [dot.ratio, progressSV]
+  );
+
+  return (
+    <View
+      style={[
+        styles.dot,
+        {
+          width: dotSize,
+          height: dotSize,
+          left: dot.x - dotSize / 2,
+          top: dot.y - dotSize / 2,
+        },
+      ]}
+    >
+      <View
+        style={[
+          styles.dotCircle,
+          {
+            backgroundColor: colors.dotInactive,
+            borderRadius: dotSize / 2,
+          },
+        ]}
+      />
+      <AnimatedView
+        style={[
+          styles.dotCircle,
+          {
+            backgroundColor: colors.dotActive,
+            borderRadius: dotSize / 2,
+          },
+          animatedStyle,
+        ]}
+      />
+    </View>
+  );
+});
+
+Dot.displayName = "Dot";
 
 const styles = StyleSheet.create({
   ringContainer: {

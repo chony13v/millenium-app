@@ -1,5 +1,6 @@
 import React from "react";
 import { StyleSheet, View } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
@@ -17,6 +18,7 @@ import { CITIES, POSITIONS } from "@/constants/formConstants";
 import { useProfileRegistration } from "@/hooks/profile/useProfileRegistration";
 
 export default function Profile() {
+  const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
   const {
     currentSection,
@@ -35,7 +37,7 @@ export default function Profile() {
     termsModalVisible,
     user,
     validateAndNext,
-  } = useProfileRegistration();
+  } = useProfileRegistration(isFocused);
 
   if (isLoading) {
     return (

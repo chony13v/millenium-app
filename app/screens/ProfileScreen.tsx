@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   Image,
   ScrollView,
   TouchableOpacity,
@@ -13,124 +12,17 @@ import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useUser } from "@clerk/clerk-expo";
-import LoadingBall from "@/components/LoadingBall";
-import ProfileHeader from "@/components/profile/ProfileHeader";
-import ProfileDetails from "@/components/profile/ProfileDetails";
-import { fetchProfile, Profile } from "@/services/profile/profileScreenData";
 import { useProfileImage } from "@/hooks/profile/useProfileImage";
-import { useCitySelection } from "@/hooks/useCitySelection";
-import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 
 export default function ProfileScreen() {
   const { user } = useUser();
   const navigation = useNavigation();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const { firebaseUid, loadingFirebaseUid } = useFirebaseUid();
-  // Align with safe areas and selected city for visuals
   const insets = useSafeAreaInsets();
-  const { selectedCity } = useCitySelection();
 
-  const { isImageLoading, handleChangeImage } = useProfileImage({
-    userId: firebaseUid ?? user?.id,
-    onProfileUpdated: (updatedProfile) => setProfile(updatedProfile),
+  const { handleChangeImage } = useProfileImage({
+    userId: user?.id,
+    onProfileUpdated: () => {},
   });
-
-  useEffect(() => {
-    const loadProfile = async () => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
-      if (loadingFirebaseUid) {
-        return;
-      }
-
-      setIsLoading(true);
-      try {
-        const uid = firebaseUid ?? user.id;
-        if (!uid) {
-          setIsLoading(false);
-          return;
-        }
-        const fetchedProfile = await fetchProfile(uid);
-        setProfile(fetchedProfile);
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [user, firebaseUid, loadingFirebaseUid]);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#4630EB" />
-          <LoadingBall text="Cargando perfil..." />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <SafeAreaView style={styles.safeArea}>
-        <ScrollView
-          contentContainerStyle={[
-            styles.emptyContent,
-            { paddingBottom: 24 + insets.bottom },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <LinearGradient
-            colors={["#0A2240", "#0ea5e9"]}
-            start={[0, 0]}
-            end={[1, 1]}
-            style={[styles.heroCard, { paddingTop: insets.top + 6 }]}
-          >
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={22} color="white" />
-            </TouchableOpacity>
-            <Text style={styles.heroTitle}>Mi perfil</Text>
-            <Text style={styles.heroSubtitle}>
-              Completa tu registro para sincronizar tu cuenta con Ciudad FC y el
-              resto de la experiencia.
-            </Text>
-          </LinearGradient>
-
-          <View style={styles.card}>
-            <TouchableOpacity onPress={handleChangeImage} activeOpacity={0.9}>
-              <Image source={{ uri: user?.imageUrl }} style={styles.avatar} />
-            </TouchableOpacity>
-            <Text style={styles.userName}>{user?.fullName}</Text>
-            <Text style={styles.userEmail}>
-              {user?.primaryEmailAddress?.emailAddress}
-            </Text>
-            <Text style={styles.registrationText}>
-              Aún no tienes un registro activo. Completa el formulario para
-              continuar.
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={styles.secondaryButton}
-              activeOpacity={0.9}
-            >
-              <Text style={styles.secondaryButtonText}>Ir a registrar</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -154,22 +46,21 @@ export default function ProfileScreen() {
             >
               <Ionicons name="arrow-back" size={22} color="white" />
             </TouchableOpacity>
-            <Text style={styles.heroTitle}>Mi perfil</Text>
-          </View>
-          <Text style={styles.heroSubtitle}>
+          <Text style={styles.heroTitle}>Mi perfil</Text>
+        </View>
+        <Text style={styles.heroSubtitle}>
             Visualiza tu registro para participar en el Torneo.
+        </Text>
+      </LinearGradient>
+        <View style={styles.card}>
+          <TouchableOpacity onPress={handleChangeImage} activeOpacity={0.9}>
+            <Image source={{ uri: user?.imageUrl }} style={styles.avatar} />
+          </TouchableOpacity>
+          <Text style={styles.userName}>{user?.fullName}</Text>
+          <Text style={styles.userEmail}>
+            {user?.primaryEmailAddress?.emailAddress}
           </Text>
-        </LinearGradient>
-
-        <ProfileHeader
-          profile={profile}
-          email={user?.primaryEmailAddress?.emailAddress}
-          userImageUrl={user?.imageUrl || undefined}
-          onChangeImage={handleChangeImage}
-          isImageLoading={isImageLoading}
-        />
-
-        <ProfileDetails profile={profile} selectedCity={selectedCity} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

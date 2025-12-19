@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Animated,
   ScrollView,
@@ -56,6 +56,21 @@ const buildInitials = (
   return "CF";
 };
 
+type SponsorItem = {
+  id: string;
+  onPress: () => void;
+  label: string;
+  source: any;
+  gradient?: string[];
+};
+
+const CARD_WIDTH = 300;
+const CARD_HEIGHT = 200;
+const CARD_SPACING = 18;
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+const DEFAULT_SPONSOR_GRADIENT = ["#f8fafc", "#e2e8f0", "#cbd5e1"];
+
 export default function HomeScreen() {
   const drawerRef = useRef<DrawerLayout>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
@@ -66,90 +81,109 @@ export default function HomeScreen() {
   const fontsLoaded = useFonts();
   const [isSignOutVisible, setIsSignOutVisible] = useState(false);
 
-  const handleCalendarPress = () => {
+  const handleCalendarPress = useCallback(() => {
     router.push("/screens/CalendarScreen");
-  };
+  }, [router]);
 
-  const handleProfilePress = () => {
+  const handleProfilePress = useCallback(() => {
     router.push("/screens/ProfileScreen");
-  };
+  }, [router]);
 
-  const handleSettingsPress = () => {
+  const handleSettingsPress = useCallback(() => {
     router.push("/screens/SettingsScreen");
-  };
+  }, [router]);
 
-  const handleSignOutPress = () => {
+  const handleSignOutPress = useCallback(() => {
     setIsSignOutVisible(true);
-  };
+  }, []);
 
-  const handleOpenBgr = () => {
+  const handleCloseSignOut = useCallback(() => {
+    setIsSignOutVisible(false);
+  }, []);
+
+  const handleOpenBgr = useCallback(() => {
     logSponsorClick({
       sponsorId: "bgr",
       url: "https://www.bgr.com.ec/",
       userId: firebaseUid,
     });
     Linking.openURL("https://www.bgr.com.ec/").catch(() => {});
-  };
+  }, [firebaseUid]);
 
-  const handleOpenRiobamba = () => {
+  const handleOpenRiobamba = useCallback(() => {
     logSponsorClick({
       sponsorId: "alcaldia_riobamba",
       url: "https://www.gadmriobamba.gob.ec/",
       userId: firebaseUid,
     });
     Linking.openURL("https://www.gadmriobamba.gob.ec/").catch(() => {});
-  };
+  }, [firebaseUid]);
 
-  const handleOpenMillenium = () => {
+  const handleOpenMillenium = useCallback(() => {
     logSponsorClick({
       sponsorId: "millenium_fc",
       url: "https://www.milleniumfc.com/",
       userId: firebaseUid,
     });
     Linking.openURL("https://www.milleniumfc.com/").catch(() => {});
-  };
+  }, [firebaseUid]);
 
-  const handleGoToClub = () => {
+  const handleGoToClub = useCallback(() => {
     router.navigate("/(call)/Metodology?scrollTo=profile");
-  };
+  }, [router]);
 
-  type SponsorItem = {
-    id: string;
-    onPress: () => void;
-    label: string;
-    source: any;
-    gradient?: string[];
-  };
+  const handleOpenDrawer = useCallback(() => {
+    drawerRef.current?.openDrawer();
+  }, []);
 
-  const sponsorItems: SponsorItem[] = [
-    {
-      id: "alcaldia",
-      onPress: handleOpenRiobamba,
-      label: "Abrir Alcaldía de Riobamba",
-      source: require("@/assets/images/logo_alcaldiaRiobamba.png"),
-      gradient: undefined,
-    },
-    {
-      id: "millenium",
-      onPress: handleOpenMillenium,
-      label: "Abrir Millenium FC",
-      source: require("@/assets/images/MFC_Logo.png"),
-      gradient: ["#7f5283", "#7f5283", "#7f5283"],
-    },
-    {
-      id: "bgr",
-      onPress: handleOpenBgr,
-      label: "Abrir BGR",
-      source: require("@/assets/images/bgr_logo.png"),
-      gradient: undefined,
-    },
-  ] as const;
+  const renderNavigationView = useCallback(
+    () => (
+      <DrawerContent
+        onCalendarPress={handleCalendarPress}
+        onProfilePress={handleProfilePress}
+        onSettingsPress={handleSettingsPress}
+        onSignOutPress={handleSignOutPress}
+      />
+    ),
+    [
+      handleCalendarPress,
+      handleProfilePress,
+      handleSettingsPress,
+      handleSignOutPress,
+    ]
+  );
 
-  const CARD_WIDTH = 300;
-  const CARD_HEIGHT = 200;
-  const CARD_SPACING = 18;
-  const { width: SCREEN_WIDTH } = Dimensions.get("window");
-  const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2;
+  const sponsorItems: SponsorItem[] = useMemo(
+    () => [
+      {
+        id: "alcaldia",
+        onPress: handleOpenRiobamba,
+        label: "Abrir Alcaldía de Riobamba",
+        source: require("@/assets/images/logo_alcaldiaRiobamba.png"),
+        gradient: undefined,
+      },
+      {
+        id: "millenium",
+        onPress: handleOpenMillenium,
+        label: "Abrir Millenium FC",
+        source: require("@/assets/images/MFC_Logo.png"),
+        gradient: ["#7f5283", "#7f5283", "#7f5283"],
+      },
+      {
+        id: "bgr",
+        onPress: handleOpenBgr,
+        label: "Abrir BGR",
+        source: require("@/assets/images/bgr_logo.png"),
+        gradient: undefined,
+      },
+    ],
+    [handleOpenRiobamba, handleOpenMillenium, handleOpenBgr]
+  );
+
+  const contentContainerStyle = useMemo(
+    () => [styles.content, { paddingBottom: 32 + insets.bottom }],
+    [insets.bottom]
+  );
 
   if (!fontsLoaded) {
     return <LoadingBall text="Cargando..." />;
@@ -162,129 +196,31 @@ export default function HomeScreen() {
         drawerWidth={250}
         drawerPosition="left"
         drawerType="slide"
-        renderNavigationView={() => (
-          <DrawerContent
-            onCalendarPress={handleCalendarPress}
-            onProfilePress={handleProfilePress}
-            onSettingsPress={handleSettingsPress}
-            onSignOutPress={handleSignOutPress}
-          />
-        )}
+        renderNavigationView={renderNavigationView}
       >
         <View style={styles.screen}>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={[
-              styles.content,
-              { paddingBottom: 32 + insets.bottom },
-            ]}
+            contentContainerStyle={contentContainerStyle}
           >
-            <View style={styles.heroCard}>
-              <View style={styles.heroTopRow}>
-                <TouchableOpacity
-                  onPress={() => drawerRef.current?.openDrawer()}
-                  style={styles.menuButton}
-                  activeOpacity={0.9}
-                >
-                  <Ionicons name="menu" size={22} color="#0f172a" />
-                </TouchableOpacity>
-                <Text style={styles.brandTitle}>CIUDAD FC</Text>
-                <TouchableOpacity
-                  onPress={handleGoToClub}
-                  activeOpacity={0.85}
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                >
-                  <View style={styles.initialsBadge}>
-                    <Text style={styles.greetingText}>
-                      {buildInitials(
-                        user?.firstName,
-                        user?.lastName,
-                        user?.fullName
-                      )}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              <Text style={styles.heroSubtitle}>
-                Participa y vive el deporte y la cultura en tu ciudad
-              </Text>
-            </View>
+            <HeroHeader
+              onOpenDrawer={handleOpenDrawer}
+              onGoToClub={handleGoToClub}
+              initials={buildInitials(
+                user?.firstName,
+                user?.lastName,
+                user?.fullName
+              )}
+            />
             <View style={styles.logoContainer}>
               <Text style={styles.sponsorLabel}>AUSPICIANTES</Text>
-              <Animated.FlatList
-                data={sponsorItems}
-                keyExtractor={(item) => item.id}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                snapToInterval={CARD_WIDTH + CARD_SPACING}
-                decelerationRate="fast"
-                snapToAlignment="center"
-                pagingEnabled={false}
-                disableIntervalMomentum
-                contentContainerStyle={[
-                  styles.sponsorScroll,
-                  { paddingHorizontal: SIDE_PADDING },
-                ]}
-                renderItem={({ item, index }) => {
-                  const inputRange = [
-                    (index - 1) * (CARD_WIDTH + CARD_SPACING),
-                    index * (CARD_WIDTH + CARD_SPACING),
-                    (index + 1) * (CARD_WIDTH + CARD_SPACING),
-                  ];
-                  const scale = scrollX.interpolate({
-                    inputRange,
-                    outputRange: [0.9, 1, 0.92],
-                    extrapolate: "clamp",
-                  });
-                  const opacity = scrollX.interpolate({
-                    inputRange,
-                    outputRange: [0.65, 1, 0.7],
-                    extrapolate: "clamp",
-                  });
-                  return (
-                    <Animated.View
-                      style={[
-                        styles.sponsorCard,
-                        {
-                          width: CARD_WIDTH,
-                          height: CARD_HEIGHT,
-                          marginHorizontal: CARD_SPACING / 2,
-                          transform: [{ scale }],
-                          opacity,
-                        },
-                      ]}
-                    >
-                      <TouchableOpacity
-                        onPress={item.onPress}
-                        activeOpacity={0.9}
-                        accessibilityRole="link"
-                        accessibilityLabel={item.label}
-                        style={styles.sponsorCardInner}
-                      >
-                        <LinearGradient
-                          colors={
-                            item.gradient ? [...item.gradient] : ["#f8fafc", "#e2e8f0", "#cbd5e1"]
-                          }
-                          start={[0, 0]}
-                          end={[0, 1]}
-                          style={styles.sponsorCardGradient}
-                        >
-                          <Image
-                            source={item.source}
-                            style={styles.sponsorLogo}
-                            resizeMode="contain"
-                          />
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </Animated.View>
-                  );
-                }}
-                onScroll={Animated.event(
-                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                  { useNativeDriver: true }
-                )}
-                scrollEventThrottle={16}
+              <SponsorCarousel
+                items={sponsorItems}
+                scrollX={scrollX}
+                cardWidth={CARD_WIDTH}
+                cardHeight={CARD_HEIGHT}
+                cardSpacing={CARD_SPACING}
+                sidePadding={SIDE_PADDING}
               />
             </View>
 
@@ -330,11 +266,163 @@ export default function HomeScreen() {
       </DrawerLayout>
       <SignOutDialog
         visible={isSignOutVisible}
-        onClose={() => setIsSignOutVisible(false)}
+        onClose={handleCloseSignOut}
       />
     </GestureHandlerRootView>
   );
 }
+
+type HeroHeaderProps = {
+  onOpenDrawer: () => void;
+  onGoToClub: () => void;
+  initials: string;
+};
+
+const HeroHeader = React.memo(
+  ({ onOpenDrawer, onGoToClub, initials }: HeroHeaderProps) => (
+    <View style={styles.heroCard}>
+      <View style={styles.heroTopRow}>
+        <TouchableOpacity
+          onPress={onOpenDrawer}
+          style={styles.menuButton}
+          activeOpacity={0.9}
+        >
+          <Ionicons name="menu" size={22} color="#0f172a" />
+        </TouchableOpacity>
+        <Text style={styles.brandTitle}>CIUDAD FC</Text>
+        <TouchableOpacity
+          onPress={onGoToClub}
+          activeOpacity={0.85}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <View style={styles.initialsBadge}>
+            <Text style={styles.greetingText}>{initials}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.heroSubtitle}>
+        Participa y vive el deporte y la cultura en tu ciudad
+      </Text>
+    </View>
+  )
+);
+
+HeroHeader.displayName = "HeroHeader";
+
+type SponsorCarouselProps = {
+  items: SponsorItem[];
+  scrollX: Animated.Value;
+  cardWidth: number;
+  cardHeight: number;
+  cardSpacing: number;
+  sidePadding: number;
+};
+
+const SponsorCarousel = React.memo(
+  ({
+    items,
+    scrollX,
+    cardWidth,
+    cardHeight,
+    cardSpacing,
+    sidePadding,
+  }: SponsorCarouselProps) => {
+    const contentStyle = useMemo(
+      () => [styles.sponsorScroll, { paddingHorizontal: sidePadding }],
+      [sidePadding]
+    );
+
+    const handleScroll = useMemo(
+      () =>
+        Animated.event(
+          [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+          { useNativeDriver: true }
+        ),
+      [scrollX]
+    );
+
+    const renderSponsorItem = useCallback<
+      ({ item, index }: { item: SponsorItem; index: number }) => React.ReactElement
+    >(
+      ({ item, index }) => {
+        const inputRange = [
+          (index - 1) * (cardWidth + cardSpacing),
+          index * (cardWidth + cardSpacing),
+          (index + 1) * (cardWidth + cardSpacing),
+        ];
+        const scale = scrollX.interpolate({
+          inputRange,
+          outputRange: [0.9, 1, 0.92],
+          extrapolate: "clamp",
+        });
+        const opacity = scrollX.interpolate({
+          inputRange,
+          outputRange: [0.65, 1, 0.7],
+          extrapolate: "clamp",
+        });
+        const gradientColors = item.gradient ?? DEFAULT_SPONSOR_GRADIENT;
+
+        return (
+          <Animated.View
+            style={[
+              styles.sponsorCard,
+              {
+                width: cardWidth,
+                height: cardHeight,
+                marginHorizontal: cardSpacing / 2,
+                transform: [{ scale }],
+                opacity,
+              },
+            ]}
+          >
+            <TouchableOpacity
+              onPress={item.onPress}
+              activeOpacity={0.9}
+              accessibilityRole="link"
+              accessibilityLabel={item.label}
+              style={styles.sponsorCardInner}
+            >
+              <LinearGradient
+                colors={gradientColors}
+                start={[0, 0]}
+                end={[0, 1]}
+                style={styles.sponsorCardGradient}
+              >
+                <Image
+                  source={item.source}
+                  style={styles.sponsorLogo}
+                  resizeMode="contain"
+                />
+              </LinearGradient>
+            </TouchableOpacity>
+          </Animated.View>
+        );
+      },
+      [cardHeight, cardSpacing, cardWidth, scrollX]
+    );
+
+    return (
+      <Animated.FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        snapToInterval={cardWidth + cardSpacing}
+        decelerationRate="fast"
+        snapToAlignment="center"
+        pagingEnabled={false}
+        disableIntervalMomentum
+        contentContainerStyle={contentStyle}
+        renderItem={renderSponsorItem}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      />
+    );
+  }
+);
+
+SponsorCarousel.displayName = "SponsorCarousel";
 
 const styles = StyleSheet.create({
   screen: {

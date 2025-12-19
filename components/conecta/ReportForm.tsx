@@ -47,7 +47,6 @@ export const ReportForm = ({
   <View style={styles.sectionCard}>
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Reportes ciudadanos</Text>
-      <Text style={[styles.sectionPill, styles.sectionPillOrange]}>Nuevo</Text>
     </View>
     <Text style={styles.sectionDescription}>
       Cuéntanos qué ocurre en tu cancha o en los espacios deportivos cercanos.

@@ -36,9 +36,9 @@ export type PointsSectionProps = {
 export const PointsSection: React.FC<PointsSectionProps> = ({
   actions,
   loading,
-  availability,
+  availability: _availability,
   loadingSocialAvailability,
-  hasAwardToday,
+  hasAwardToday: _hasAwardToday,
   onActionPress,
   onCatalogPress,
   onLayout,
@@ -69,13 +69,6 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.participationBadgeRow}>
-        <View style={styles.participationBadgeLabel}>
-          <Text style={styles.participationBadgeText}>Participación</Text>
-        </View>
-        <View style={styles.participationBadgeArrow} />
-      </View>
-
       {typeof streakCount === "number" && (
         <TouchableOpacity
           activeOpacity={0.85}
@@ -90,12 +83,6 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
 
       {actions.map((action) => {
         const isSocialAction = action.eventType === "social_follow";
-        const isSocialBlocked = Object.values(hasAwardToday).every(
-          (status) => status === "blocked"
-        );
-        const isBlocked = isSocialAction
-          ? isSocialBlocked
-          : availability[action.eventType] === "blocked";
         const iconName = ACTION_ICONS[action.id] ?? "check-circle";
         return (
           <View key={action.id}>
@@ -103,11 +90,9 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
               style={[
                 styles.actionCard,
                 styles.actionCardPlain,
-                isBlocked && styles.actionCardDisabled,
               ]}
               disabled={
                 loading ||
-                isBlocked ||
                 (isSocialAction && (loadingSocialAvailability || loading))
               }
               onPress={() => onActionPress(action)}
@@ -154,10 +139,10 @@ export const PointsSection: React.FC<PointsSectionProps> = ({
                   style={[
                     styles.statusBadge,
                     styles.statusBadgeRaised,
-                    isBlocked ? styles.badgeBlocked : styles.badgeAvailable,
+                    styles.badgeAvailable,
                   ]}
                 >
-                  {isBlocked ? "No disponible" : "Disponible"}
+                  Disponible
                 </Text>
               </View>
             </TouchableOpacity>

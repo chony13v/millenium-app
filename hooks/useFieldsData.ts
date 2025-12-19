@@ -74,7 +74,8 @@ interface UseFieldsDataResult {
 
 export const useFieldsData = (
   selectedCity: CityId | null,
-  hasHydrated: boolean
+  hasHydrated: boolean,
+  enabled: boolean = true
 ): UseFieldsDataResult => {
   const [fieldList, setFieldList] = useState<FieldItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,8 +148,9 @@ export const useFieldsData = (
   }, []);
 
   useEffect(() => {
+    const timeouts = imageLoadTimeouts.current;
     return () => {
-      Object.values(imageLoadTimeouts.current).forEach((timeoutId) => {
+      Object.values(timeouts).forEach((timeoutId) => {
         clearTimeout(timeoutId);
       });
     };
@@ -160,6 +162,7 @@ export const useFieldsData = (
 
   useFocusEffect(
     useCallback(() => {
+      if (!enabled) return;
       const now = Date.now();
       const lastPrompt = lastPromptTimeRef.current;
 
@@ -167,11 +170,11 @@ export const useFieldsData = (
         lastPromptTimeRef.current = now;
         void requestLocation();
       }
-    }, [requestLocation])
+    }, [enabled, requestLocation])
   );
 
   useEffect(() => {
-    if (!hasHydrated) {
+    if (!enabled || !hasHydrated) {
       return;
     }
 
@@ -221,10 +224,11 @@ export const useFieldsData = (
     return () => {
       isActive = false;
     };
-  }, [selectedCity, hasHydrated]);
+  }, [enabled, selectedCity, hasHydrated]);
 
   const calculateDistances = useCallback(
     (fields: FieldItem[]) => {
+      if (!enabled) return;
       if (!userLocation) return;
 
       const newDistances: { [key: string]: number } = {};
@@ -242,16 +246,18 @@ export const useFieldsData = (
       });
       setDistances(newDistances);
     },
-    [userLocation]
+    [enabled, userLocation]
   );
 
   useEffect(() => {
+    if (!enabled) return;
     if (userLocation && fieldList.length > 0) {
       calculateDistances(fieldList);
     }
-  }, [userLocation, fieldList, calculateDistances]);
+  }, [enabled, userLocation, fieldList, calculateDistances]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (fieldList.length === 0) {
       return;
     }
@@ -289,7 +295,7 @@ export const useFieldsData = (
       isMounted = false;
       prefetchTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
     };
-  }, [fieldList]);
+  }, [enabled, fieldList]);
 
   const sortedFieldList = useMemo(() => {
     if (!distances || fieldList.length === 0) return fieldList;
@@ -338,8 +344,9 @@ export const useFieldsData = (
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     void requestLocation();
-  }, [requestLocation]);
+  }, [enabled, requestLocation]);
 
   return {
     fieldList,

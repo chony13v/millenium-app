@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -44,7 +45,11 @@ export default function RedemptionCouponScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -92,7 +97,7 @@ export default function RedemptionCouponScreen() {
           <Text style={styles.copyButtonText}>Copiar código</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -100,7 +105,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f8fafc",
+  },
+  contentContainer: {
     padding: 16,
+    paddingBottom: 28,
   },
   header: {
     flexDirection: "row",
@@ -122,7 +130,6 @@ const styles = StyleSheet.create({
     color: "#0f172a",
   },
   card: {
-    flex: 1,
     backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,

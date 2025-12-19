@@ -13,6 +13,8 @@ import { awardPointsEvent } from "@/services/points/awardPoints";
 import { processReportPhoto } from "@/services/report/processReportPhoto";
 import { validateDescription } from "@/utils/reportValidation";
 
+type PickerAsset = ImagePicker.ImagePickerAsset | undefined;
+
 interface UseReportFormParams {
   selectedCity: CityId | null;
   storage: FirebaseStorage;
@@ -34,6 +36,25 @@ export const useReportForm = ({
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [submittingReport, setSubmittingReport] = useState(false);
   const [locationLoading, setLocationLoading] = useState(false);
+
+  const handleAsset = useCallback(
+    async (asset: PickerAsset) => {
+      if (!asset?.uri) return;
+      try {
+        const processed = await processReportPhoto(asset.uri);
+        if (processed) {
+          setPhotoUri(processed);
+        }
+      } catch (pickerError) {
+        console.warn("No se pudo procesar la foto del reporte", pickerError);
+        Alert.alert(
+          "No se pudo adjuntar",
+          "Intenta nuevamente o elige otra imagen."
+        );
+      }
+    },
+    [setPhotoUri]
+  );
 
   const uploadPhotoIfNeeded = useCallback(async () => {
     if (!photoUri) return null;
@@ -139,50 +160,58 @@ export const useReportForm = ({
   }, []);
 
   const pickFromLibrary = useCallback(async () => {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso requerido",
-        "Necesitamos acceso a tus fotos para adjuntar una imagen."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      const processed = await processReportPhoto(result.assets[0].uri);
-      if (processed) {
-        setPhotoUri(processed);
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permiso requerido",
+          "Necesitamos acceso a tus fotos para adjuntar una imagen."
+        );
+        return;
       }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        selectionLimit: 1,
+      });
+
+      if (result.canceled) return;
+
+      await handleAsset(result.assets?.[0]);
+    } catch (pickerError) {
+      console.warn("No se pudo abrir la galería", pickerError);
+      Alert.alert(
+        "No se pudo abrir la galería",
+        "Intenta nuevamente para adjuntar tu foto."
+      );
     }
-  }, []);
+  }, [handleAsset]);
 
   const takePhoto = useCallback(async () => {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        "Permiso de cámara",
-        "Autoriza la cámara para tomar una foto."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ["images"],
-      quality: 0.7,
-    });
-
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      const processed = await processReportPhoto(result.assets[0].uri);
-      if (processed) {
-        setPhotoUri(processed);
+    try {
+      const permission = await ImagePicker.requestCameraPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          "Permiso de cámara",
+          "Autoriza la cámara para tomar una foto."
+        );
+        return;
       }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+      });
+
+      if (result.canceled) return;
+
+      await handleAsset(result.assets?.[0]);
+    } catch (pickerError) {
+      console.warn("No se pudo abrir la cámara", pickerError);
+      Alert.alert("No se pudo abrir la cámara", "Intenta tomar la foto otra vez.");
     }
-  }, []);
+  }, [handleAsset]);
 
   const pickPhoto = useCallback(() => {
     Alert.alert("Adjuntar foto", "Elige cómo agregar la imagen", [

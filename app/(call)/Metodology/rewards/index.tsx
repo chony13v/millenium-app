@@ -126,7 +126,10 @@ export default function RewardsCatalogScreen({
         <FlatList
           data={rewards}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[
+            styles.listContent,
+            { paddingBottom: insets.bottom + 12 },
+          ]}
           renderItem={({ item }) => (
             <RewardCard reward={item} onPress={handleRewardPress} />
           )}

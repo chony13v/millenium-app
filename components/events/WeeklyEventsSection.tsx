@@ -32,7 +32,6 @@ export const WeeklyEventsSection = ({
   <View style={styles.sectionCard}>
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>Eventos semanales gratuitos</Text>
-      <Text style={[styles.sectionPill, styles.sectionPillAlt]}>Nuevo</Text>
     </View>
     <Text style={styles.sectionDescription}>
       Participa en las actividades de la semana. Sube una foto, comparte tu

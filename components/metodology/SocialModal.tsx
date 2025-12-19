@@ -91,10 +91,10 @@ export const SocialModal: React.FC<SocialModalProps> = ({
                 <Text
                   style={[
                     styles.statusBadge,
-                    isBlocked ? styles.badgeBlocked : styles.badgeAvailable,
+                    styles.badgeAvailable,
                   ]}
                 >
-                  {isBlocked ? "No disponible" : "Disponible"}
+                  Disponible
                 </Text>
                 {isProcessing ? (
                   <Text style={styles.processingText}>Enviando...</Text>

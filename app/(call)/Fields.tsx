@@ -6,13 +6,16 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  Platform,
+  type ListRenderItem,
 } from "react-native";
+import { useIsFocused } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useUser, useAuth } from "@clerk/clerk-expo";
 import LoadingBall from "@/components/LoadingBall";
 import { useCitySelection } from "@/hooks/useCitySelection";
 import { updateUserLocationBucket } from "@/services/location/updateUserLocationBucket";
-import { useFieldsData } from "@/hooks/useFieldsData";
+import { useFieldsData, type FieldItem } from "@/hooks/useFieldsData";
 import FieldCard from "@/components/fields/FieldCard";
 import { getAuth, signInWithCustomToken } from "firebase/auth";
 import { CITY_OPTIONS } from "@/constants/cities";
@@ -20,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFirebaseUid } from "@/hooks/useFirebaseUid";
 
 export default function Field() {
+  const isFocused = useIsFocused();
   const { selectedCity, hasHydrated } = useCitySelection();
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -39,7 +43,7 @@ export default function Field() {
     handleImageError,
     setUserLocation,
     requestLocation,
-  } = useFieldsData(selectedCity, hasHydrated);
+  } = useFieldsData(selectedCity, hasHydrated, isFocused);
 
   const selectedCityInfo = useMemo(
     () => CITY_OPTIONS.find((city) => city.id === selectedCity),
@@ -143,6 +147,32 @@ export default function Field() {
     ]
   );
 
+  const keyExtractor = useCallback((item: FieldItem) => item.id, []);
+
+  const renderFieldItem = useCallback<ListRenderItem<FieldItem>>(
+    ({ item }) => (
+      <FieldCard
+        item={item}
+        distance={distances[item.id]}
+        isImageLoading={imageLoading[item.id]}
+        isImageError={imageError[item.id]}
+        hasPrefetchedImage={prefetchStatus[item.id] === "loaded"}
+        onLoadStart={handleImageLoadStart}
+        onLoadEnd={handleImageLoadEnd}
+        onError={handleImageError}
+      />
+    ),
+    [
+      distances,
+      imageLoading,
+      imageError,
+      prefetchStatus,
+      handleImageLoadStart,
+      handleImageLoadEnd,
+      handleImageError,
+    ]
+  );
+
   if (!hasHydrated) {
     return <LoadingBall text="Cargando ciudades..." />;
   }
@@ -180,19 +210,8 @@ export default function Field() {
     <FlatList
       ListHeaderComponent={listHeader}
       data={sortedFieldList}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <FieldCard
-          item={item}
-          distance={distances[item.id]}
-          isImageLoading={imageLoading[item.id]}
-          isImageError={imageError[item.id]}
-          hasPrefetchedImage={prefetchStatus[item.id] === "loaded"}
-          onLoadStart={handleImageLoadStart}
-          onLoadEnd={handleImageLoadEnd}
-          onError={handleImageError}
-        />
-      )}
+      keyExtractor={keyExtractor}
+      renderItem={renderFieldItem}
       style={styles.list}
       contentContainerStyle={[
         styles.listContent,
@@ -200,10 +219,11 @@ export default function Field() {
       ]}
       showsVerticalScrollIndicator={false}
       scrollEnabled={true}
-      removeClippedSubviews={true}
-      maxToRenderPerBatch={3}
-      initialNumToRender={3}
-      windowSize={3}
+      removeClippedSubviews={Platform.OS === "android"}
+      maxToRenderPerBatch={8}
+      initialNumToRender={8}
+      windowSize={7}
+      updateCellsBatchingPeriod={50}
       onRefresh={requestLocation}
       refreshing={false}
     />

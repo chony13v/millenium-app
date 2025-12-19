@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, ScrollView, Text, TouchableOpacity, View } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams } from "expo-router";
 
@@ -24,6 +24,7 @@ export default function Metodology() {
   const hasScrolledToAnchor = useRef(false);
   const shouldScrollToTop = useRef(false);
   const currentOffsetY = useRef(0);
+  const isFocused = useIsFocused();
   const {
     greeting,
     profile,
@@ -63,7 +64,7 @@ export default function Metodology() {
     memberSince,
     confettiKey,
     handleConfettiComplete,
-  } = useMetodologyLogic();
+  } = useMetodologyLogic(isFocused);
 
   useEffect(() => {
     hasScrolledToAnchor.current = false;
@@ -192,7 +193,6 @@ export default function Metodology() {
       {activeTab === "catalog" ? (
         <CatalogTab
           tabBar={tabBar}
-          contentPaddingBottom={insets.bottom + 20}
           onBackToRewards={() => handleTabPress("rewards")}
         />
       ) : (
@@ -284,10 +284,14 @@ export default function Metodology() {
 
 const CatalogTab: React.FC<{
   tabBar: React.ReactNode;
-  contentPaddingBottom: number;
   onBackToRewards: () => void;
-}> = ({ tabBar, contentPaddingBottom, onBackToRewards }) => (
-  <View style={[styles.container, { paddingBottom: contentPaddingBottom }]}>
+}> = ({ tabBar, onBackToRewards }) => (
+  <View
+    style={[
+      styles.container,
+      { paddingBottom: 0, backgroundColor: "#f8fafc" },
+    ]}
+  >
     <View style={[styles.content, { paddingBottom: 0 }]}>{tabBar}</View>
     <View style={{ flex: 1 }}>
       <RewardsCatalogScreen onBack={onBackToRewards} />
